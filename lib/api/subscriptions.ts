@@ -5,69 +5,52 @@ import type {
 	ChangePlanRequest,
 	CheckCanGenerateResponse,
 	TokenUsageSummary,
+	TokenUsageLogList,
 } from "@/types";
+import { createServiceFetch, ApiError, type FetchOptions } from "./fetch-with-retry";
 
 const SUBSCRIPTIONS_API_URL = process.env.NEXT_PUBLIC_SUBSCRIPTIONS_URL || "http://localhost:8082";
+const serviceFetch = createServiceFetch(SUBSCRIPTIONS_API_URL);
 
-class SubscriptionsApiError extends Error {
-	constructor(public status: number, message: string) {
-		super(message);
+class SubscriptionsApiError extends ApiError {
+	constructor(status: number, message: string, code?: string) {
+		super(status, message, code);
 		this.name = "SubscriptionsApiError";
 	}
 }
 
 async function fetchSubscriptionsApi<T>(
 	endpoint: string,
-	options?: RequestInit & { skipContentType?: boolean }
+	options?: FetchOptions
 ): Promise<T> {
-	const url = `${SUBSCRIPTIONS_API_URL}${endpoint}`;
-	const { skipContentType, ...fetchOptions } = options || {};
-
-	const headers: HeadersInit = {
-		...fetchOptions?.headers,
-	};
-
-	if (!skipContentType && fetchOptions?.body) {
-		(headers as Record<string, string>)["Content-Type"] = "application/json";
+	try {
+		return await serviceFetch<T>(endpoint, options);
+	} catch (error) {
+		if (error instanceof ApiError) {
+			throw new SubscriptionsApiError(error.status, error.message, error.code);
+		}
+		throw error;
 	}
-
-	const response = await fetch(url, {
-		...fetchOptions,
-		headers,
-	});
-
-	if (response.status === 204) {
-		return {} as T;
-	}
-
-	const data = await response.json();
-
-	if (!response.ok) {
-		throw new SubscriptionsApiError(response.status, data.error || "An error occurred");
-	}
-
-	return data;
 }
 
 async function fetchWithAuth<T>(
 	endpoint: string,
 	accessToken: string,
 	tenantId?: string,
-	options?: RequestInit & { skipContentType?: boolean }
+	options?: FetchOptions
 ): Promise<T> {
-	const headers: HeadersInit = {
-		...(options?.headers || {}),
-		Authorization: `Bearer ${accessToken}`,
-	};
-
-	if (tenantId) {
-		(headers as Record<string, string>)["X-Tenant-ID"] = tenantId;
+	try {
+		return await serviceFetch<T>(endpoint, {
+			...options,
+			accessToken,
+			tenantId,
+		});
+	} catch (error) {
+		if (error instanceof ApiError) {
+			throw new SubscriptionsApiError(error.status, error.message, error.code);
+		}
+		throw error;
 	}
-
-	return fetchSubscriptionsApi<T>(endpoint, {
-		...options,
-		headers,
-	});
 }
 
 export const subscriptionsApi = {
@@ -176,7 +159,23 @@ export const subscriptionsApi = {
 		const queryString = params.toString() ? `?${params.toString()}` : "";
 
 		return fetchWithAuth<TokenUsageSummary>(
-			`/api/v1/usage/summary${queryString}`,
+			`/api/v1/usage${queryString}`,
+			accessToken,
+			tenantId,
+			{
+				method: "GET",
+				skipContentType: true,
+			}
+		);
+	},
+
+	getUsageLogs: async (accessToken: string, tenantId: string, limit: number = 10, offset: number = 0) => {
+		const params = new URLSearchParams();
+		params.append("limit", limit.toString());
+		params.append("offset", offset.toString());
+
+		return fetchWithAuth<TokenUsageLogList>(
+			`/api/v1/usage/logs?${params.toString()}`,
 			accessToken,
 			tenantId,
 			{
@@ -203,6 +202,28 @@ export const subscriptionsApi = {
 				skipContentType: true,
 			}
 		);
+	},
+
+	getAnalytics: async (accessToken: string) => {
+		return fetchWithAuth<{
+			subscriptions: {
+				totalSubscriptions: number;
+				activeSubscriptions: number;
+				trialSubscriptions: number;
+				canceledThisMonth: number;
+				newThisMonth: number;
+				mrr: number;
+				averageCheck: number;
+			};
+			planDistribution: Array<{
+				planId: string;
+				planName: string;
+				count: number;
+			}>;
+		}>("/api/v1/admin/analytics", accessToken, undefined, {
+			method: "GET",
+			skipContentType: true,
+		});
 	},
 };
 

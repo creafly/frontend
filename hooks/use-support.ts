@@ -11,6 +11,9 @@ import type {
 	TicketStatus,
 	TicketPriority,
 	TicketCategory,
+	FlaggedRequestStatus,
+	FlaggedRequestSeverity,
+	ReviewFlaggedRequestRequest,
 } from "@/types/support";
 
 function useSupportApi() {
@@ -18,7 +21,7 @@ function useSupportApi() {
 	return createSupportApiClient(tokens?.accessToken || null);
 }
 
-export function useMyTickets(params?: { status?: TicketStatus; page?: number; pageSize?: number }) {
+export function useMyTickets(params?: { status?: TicketStatus; offset?: number; limit?: number }) {
 	const api = useSupportApi();
 	const { isAuthenticated } = useAuth();
 
@@ -33,8 +36,8 @@ export function useAllTickets(params?: {
 	status?: TicketStatus;
 	priority?: TicketPriority;
 	category?: TicketCategory;
-	page?: number;
-	pageSize?: number;
+	offset?: number;
+	limit?: number;
 }) {
 	const api = useSupportApi();
 	const { isAuthenticated } = useAuth();
@@ -147,8 +150,8 @@ export function useAdminTickets(params?: {
 	status?: TicketStatus;
 	priority?: TicketPriority;
 	category?: TicketCategory;
-	page?: number;
-	pageSize?: number;
+	offset?: number;
+	limit?: number;
 }) {
 	const api = useSupportApi();
 	const { isAuthenticated } = useAuth();
@@ -222,7 +225,7 @@ export function useAdminCreateMessage() {
 	});
 }
 
-export function useAdminErrorReports(params?: { page?: number; pageSize?: number }) {
+export function useAdminErrorReports(params?: { offset?: number; limit?: number }) {
 	const api = useSupportApi();
 	const { isAuthenticated } = useAuth();
 
@@ -252,6 +255,72 @@ export function useAdminDeleteErrorReports() {
 		mutationFn: (ids: string[]) => api.admin.errorReports.bulkDelete(ids),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["admin-error-reports"] });
+		},
+	});
+}
+
+export function useFlaggedRequests(params?: {
+	status?: FlaggedRequestStatus;
+	severity?: FlaggedRequestSeverity;
+	offset?: number;
+	limit?: number;
+}) {
+	const api = useSupportApi();
+	const { isAuthenticated } = useAuth();
+
+	return useQuery({
+		queryKey: ["flagged-requests", params],
+		queryFn: () => api.admin.flaggedRequests.list(params),
+		enabled: isAuthenticated,
+	});
+}
+
+export function useFlaggedRequestStats() {
+	const api = useSupportApi();
+	const { isAuthenticated } = useAuth();
+
+	return useQuery({
+		queryKey: ["flagged-request-stats"],
+		queryFn: () => api.admin.flaggedRequests.getStats(),
+		enabled: isAuthenticated,
+	});
+}
+
+export function useFlaggedRequest(id: string) {
+	const api = useSupportApi();
+	const { isAuthenticated } = useAuth();
+
+	return useQuery({
+		queryKey: ["flagged-request", id],
+		queryFn: () => api.admin.flaggedRequests.get(id),
+		enabled: isAuthenticated && !!id,
+	});
+}
+
+export function useReviewFlaggedRequest() {
+	const queryClient = useQueryClient();
+	const api = useSupportApi();
+
+	return useMutation({
+		mutationFn: ({ id, request }: { id: string; request: ReviewFlaggedRequestRequest }) =>
+			api.admin.flaggedRequests.review(id, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({ queryKey: ["flagged-request", variables.id] });
+			queryClient.invalidateQueries({ queryKey: ["flagged-requests"] });
+			queryClient.invalidateQueries({ queryKey: ["flagged-request-stats"] });
+		},
+	});
+}
+
+export function useDeleteFlaggedRequest() {
+	const queryClient = useQueryClient();
+	const api = useSupportApi();
+
+	return useMutation({
+		mutationFn: (id: string) => api.admin.flaggedRequests.delete(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["flagged-requests"] });
+			queryClient.invalidateQueries({ queryKey: ["flagged-request-stats"] });
 		},
 	});
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useState, useCallback } from "react";
+import { use, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "motion/react";
 import {
 	IconArrowLeft,
 	IconLoader2,
@@ -12,11 +13,24 @@ import {
 	IconPhoto,
 	IconFileText,
 	IconCopy,
+	IconSquareCheck,
+	IconSquare,
+	IconX,
+	IconCloudUpload,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
+import { Icon, TypographyH1, TypographyMuted, TypographyP } from "@/components/typography";
 import { useResolveTenantSlug, useTenant, useCurrentSubscription, usePlan } from "@/hooks/use-api";
-import { useFiles, useUploadFile, useDeleteFile, useGetPresignedUrl } from "@/hooks/use-storage";
+import {
+	useFiles,
+	useUploadFile,
+	useDeleteFile,
+	useBatchDeleteFiles,
+	useGetPresignedUrl,
+	useStorageUsage,
+} from "@/hooks/use-storage";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { CardPagination } from "@/components/ui/card-pagination";
 import {
@@ -29,7 +43,17 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+	Empty,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+	EmptyDescription,
+	EmptyContent,
+} from "@/components/ui/empty";
 import type { StorageFile } from "@/types/storage";
+import Container from "@/components/container";
+import { cn } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -43,12 +67,12 @@ function formatFileSize(bytes: number): string {
 
 function getFileIcon(contentType: string) {
 	if (contentType.startsWith("image/")) {
-		return <IconPhoto className="h-8 w-8 text-blue-500" />;
+		return <Icon icon={IconPhoto} size="xl" className="text-info" />;
 	}
 	if (contentType === "application/pdf") {
-		return <IconFileText className="h-8 w-8 text-red-500" />;
+		return <Icon icon={IconFileText} size="xl" className="text-destructive" />;
 	}
-	return <IconFile className="h-8 w-8 text-gray-500" />;
+	return <Icon icon={IconFile} size="xl" className="text-muted-foreground" />;
 }
 
 export default function StoragePage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,6 +83,10 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 	const [isUploading, setIsUploading] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [copyingFileId, setCopyingFileId] = useState<string | null>(null);
+	const [isSelectionMode, setIsSelectionMode] = useState(false);
+	const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+	const [isDragOver, setIsDragOver] = useState(false);
+	const dropZoneRef = useRef<HTMLDivElement>(null);
 
 	const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 	const { data: resolvedTenant, isLoading: isResolving } = useResolveTenantSlug(
@@ -67,22 +95,28 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 	const resolvedTenantId = isUUID ? id : resolvedTenant?.id;
 
 	const { data: tenantData, isLoading: isTenantLoading } = useTenant(resolvedTenantId);
-	const { data: filesData, isLoading: isFilesLoading } = useFiles(resolvedTenantId || "");
+	const { data: filesData, isLoading: isFilesLoading } = useFiles(resolvedTenantId || "", {
+		limit: ITEMS_PER_PAGE,
+		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+	});
 	const { data: subscription } = useCurrentSubscription(resolvedTenantId || "");
 	const { data: plan } = usePlan(subscription?.planId || "");
 
 	const uploadFile = useUploadFile();
 	const deleteFile = useDeleteFile();
+	const batchDeleteFiles = useBatchDeleteFiles();
 	const getPresignedUrl = useGetPresignedUrl();
+	const { data: storageUsageData } = useStorageUsage(resolvedTenantId || "");
 
 	const tenant = tenantData?.tenant;
-	const allFiles = filesData?.files || [];
+	const files = filesData?.files || [];
+	const totalFiles = filesData?.total || 0;
 	const storageLimit = plan?.storageLimit || 100 * 1024 * 1024;
 	const isLoading = isResolving || isTenantLoading || isFilesLoading;
 
-	const totalPages = Math.ceil(allFiles.length / ITEMS_PER_PAGE);
-	const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-	const files = allFiles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+	const totalPages = Math.ceil(totalFiles / ITEMS_PER_PAGE);
+
+	const totalSize = storageUsageData?.used || 0;
 
 	const handleFileUpload = useCallback(
 		async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,9 +130,9 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 					file,
 					fileType: file.type.startsWith("image/") ? "image" : "document",
 				});
-				toast.success(t.storage?.uploadSuccess || "File uploaded successfully");
+				toast.success(t.storage.uploadSuccess);
 			} catch {
-				toast.error(t.storage?.uploadFailed || "Failed to upload file");
+				toast.error(t.storage.uploadFailed);
 			} finally {
 				setIsUploading(false);
 				e.target.value = "";
@@ -107,16 +141,141 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 		[resolvedTenantId, uploadFile, t]
 	);
 
+	const handleFileDrop = useCallback(
+		async (files: FileList) => {
+			if (!resolvedTenantId || files.length === 0) return;
+
+			setIsUploading(true);
+			let successCount = 0;
+			let failCount = 0;
+
+			for (const file of Array.from(files)) {
+				try {
+					await uploadFile.mutateAsync({
+						tenantId: resolvedTenantId,
+						file,
+						fileType: file.type.startsWith("image/") ? "image" : "document",
+					});
+					successCount++;
+				} catch {
+					failCount++;
+				}
+			}
+
+			setIsUploading(false);
+
+			if (successCount > 0 && failCount === 0) {
+				toast.success(
+					files.length === 1
+						? t.storage.uploadSuccess
+						: t.storage.batchUploadSuccess.replace("{count}", String(successCount))
+				);
+			} else if (successCount > 0 && failCount > 0) {
+				toast.warning(
+					t.storage.batchUploadPartial
+						.replace("{success}", String(successCount))
+						.replace("{total}", String(files.length))
+				);
+			} else {
+				toast.error(t.storage.uploadFailed);
+			}
+		},
+		[resolvedTenantId, uploadFile, t]
+	);
+
+	const handleDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setIsDragOver(true);
+	}, []);
+
+	const handleDragLeave = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+			setIsDragOver(false);
+		}
+	}, []);
+
+	const handleDrop = useCallback(
+		(e: React.DragEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			setIsDragOver(false);
+
+			const files = e.dataTransfer.files;
+			if (files.length > 0) {
+				handleFileDrop(files);
+			}
+		},
+		[handleFileDrop]
+	);
+
 	const handleDelete = async () => {
 		if (!deleteFileId || !resolvedTenantId) return;
 
 		try {
 			await deleteFile.mutateAsync({ tenantId: resolvedTenantId, fileId: deleteFileId });
-			toast.success(t.storage?.deleteSuccess || "File deleted");
+			toast.success(t.storage.deleteSuccess);
 			setDeleteFileId(null);
 		} catch {
-			toast.error(t.storage?.deleteFailed || "Failed to delete file");
+			toast.error(t.storage.deleteFailed);
 		}
+	};
+
+	const toggleFileSelection = (fileId: string) => {
+		setSelectedFiles((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(fileId)) {
+				newSet.delete(fileId);
+			} else {
+				newSet.add(fileId);
+			}
+			return newSet;
+		});
+	};
+
+	const toggleSelectAll = () => {
+		if (selectedFiles.size === files.length) {
+			setSelectedFiles(new Set());
+		} else {
+			setSelectedFiles(new Set(files.map((f) => f.id)));
+		}
+	};
+
+	const handleBatchDelete = async () => {
+		if (selectedFiles.size === 0 || !resolvedTenantId) return;
+
+		try {
+			const result = await batchDeleteFiles.mutateAsync({
+				tenantId: resolvedTenantId,
+				fileIds: Array.from(selectedFiles),
+			});
+			const deletedCount = result.deleted?.length || 0;
+			const failedCount = result.failed?.length || 0;
+
+			if (deletedCount > 0 && failedCount === 0) {
+				toast.success(t.storage.batchDeleteSuccess.replace("{count}", String(deletedCount)));
+			} else if (deletedCount > 0 && failedCount > 0) {
+				toast.warning(
+					t.storage.batchDeletePartial
+						.replace("{deleted}", String(deletedCount))
+						.replace("{total}", String(deletedCount + failedCount))
+				);
+			} else {
+				toast.error(t.storage.batchDeleteFailed);
+			}
+
+			setSelectedFiles(new Set());
+			setIsSelectionMode(false);
+		} catch {
+			toast.error(t.storage.batchDeleteFailed);
+		}
+	};
+
+	const exitSelectionMode = () => {
+		setIsSelectionMode(false);
+		setSelectedFiles(new Set());
 	};
 
 	const handleCopyLink = async (fileId: string) => {
@@ -130,20 +289,18 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 				expiryMinutes: 60,
 			});
 			await navigator.clipboard.writeText(result.url);
-			toast.success(t.common.linkCopied || "Link copied to clipboard");
+			toast.success(t.common.linkCopied);
 		} catch {
-			toast.error(t.storage?.copyLinkFailed || "Failed to copy link");
+			toast.error(t.storage.copyLinkFailed);
 		} finally {
 			setCopyingFileId(null);
 		}
 	};
 
-	const totalSize = allFiles.reduce((acc, file) => acc + file.size, 0);
-
 	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center h-full min-h-96">
-				<IconLoader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+				<Icon icon={IconLoader2} size="xl" className="animate-spin text-muted-foreground" />
 			</div>
 		);
 	}
@@ -151,13 +308,11 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 	if (!tenant) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full min-h-96">
-				<p className="text-muted-foreground mb-4">
-					{t.workspaces?.workspaceNotFound || "Workspace not found"}
-				</p>
+				<TypographyMuted className="mb-4">{t.workspaces.workspaceNotFound}</TypographyMuted>
 				<Link href="/workspaces">
 					<Button variant="outline">
-						<IconArrowLeft className="mr-2 h-4 w-4" />
-						{t.workspaces?.backToWorkspaces || "Back to Workspaces"}
+						<Icon icon={IconArrowLeft} className="mr-2" />
+						{t.workspaces.backToWorkspaces}
 					</Button>
 				</Link>
 			</div>
@@ -165,42 +320,77 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 	}
 
 	return (
-		<div className="w-full py-8 px-4">
-			<div className="flex items-center justify-between mb-8">
+		<Container className="max-w-full">
+			<div className="flex flex-wrap items-center justify-between mb-6 gap-2">
 				<div className="flex items-center gap-4">
 					<div>
-						<h1 className="text-2xl font-bold">{t.storage?.title || "Storage"}</h1>
-						<p className="text-muted-foreground">
-							{t.storage?.subtitle || "Manage your uploaded files"}
-						</p>
+						<TypographyH1 size="sm">{t.storage.title}</TypographyH1>
+						<TypographyMuted>{t.storage.subtitle}</TypographyMuted>
 					</div>
 				</div>
-				<div>
-					<input
-						type="file"
-						id="file-upload"
-						className="hidden"
-						onChange={handleFileUpload}
-						accept="image/*,.pdf"
-					/>
-					<label htmlFor="file-upload">
-						<Button asChild disabled={isUploading}>
-							<span>
-								{isUploading ? (
-									<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+				<div className="flex items-center gap-2">
+					{isSelectionMode ? (
+						<>
+							<Button variant="outline" size="sm" onClick={toggleSelectAll}>
+								{selectedFiles.size === files.length ? (
+									<Icon icon={IconSquareCheck} className="mr-2" />
 								) : (
-									<IconUpload className="mr-2 h-4 w-4" />
+									<Icon icon={IconSquare} className="mr-2" />
 								)}
-								{t.storage?.uploadFile || "Upload File"}
-							</span>
-						</Button>
-					</label>
+								{selectedFiles.size === files.length ? t.common.deselectAll : t.common.selectAll}
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								disabled={selectedFiles.size === 0 || batchDeleteFiles.isPending}
+								onClick={handleBatchDelete}
+							>
+								{batchDeleteFiles.isPending ? (
+									<Icon icon={IconLoader2} className="mr-2 animate-spin" />
+								) : (
+									<Icon icon={IconTrash} className="mr-2" />
+								)}
+								{t.storage.deleteSelected} ({selectedFiles.size})
+							</Button>
+							<Button variant="ghost" size="sm" onClick={exitSelectionMode}>
+								<Icon icon={IconX} />
+							</Button>
+						</>
+					) : (
+						<>
+							{totalFiles > 0 && (
+								<Button variant="outline" onClick={() => setIsSelectionMode(true)}>
+									<Icon icon={IconSquareCheck} className="mr-2" />
+									{t.storage.selectFiles}
+								</Button>
+							)}
+							<input
+								type="file"
+								id="file-upload"
+								className="hidden"
+								onChange={handleFileUpload}
+								accept="image/*,.pdf"
+							/>
+							<label htmlFor="file-upload">
+								<Button asChild disabled={isUploading}>
+									<span>
+										{isUploading ? (
+											<Icon icon={IconLoader2} className="mr-2 animate-spin" />
+										) : (
+											<Icon icon={IconUpload} className="mr-2" />
+										)}
+										{t.storage.uploadFile}
+									</span>
+								</Button>
+							</label>
+						</>
+					)}
 				</div>
 			</div>
 
 			<div className="mb-6 p-4 border rounded-lg bg-card">
 				<div className="flex items-center justify-between mb-2">
-					<span className="text-sm font-medium">{t.storage?.usage || "Storage Usage"}</span>
+					<span className="text-sm font-medium">{t.storage.usage}</span>
 					<span className="text-sm text-muted-foreground">
 						{formatFileSize(totalSize)} {t.common.of} {formatFileSize(storageLimit)}
 					</span>
@@ -211,54 +401,159 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 						style={{ width: `${Math.min((totalSize / storageLimit) * 100, 100)}%` }}
 					/>
 				</div>
-				<p className="text-xs text-muted-foreground mt-1">
-					{allFiles.length} {t.storage?.files || "files"}
-				</p>
+				<TypographyMuted className="text-xs mt-1">
+					{totalFiles} {t.storage.files}
+				</TypographyMuted>
 			</div>
 
-			{allFiles.length === 0 ? (
-				<div className="text-center py-12 border rounded-lg bg-card">
-					<IconFile className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-					<p className="text-muted-foreground">{t.storage?.noFiles || "No files uploaded yet"}</p>
+			{totalFiles === 0 ? (
+				<div
+					ref={dropZoneRef}
+					onDragOver={handleDragOver}
+					onDragLeave={handleDragLeave}
+					onDrop={handleDrop}
+					className="flex-1 flex items-center justify-center"
+				>
+					<Empty
+						className={cn(
+							"min-h-80 transition-all duration-200 border-2",
+							isDragOver ? "border-primary bg-primary/5 border-solid" : "border-dashed"
+						)}
+					>
+						<EmptyHeader>
+							<EmptyMedia variant="icon">
+								<motion.div
+									animate={isDragOver ? { scale: 1.1, y: -4 } : { scale: 1, y: 0 }}
+									transition={{ type: "spring", stiffness: 300, damping: 20 }}
+								>
+									<Icon
+										icon={isDragOver ? IconCloudUpload : IconFile}
+										size="lg"
+										className={cn(
+											"transition-colors",
+											isDragOver ? "text-primary" : "text-muted-foreground"
+										)}
+									/>
+								</motion.div>
+							</EmptyMedia>
+							<EmptyTitle>{isDragOver ? t.storage.dropToUpload : t.storage.noFiles}</EmptyTitle>
+							<EmptyDescription>
+								{isDragOver ? t.storage.releaseToUpload : t.storage.noFilesDescription}
+							</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<AnimatePresence>
+								{!isDragOver && (
+									<motion.div
+										initial={{ opacity: 0, y: 10 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -10 }}
+									>
+										<input
+											type="file"
+											id="file-upload-empty"
+											className="hidden"
+											onChange={handleFileUpload}
+											accept="image/*,.pdf"
+											multiple
+										/>
+										<label htmlFor="file-upload-empty">
+											<Button asChild disabled={isUploading}>
+												<span>
+													{isUploading ? (
+														<Icon icon={IconLoader2} className="mr-2 animate-spin" />
+													) : (
+														<Icon icon={IconUpload} className="mr-2" />
+													)}
+													{t.storage.uploadFile}
+												</span>
+											</Button>
+										</label>
+									</motion.div>
+								)}
+							</AnimatePresence>
+						</EmptyContent>
+					</Empty>
 				</div>
 			) : (
-				<>
+				<div
+					ref={dropZoneRef}
+					onDragOver={handleDragOver}
+					onDragLeave={handleDragLeave}
+					onDrop={handleDrop}
+					className="relative"
+				>
+					<AnimatePresence>
+						{isDragOver && (
+							<motion.div
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg"
+							>
+								<div className="flex flex-col items-center gap-2">
+									<motion.div
+										animate={{ y: [0, -8, 0] }}
+										transition={{ duration: 1, repeat: Infinity }}
+									>
+										<Icon icon={IconCloudUpload} size="2xl" className="text-primary" />
+									</motion.div>
+									<span className="text-sm font-medium text-primary">{t.storage.dropToUpload}</span>
+								</div>
+							</motion.div>
+						)}
+					</AnimatePresence>
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 						{files.map((file: StorageFile) => (
 							<div
 								key={file.id}
-								className="flex items-center gap-4 p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors"
+								className={`flex items-center gap-4 p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
+									isSelectionMode && selectedFiles.has(file.id) ? "ring-2 ring-primary" : ""
+								}`}
+								onClick={isSelectionMode ? () => toggleFileSelection(file.id) : undefined}
+								style={isSelectionMode ? { cursor: "pointer" } : undefined}
 							>
+								{isSelectionMode && (
+									<Checkbox
+										checked={selectedFiles.has(file.id)}
+										onCheckedChange={() => toggleFileSelection(file.id)}
+										onClick={(e) => e.stopPropagation()}
+									/>
+								)}
 								{getFileIcon(file.contentType)}
 								<div className="flex-1 min-w-0">
-									<p className="font-medium truncate">{file.originalName}</p>
-									<p className="text-sm text-muted-foreground">
+									<TypographyP className="font-medium truncate mt-0">
+										{file.originalName}
+									</TypographyP>
+									<TypographyMuted>
 										{formatFileSize(file.size)} • {new Date(file.createdAt).toLocaleDateString()}
-									</p>
+									</TypographyMuted>
 								</div>
-								<div className="flex items-center gap-1">
-									<Button
-										variant="ghost"
-										size="icon"
-										onClick={() => handleCopyLink(file.id)}
-										disabled={copyingFileId === file.id}
-										title={t.common.copyLink}
-									>
-										{copyingFileId === file.id ? (
-											<IconLoader2 className="h-4 w-4 animate-spin" />
-										) : (
-											<IconCopy className="h-4 w-4" />
-										)}
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="text-destructive hover:text-destructive"
-										onClick={() => setDeleteFileId(file.id)}
-									>
-										<IconTrash className="h-4 w-4" />
-									</Button>
-								</div>
+								{!isSelectionMode && (
+									<div className="flex items-center gap-1">
+										<Button
+											variant="ghost"
+											size="icon"
+											onClick={() => handleCopyLink(file.id)}
+											disabled={copyingFileId === file.id}
+											title={t.common.copyLink}
+										>
+											{copyingFileId === file.id ? (
+												<Icon icon={IconLoader2} className="animate-spin" />
+											) : (
+												<Icon icon={IconCopy} />
+											)}
+										</Button>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="text-destructive hover:text-destructive"
+											onClick={() => setDeleteFileId(file.id)}
+										>
+											<Icon icon={IconTrash} />
+										</Button>
+									</div>
+								)}
 							</div>
 						))}
 					</div>
@@ -267,7 +562,7 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 						currentPage={currentPage}
 						totalPages={totalPages}
 						onPageChange={setCurrentPage}
-						totalItems={allFiles.length}
+						totalItems={totalFiles}
 						itemsPerPage={ITEMS_PER_PAGE}
 						labels={{
 							previous: t.common.previous,
@@ -277,16 +572,14 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 							items: t.common.items,
 						}}
 					/>
-				</>
+				</div>
 			)}
 
 			<AlertDialog open={!!deleteFileId} onOpenChange={(open) => !open && setDeleteFileId(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>{t.storage?.deleteFile || "Delete File"}</AlertDialogTitle>
-						<AlertDialogDescription>
-							{t.storage?.deleteConfirm || "Are you sure you want to delete this file?"}
-						</AlertDialogDescription>
+						<AlertDialogTitle>{t.storage.deleteFile}</AlertDialogTitle>
+						<AlertDialogDescription>{t.storage.deleteConfirm}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
@@ -294,12 +587,12 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 							onClick={handleDelete}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{deleteFile.isPending && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+							{deleteFile.isPending && <Icon icon={IconLoader2} className="mr-2 animate-spin" />}
 							{t.common.delete}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</div>
+		</Container>
 	);
 }

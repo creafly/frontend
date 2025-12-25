@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { IconTrash, IconGripVertical, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
+import { Icon, TypographyMuted } from "@/components/typography";
 import type { Block } from "@/types";
 
 interface BlockEditorProps {
@@ -62,14 +63,10 @@ export function BlockEditor({
 				return "Divider";
 			case "list":
 				return `List (${block.items.length} items)`;
-			case "social":
-				return `Social Links (${block.links.length})`;
 			case "footer":
 				return `Footer: ${block.companyName}`;
 			case "header":
 				return `Header: ${block.title || "Logo"}`;
-			case "card":
-				return `Card: ${block.title}`;
 			default:
 				return block.type;
 		}
@@ -296,70 +293,18 @@ export function BlockEditor({
 					</div>
 				);
 
-			case "card":
-				return (
-					<div className="space-y-3">
-						<div>
-							<Label htmlFor={`card-title-${index}`}>Title</Label>
-							<Input
-								id={`card-title-${index}`}
-								value={block.title}
-								onChange={(e) => updateField("title", e.target.value)}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-desc-${index}`}>Description (optional)</Label>
-							<Textarea
-								id={`card-desc-${index}`}
-								value={block.description || ""}
-								onChange={(e) => updateField("description", e.target.value || undefined)}
-								rows={2}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-image-${index}`}>Image URL (optional)</Label>
-							<Input
-								id={`card-image-${index}`}
-								value={block.imageUrl || ""}
-								onChange={(e) => updateField("imageUrl", e.target.value || undefined)}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-cta-${index}`}>CTA Text (optional)</Label>
-							<Input
-								id={`card-cta-${index}`}
-								value={block.ctaText || ""}
-								onChange={(e) => updateField("ctaText", e.target.value || undefined)}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-cta-url-${index}`}>CTA URL (optional)</Label>
-							<Input
-								id={`card-cta-url-${index}`}
-								value={block.ctaUrl || ""}
-								onChange={(e) => updateField("ctaUrl", e.target.value || undefined)}
-								className="mt-1"
-							/>
-						</div>
-					</div>
-				);
-
 			case "divider":
 				return (
-					<p className="text-sm text-muted-foreground">
+					<TypographyMuted>
 						A horizontal line divider. No editable properties.
-					</p>
+					</TypographyMuted>
 				);
 
 			default:
 				return (
-					<p className="text-sm text-muted-foreground">
+					<TypographyMuted>
 						This block type is not yet editable in the UI.
-					</p>
+					</TypographyMuted>
 				);
 		}
 	};
@@ -369,7 +314,7 @@ export function BlockEditor({
 			<CardHeader className="pb-2">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-2">
-						<IconGripVertical className="size-4 text-muted-foreground cursor-grab" />
+						<Icon icon={IconGripVertical} size="sm" className="text-muted-foreground cursor-grab" />
 						<CardTitle className="text-sm font-medium">{getBlockTitle()}</CardTitle>
 					</div>
 					<div className="flex items-center gap-1">
@@ -379,7 +324,7 @@ export function BlockEditor({
 							onClick={() => onMoveUp(index)}
 							disabled={isFirst}
 						>
-							<IconChevronUp className="size-3" />
+							<Icon icon={IconChevronUp} size="xs" />
 						</Button>
 						<Button
 							variant="ghost"
@@ -387,13 +332,13 @@ export function BlockEditor({
 							onClick={() => onMoveDown(index)}
 							disabled={isLast}
 						>
-							<IconChevronDown className="size-3" />
+							<Icon icon={IconChevronDown} size="xs" />
 						</Button>
 						<Button variant="ghost" size="icon-sm" onClick={() => setIsExpanded(!isExpanded)}>
 							{isExpanded ? (
-								<IconChevronUp className="size-3" />
+								<Icon icon={IconChevronUp} size="xs" />
 							) : (
-								<IconChevronDown className="size-3" />
+								<Icon icon={IconChevronDown} size="xs" />
 							)}
 						</Button>
 						<Separator orientation="vertical" className="h-4 mx-1" />
@@ -403,7 +348,7 @@ export function BlockEditor({
 							className="text-destructive hover:text-destructive"
 							onClick={() => onDelete(index)}
 						>
-							<IconTrash className="size-3" />
+							<Icon icon={IconTrash} size="xs" />
 						</Button>
 					</div>
 				</div>

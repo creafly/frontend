@@ -6,7 +6,6 @@ import {
 	IconSpacingVertical,
 	IconLineDashed,
 	IconList,
-	IconBrandFacebook,
 	IconLayoutNavbar,
 	IconLayoutBottombar,
 	IconId,
@@ -55,13 +54,6 @@ export const BLOCK_TEMPLATES: Record<BlockType, () => Block> = {
 		items: ["Item 1", "Item 2", "Item 3"],
 		ordered: false,
 	}),
-	social: () => ({
-		type: "social",
-		links: [
-			{ platform: "twitter", url: "https://twitter.com" },
-			{ platform: "facebook", url: "https://facebook.com" },
-		],
-	}),
 	footer: () => ({
 		type: "footer",
 		companyName: "Your Company",
@@ -71,13 +63,6 @@ export const BLOCK_TEMPLATES: Record<BlockType, () => Block> = {
 	header: () => ({
 		type: "header",
 		title: "Your Company",
-	}),
-	card: () => ({
-		type: "card",
-		title: "Card Title",
-		description: "Card description goes here.",
-		ctaText: "Learn More",
-		ctaUrl: "https://example.com",
 	}),
 	section: () => ({
 		type: "section",
@@ -151,10 +136,8 @@ export const BLOCK_ICONS: Record<BlockType, typeof IconTextSize> = {
 	spacer: IconSpacingVertical,
 	divider: IconLineDashed,
 	list: IconList,
-	social: IconBrandFacebook,
 	footer: IconLayoutBottombar,
 	header: IconLayoutNavbar,
-	card: IconId,
 	section: IconId,
 	conditional: IconId,
 	grid_wrapper: IconLayoutGrid,
@@ -178,7 +161,7 @@ export interface BlockCategory {
 export const BLOCK_CATEGORIES: BlockCategory[] = [
 	{
 		category: "content",
-		types: ["text", "heading", "image", "button", "list", "card", "quote", "badge"],
+		types: ["text", "heading", "image", "button", "list", "quote", "badge"],
 	},
 	{
 		category: "layout",
@@ -186,7 +169,7 @@ export const BLOCK_CATEGORIES: BlockCategory[] = [
 	},
 	{
 		category: "structure",
-		types: ["header", "footer", "social"],
+		types: ["header", "footer"],
 	},
 	{
 		category: "primitives",

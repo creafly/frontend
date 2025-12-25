@@ -1,22 +1,37 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
 
 interface ProtectedRouteProps {
 	children: React.ReactNode;
+	requireEmailVerification?: boolean;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-	const { isAuthenticated, isLoading } = useAuth();
+export function ProtectedRoute({ children, requireEmailVerification = true }: ProtectedRouteProps) {
+	const { isAuthenticated, isLoading, user } = useAuth();
 	const router = useRouter();
+	const pathname = usePathname();
 
 	useEffect(() => {
 		if (!isLoading && !isAuthenticated) {
 			router.replace("/login");
 		}
 	}, [isAuthenticated, isLoading, router]);
+
+	useEffect(() => {
+		if (
+			!isLoading &&
+			isAuthenticated &&
+			requireEmailVerification &&
+			user &&
+			!user.emailVerified &&
+			pathname !== "/verify-email"
+		) {
+			router.replace("/verify-email");
+		}
+	}, [isAuthenticated, isLoading, user, requireEmailVerification, pathname, router]);
 
 	if (isLoading) {
 		return (
@@ -27,6 +42,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 	}
 
 	if (!isAuthenticated) {
+		return null;
+	}
+
+	if (requireEmailVerification && user && !user.emailVerified && pathname !== "/verify-email") {
 		return null;
 	}
 

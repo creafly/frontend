@@ -51,7 +51,7 @@ export function UserAvatar({
 						size === "sm" && "h-2 w-2",
 						size === "default" && "h-2.5 w-2.5",
 						size === "lg" && "h-3 w-3",
-						isOnline ? "bg-green-500" : "bg-gray-400"
+						isOnline ? "bg-success" : "bg-muted-foreground"
 					)}
 				/>
 			)}

@@ -31,3 +31,10 @@ export interface StorageUsage {
 	limit: number;
 	percentage: number;
 }
+
+export interface FileList {
+	files: StorageFile[];
+	total: number;
+	limit: number;
+	offset: number;
+}

@@ -10,12 +10,12 @@ import type {
 	CreateTemplateInput,
 	UpdateTemplateInput,
 	EmailGenerateRequest,
-	EmailRefineRequest,
 	CreateRoleRequest,
 	UpdateRoleRequest,
 	CreateClaimRequest,
 	SubscribeRequest,
 	ChangePlanRequest,
+	AddMessageRequest,
 } from "@/types";
 
 export function useTemplates(
@@ -158,13 +158,6 @@ export function useEmailJson() {
 	const api = useApiClient();
 	return useMutation({
 		mutationFn: (request: EmailGenerateRequest) => api.contentAgentApi.invoke(request),
-	});
-}
-
-export function useRefineTemplate() {
-	const api = useApiClient();
-	return useMutation({
-		mutationFn: (request: EmailRefineRequest) => api.contentAgentApi.refine(request),
 	});
 }
 
@@ -749,6 +742,31 @@ export function useUnblockUser() {
 	});
 }
 
+export function useBlockTenant() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, reason }: { tenantId: string; reason: string }) =>
+			identityApi.blockTenant(tokens!.accessToken, tenantId, reason),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
+		},
+	});
+}
+
+export function useUnblockTenant() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: (tenantId: string) => identityApi.unblockTenant(tokens!.accessToken, tenantId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["all-tenants"] });
+		},
+	});
+}
+
 export function useTenantUserRoles(tenantId: string, userId: string) {
 	const { tokens } = useAuth();
 
@@ -956,5 +974,126 @@ export function useUsageSummary(tenantId: string, year?: number, month?: number)
 		queryKey: ["usage-summary", tenantId, year, month],
 		queryFn: () => subscriptionsApi.getUsageSummary(tokens!.accessToken, tenantId, year, month),
 		enabled: !!tokens?.accessToken && !!tenantId && !isLoading,
+	});
+}
+
+export function useUsageLogs(tenantId: string, limit: number = 10, offset: number = 0) {
+	const { tokens, isLoading } = useAuth();
+
+	return useQuery({
+		queryKey: ["usage-logs", tenantId, limit, offset],
+		queryFn: () => subscriptionsApi.getUsageLogs(tokens!.accessToken, tenantId, limit, offset),
+		enabled: !!tokens?.accessToken && !!tenantId && !isLoading,
+	});
+}
+
+export function useIdentityAnalytics() {
+	const { tokens, isLoading } = useAuth();
+
+	return useQuery({
+		queryKey: ["identity-analytics"],
+		queryFn: () => identityApi.getAnalytics(tokens!.accessToken),
+		enabled: !!tokens?.accessToken && !isLoading,
+	});
+}
+
+export function useSubscriptionAnalytics() {
+	const { tokens, isLoading } = useAuth();
+
+	return useQuery({
+		queryKey: ["subscription-analytics"],
+		queryFn: () => subscriptionsApi.getAnalytics(tokens!.accessToken),
+		enabled: !!tokens?.accessToken && !isLoading,
+	});
+}
+
+export function useConversations(tenantId: string, options?: { offset?: number; limit?: number }) {
+	const api = useApiClient();
+	return useQuery({
+		queryKey: ["conversations", tenantId, options],
+		queryFn: () => api.conversationsApi.list(tenantId, options),
+		enabled: !!tenantId,
+	});
+}
+
+export function useConversation(tenantId: string, conversationId: string | null) {
+	const api = useApiClient();
+	return useQuery({
+		queryKey: ["conversation", tenantId, conversationId],
+		queryFn: () => api.conversationsApi.get(tenantId, conversationId!),
+		enabled: !!tenantId && !!conversationId,
+	});
+}
+
+export function useCreateConversation() {
+	const queryClient = useQueryClient();
+	const api = useApiClient();
+
+	return useMutation({
+		mutationFn: ({ tenantId, title }: { tenantId: string; title?: string }) =>
+			api.conversationsApi.create({ tenantId, title }),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["conversations", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useUpdateConversation() {
+	const queryClient = useQueryClient();
+	const api = useApiClient();
+
+	return useMutation({
+		mutationFn: ({ tenantId, id, title }: { tenantId: string; id: string; title: string }) =>
+			api.conversationsApi.update(tenantId, id, title),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["conversations", variables.tenantId],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["conversation", variables.tenantId, variables.id],
+			});
+		},
+	});
+}
+
+export function useDeleteConversation() {
+	const queryClient = useQueryClient();
+	const api = useApiClient();
+
+	return useMutation({
+		mutationFn: ({ tenantId, id }: { tenantId: string; id: string }) =>
+			api.conversationsApi.delete(tenantId, id),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["conversations", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useAddMessageToConversation() {
+	const queryClient = useQueryClient();
+	const api = useApiClient();
+
+	return useMutation({
+		mutationFn: ({
+			tenantId,
+			conversationId,
+			message,
+		}: {
+			tenantId: string;
+			conversationId: string;
+			message: AddMessageRequest;
+		}) => api.conversationsApi.addMessage(tenantId, conversationId, message),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["conversations", variables.tenantId],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["conversation", variables.tenantId, variables.conversationId],
+			});
+		},
 	});
 }

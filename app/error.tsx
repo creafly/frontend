@@ -12,10 +12,18 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Home, ArrowLeft } from "lucide-react";
+import {
+	IconAlertCircle,
+	IconCircleCheck,
+	IconLoader2,
+	IconRefresh,
+	IconHome,
+	IconArrowLeft,
+} from "@tabler/icons-react";
 import { submitErrorReport } from "@/lib/api/support";
 import type { CreateErrorReportRequest } from "@/types/support";
 import { useTranslations } from "@/providers/i18n-provider";
+import { TypographyError, TypographySuccess, TypographyMuted, Icon } from "@/components/typography";
 
 export default function GlobalError({
 	error,
@@ -49,7 +57,7 @@ export default function GlobalError({
 
 			const request: CreateErrorReportRequest = {
 				error_code: 500,
-				error_message: error.message || "Unknown error",
+				error_message: error.message,
 				stack_trace: error.stack,
 				url: typeof window !== "undefined" ? window.location.href : "",
 				user_agent: typeof navigator !== "undefined" ? navigator.userAgent : "",
@@ -83,27 +91,27 @@ export default function GlobalError({
 			<Card className="w-full max-w-lg">
 				<CardHeader>
 					<div className="flex items-center gap-2">
-						<AlertCircle className="h-6 w-6 text-destructive" />
+						<Icon icon={IconAlertCircle} size="lg" className="text-destructive" />
 						<CardTitle>{t.support.somethingWentWrong}</CardTitle>
 					</div>
 					<CardDescription>{t.support.errorDescription}</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="p-3 bg-muted rounded-md">
-						<p className="text-sm font-mono text-muted-foreground break-all">{error.message}</p>
+						<TypographyMuted className="font-mono break-all">{error.message}</TypographyMuted>
 						{error.digest && (
-							<p className="text-xs text-muted-foreground mt-1">
+							<TypographyMuted className="text-xs mt-1">
 								{t.support.errorCode}: {error.digest}
-							</p>
+							</TypographyMuted>
 						)}
 					</div>
 
 					{reportSubmitted ? (
-						<div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 rounded-md">
-							<CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-							<p className="text-sm text-green-700 dark:text-green-300">
+						<div className="flex items-center gap-2 p-3 bg-success/10 rounded-md">
+							<Icon icon={IconCircleCheck} size="md" className="text-success" />
+							<TypographySuccess>
 								{t.support.reportSubmitted}
-							</p>
+							</TypographySuccess>
 						</div>
 					) : (
 						<div className="space-y-3">
@@ -118,7 +126,7 @@ export default function GlobalError({
 								/>
 							</div>
 
-							{reportError && <p className="text-sm text-destructive">{reportError}</p>}
+							{reportError && <TypographyError>{reportError}</TypographyError>}
 
 							<Button
 								onClick={handleReportError}
@@ -128,7 +136,7 @@ export default function GlobalError({
 							>
 								{isReporting ? (
 									<>
-										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 										{t.common.loading}
 									</>
 								) : (
@@ -140,15 +148,15 @@ export default function GlobalError({
 				</CardContent>
 				<CardFooter className="flex gap-2">
 					<Button variant="outline" onClick={handleGoBack} className="flex-1">
-						<ArrowLeft className="mr-2 h-4 w-4" />
+						<Icon icon={IconArrowLeft} size="sm" className="mr-2" />
 						{t.support.goBack}
 					</Button>
 					<Button variant="outline" onClick={reset} className="flex-1">
-						<RefreshCw className="mr-2 h-4 w-4" />
+						<Icon icon={IconRefresh} size="sm" className="mr-2" />
 						{t.support.tryAgain}
 					</Button>
 					<Button onClick={handleGoHome} className="flex-1">
-						<Home className="mr-2 h-4 w-4" />
+						<Icon icon={IconHome} size="sm" className="mr-2" />
 						{t.support.goHome}
 					</Button>
 				</CardFooter>

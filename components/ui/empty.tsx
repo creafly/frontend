@@ -2,14 +2,36 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-function Empty({ className, ...props }: React.ComponentProps<"div">) {
+const emptyVariants = cva(
+	"gap-4 rounded-lg p-6 flex w-full min-w-0 flex-col items-center justify-center text-center text-balance",
+	{
+		variants: {
+			variant: {
+				default: "border border-dashed",
+				ghost: "",
+				card: "border bg-card",
+			},
+			fullHeight: {
+				true: "flex-1 min-h-80",
+				false: "",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+			fullHeight: true,
+		},
+	}
+);
+
+interface EmptyProps
+	extends React.ComponentProps<"div">,
+		VariantProps<typeof emptyVariants> {}
+
+function Empty({ className, variant, fullHeight, ...props }: EmptyProps) {
 	return (
 		<div
 			data-slot="empty"
-			className={cn(
-				"gap-4 rounded-lg border-dashed p-6 flex w-full min-w-0 flex-1 flex-col items-center justify-center text-center text-balance",
-				className
-			)}
+			className={cn(emptyVariants({ variant, fullHeight }), className)}
 			{...props}
 		/>
 	);
@@ -31,25 +53,31 @@ const emptyMediaVariants = cva(
 		variants: {
 			variant: {
 				default: "bg-transparent",
-				icon: "bg-muted text-foreground flex size-8 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-4",
+				icon: "bg-muted text-foreground flex size-12 shrink-0 items-center justify-center rounded-xl [&_svg:not([class*='size-'])]:size-5",
+			},
+			size: {
+				default: "",
+				sm: "size-10 rounded-lg [&_svg:not([class*='size-'])]:size-4",
+				lg: "size-14 rounded-xl [&_svg:not([class*='size-'])]:size-6",
 			},
 		},
 		defaultVariants: {
 			variant: "default",
+			size: "default",
 		},
 	}
 );
 
-function EmptyMedia({
-	className,
-	variant = "default",
-	...props
-}: React.ComponentProps<"div"> & VariantProps<typeof emptyMediaVariants>) {
+interface EmptyMediaProps
+	extends React.ComponentProps<"div">,
+		VariantProps<typeof emptyMediaVariants> {}
+
+function EmptyMedia({ className, variant = "default", size, ...props }: EmptyMediaProps) {
 	return (
 		<div
 			data-slot="empty-icon"
 			data-variant={variant}
-			className={cn(emptyMediaVariants({ variant, className }))}
+			className={cn(emptyMediaVariants({ variant, size }), className)}
 			{...props}
 		/>
 	);
@@ -91,4 +119,13 @@ function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
 	);
 }
 
-export { Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia };
+export {
+	Empty,
+	EmptyHeader,
+	EmptyTitle,
+	EmptyDescription,
+	EmptyContent,
+	EmptyMedia,
+	emptyVariants,
+	emptyMediaVariants,
+};

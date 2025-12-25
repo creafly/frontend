@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { IconBuilding } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,12 @@ const textSizeClasses = {
 	lg: "text-base",
 };
 
+const imageSizes = {
+	sm: 24,
+	default: 32,
+	lg: 40,
+};
+
 export function TenantAvatar({
 	tenant,
 	size = "default",
@@ -51,13 +58,16 @@ export function TenantAvatar({
 	isActive = true,
 }: TenantAvatarProps) {
 	const initials = getInitials(tenant?.name);
+	const imageSize = imageSizes[size];
 
 	if (tenant?.logoUrl) {
 		return (
 			<div className={cn("relative", className)}>
-				<img
+				<Image
 					src={tenant.logoUrl}
 					alt={tenant.name || "Tenant"}
+					width={imageSize}
+					height={imageSize}
 					className={cn("rounded-lg object-cover", sizeClasses[size])}
 				/>
 				{showStatus && (
@@ -67,7 +77,7 @@ export function TenantAvatar({
 							size === "sm" && "h-2 w-2",
 							size === "default" && "h-2.5 w-2.5",
 							size === "lg" && "h-3 w-3",
-							isActive ? "bg-green-500" : "bg-gray-400"
+						isActive ? "bg-success" : "bg-muted-foreground"
 						)}
 					/>
 				)}
@@ -93,7 +103,7 @@ export function TenantAvatar({
 						size === "sm" && "h-2 w-2",
 						size === "default" && "h-2.5 w-2.5",
 						size === "lg" && "h-3 w-3",
-						isActive ? "bg-green-500" : "bg-gray-400"
+						isActive ? "bg-success" : "bg-muted-foreground"
 					)}
 				/>
 			)}

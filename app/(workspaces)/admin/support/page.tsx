@@ -23,12 +23,44 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import {
+	Empty,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+	EmptyDescription,
+} from "@/components/ui/empty";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useTranslations } from "@/providers/i18n-provider";
-import { useAdminTickets, useAdminTicketStats, useAdminErrorReports, useAdminDeleteErrorReports } from "@/hooks/use-support";
+import { useTabsWithUrl } from "@/hooks/use-tabs-with-url";
+import {
+	useAdminTickets,
+	useAdminTicketStats,
+	useAdminErrorReports,
+	useAdminDeleteErrorReports,
+	useFlaggedRequests,
+	useFlaggedRequestStats,
+	useReviewFlaggedRequest,
+	useDeleteFlaggedRequest,
+} from "@/hooks/use-support";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { TypographyH3, TypographyP } from "@/components/typography";
+import {
+	TypographyH3,
+	TypographyP,
+	TypographyError,
+	TypographyMuted,
+	TypographyStats,
+	Icon,
+} from "@/components/typography";
 import {
 	IconTicket,
 	IconClock,
@@ -38,8 +70,16 @@ import {
 	IconFilter,
 	IconBug,
 	IconTrash,
+	IconFlag,
+	IconEye,
 } from "@tabler/icons-react";
-import type { TicketStatus, TicketPriority, TicketCategory } from "@/types/support";
+import type {
+	TicketStatus,
+	TicketPriority,
+	TicketCategory,
+	FlaggedRequestStatus,
+	FlaggedRequestSeverity,
+} from "@/types/support";
 
 const statusIcons: Record<TicketStatus, React.ComponentType<{ className?: string }>> = {
 	open: IconAlertCircle,
@@ -49,23 +89,37 @@ const statusIcons: Record<TicketStatus, React.ComponentType<{ className?: string
 };
 
 const statusColors: Record<TicketStatus, string> = {
-	open: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-	in_progress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-	resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-	closed: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+	open: "bg-info/10 text-info",
+	in_progress: "bg-warning/10 text-warning-foreground",
+	resolved: "bg-success/10 text-success",
+	closed: "bg-muted text-muted-foreground",
 };
 
 const priorityColors: Record<TicketPriority, string> = {
-	low: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
-	medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-	high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-	urgent: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+	low: "bg-muted text-muted-foreground",
+	medium: "bg-info/10 text-info",
+	high: "bg-warning/10 text-warning-foreground",
+	urgent: "bg-destructive/10 text-destructive",
+};
+
+const severityColors: Record<FlaggedRequestSeverity, string> = {
+	low: "bg-muted text-muted-foreground",
+	medium: "bg-warning/10 text-warning-foreground",
+	high: "bg-warning/10 text-warning-foreground",
+	critical: "bg-destructive/10 text-destructive",
+};
+
+const flaggedStatusColors: Record<FlaggedRequestStatus, string> = {
+	pending: "bg-warning/10 text-warning-foreground",
+	reviewed: "bg-info/10 text-info",
+	dismissed: "bg-muted text-muted-foreground",
+	action_taken: "bg-success/10 text-success",
 };
 
 export default function AdminSupportPage() {
 	const t = useTranslations();
+	const { tabsProps } = useTabsWithUrl({ defaultTab: "tickets" });
 
-	const [activeTab, setActiveTab] = useState("tickets");
 	const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
 	const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "all">("all");
 	const [categoryFilter, setCategoryFilter] = useState<TicketCategory | "all">("all");
@@ -73,27 +127,52 @@ export default function AdminSupportPage() {
 	const [errorReportsPage, setErrorReportsPage] = useState(0);
 	const [pageSize] = useState(10);
 	const [selectedErrorReports, setSelectedErrorReports] = useState<Set<string>>(new Set());
+	const [flaggedRequestsPage, setFlaggedRequestsPage] = useState(0);
+	const [flaggedStatusFilter, setFlaggedStatusFilter] = useState<FlaggedRequestStatus | "all">(
+		"all"
+	);
+	const [flaggedSeverityFilter, setFlaggedSeverityFilter] = useState<
+		FlaggedRequestSeverity | "all"
+	>("all");
+	const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+	const [selectedFlaggedRequest, setSelectedFlaggedRequest] = useState<{
+		id: string;
+		content: string;
+	} | null>(null);
+	const [reviewStatus, setReviewStatus] = useState<FlaggedRequestStatus>("reviewed");
+	const [reviewNotes, setReviewNotes] = useState("");
 
 	const { data, isLoading, error } = useAdminTickets({
 		status: statusFilter === "all" ? undefined : statusFilter,
 		priority: priorityFilter === "all" ? undefined : priorityFilter,
 		category: categoryFilter === "all" ? undefined : categoryFilter,
-		page: currentPage,
-		pageSize,
+		offset: currentPage * pageSize,
+		limit: pageSize,
 	});
 
 	const { data: stats, isLoading: statsLoading } = useAdminTicketStats();
 
 	const { data: errorReportsData, isLoading: errorReportsLoading } = useAdminErrorReports({
-		page: errorReportsPage,
-		pageSize,
+		offset: errorReportsPage * pageSize,
+		limit: pageSize,
 	});
 
 	const deleteErrorReportsMutation = useAdminDeleteErrorReports();
 
+	const { data: flaggedRequestsData, isLoading: flaggedRequestsLoading } = useFlaggedRequests({
+		status: flaggedStatusFilter === "all" ? undefined : flaggedStatusFilter,
+		severity: flaggedSeverityFilter === "all" ? undefined : flaggedSeverityFilter,
+		offset: flaggedRequestsPage * pageSize,
+		limit: pageSize,
+	});
+
+	const { data: flaggedStats, isLoading: flaggedStatsLoading } = useFlaggedRequestStats();
+	const reviewFlaggedRequestMutation = useReviewFlaggedRequest();
+	const deleteFlaggedRequestMutation = useDeleteFlaggedRequest();
+
 	const handleSelectAll = (checked: boolean) => {
 		if (checked && errorReportsData?.error_reports) {
-			setSelectedErrorReports(new Set(errorReportsData.error_reports.map(r => r.id)));
+			setSelectedErrorReports(new Set(errorReportsData.error_reports.map((r) => r.id)));
 		} else {
 			setSelectedErrorReports(new Set());
 		}
@@ -119,18 +198,71 @@ export default function AdminSupportPage() {
 		});
 	};
 
-	const isAllSelected = errorReportsData?.error_reports && 
-		errorReportsData.error_reports.length > 0 && 
-		errorReportsData.error_reports.every(r => selectedErrorReports.has(r.id));
+	const openReviewDialog = (id: string, content: string) => {
+		setSelectedFlaggedRequest({ id, content });
+		setReviewStatus("reviewed");
+		setReviewNotes("");
+		setReviewDialogOpen(true);
+	};
 
-	const categories: TicketCategory[] = ["general", "bug", "feature", "billing", "account", "technical"];
+	const handleReviewFlaggedRequest = () => {
+		if (!selectedFlaggedRequest) return;
+		reviewFlaggedRequestMutation.mutate(
+			{
+				id: selectedFlaggedRequest.id,
+				request: { status: reviewStatus, review_notes: reviewNotes || undefined },
+			},
+			{
+				onSuccess: () => {
+					toast.success(t.admin.flaggedRequestReviewed);
+					setReviewDialogOpen(false);
+					setSelectedFlaggedRequest(null);
+				},
+				onError: (error) => {
+					toast.error(error instanceof Error ? error.message : t.errors.updateFailed);
+				},
+			}
+		);
+	};
+
+	const handleDeleteFlaggedRequest = (id: string) => {
+		deleteFlaggedRequestMutation.mutate(id, {
+			onSuccess: () => {
+				toast.success(t.admin.flaggedRequestDeleted);
+			},
+			onError: (error) => {
+				toast.error(error instanceof Error ? error.message : t.errors.deleteFailed);
+			},
+		});
+	};
+
+	const isAllSelected =
+		errorReportsData?.error_reports &&
+		errorReportsData.error_reports.length > 0 &&
+		errorReportsData.error_reports.every((r) => selectedErrorReports.has(r.id));
+
+	const categories: TicketCategory[] = [
+		"general",
+		"bug",
+		"feature",
+		"billing",
+		"account",
+		"technical",
+	];
 	const priorities: TicketPriority[] = ["low", "medium", "high", "urgent"];
 	const statuses: TicketStatus[] = ["open", "in_progress", "resolved", "closed"];
+	const flaggedStatuses: FlaggedRequestStatus[] = [
+		"pending",
+		"reviewed",
+		"dismissed",
+		"action_taken",
+	];
+	const severities: FlaggedRequestSeverity[] = ["low", "medium", "high", "critical"];
 
 	if (error) {
 		return (
 			<div className="flex items-center justify-center h-64">
-				<p className="text-destructive">{error.message}</p>
+				<TypographyError>{error.message}</TypographyError>
 			</div>
 		);
 	}
@@ -148,257 +280,573 @@ export default function AdminSupportPage() {
 				</div>
 			</BlurFade>
 
-			<Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+			<Tabs {...tabsProps} className="space-y-6">
 				<TabsList>
 					<TabsTrigger value="tickets" className="gap-2">
-						<IconTicket className="size-4" />
+						<Icon icon={IconTicket} size="sm" />
 						{t.admin.supportTickets}
 					</TabsTrigger>
+					<TabsTrigger value="flagged-requests" className="gap-2">
+						<Icon icon={IconFlag} size="sm" />
+						{t.admin.flaggedRequests}
+						{flaggedStats && flaggedStats.pending > 0 && (
+							<Badge variant="destructive" className="ml-1 px-1.5 py-0 text-xs">
+								{flaggedStats.pending}
+							</Badge>
+						)}
+					</TabsTrigger>
 					<TabsTrigger value="error-reports" className="gap-2">
-						<IconBug className="size-4" />
+						<Icon icon={IconBug} size="sm" />
 						{t.admin.errorReports}
 					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="tickets" className="space-y-6">
 					<BlurFade delay={0.15}>
-				<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-					{statsLoading ? (
-						[...Array(5)].map((_, i) => (
-							<Card key={i}>
-								<CardHeader className="pb-2">
-									<Skeleton className="h-4 w-20" />
-								</CardHeader>
-								<CardContent>
-									<Skeleton className="h-8 w-12" />
-								</CardContent>
-							</Card>
-						))
-					) : stats ? (
-						<>
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-sm font-medium text-muted-foreground">
-										{t.admin.allTickets}
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<p className="text-2xl font-bold">{stats.total_tickets}</p>
-								</CardContent>
-							</Card>
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-sm font-medium text-blue-600">
-										{t.admin.openTickets}
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<p className="text-2xl font-bold">{stats.open_tickets}</p>
-								</CardContent>
-							</Card>
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-sm font-medium text-yellow-600">
-										{t.admin.inProgressTickets}
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<p className="text-2xl font-bold">{stats.in_progress_tickets}</p>
-								</CardContent>
-							</Card>
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-sm font-medium text-green-600">
-										{t.admin.resolvedTickets}
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<p className="text-2xl font-bold">{stats.resolved_tickets}</p>
-								</CardContent>
-							</Card>
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-sm font-medium text-muted-foreground">
-										{t.admin.closedTickets}
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<p className="text-2xl font-bold">{stats.closed_tickets}</p>
-								</CardContent>
-							</Card>
-						</>
-					) : null}
-				</div>
-			</BlurFade>
+						<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+							{statsLoading ? (
+								[...Array(5)].map((_, i) => (
+									<Card key={i}>
+										<CardHeader className="pb-2">
+											<Skeleton className="h-4 w-20" />
+										</CardHeader>
+										<CardContent>
+											<Skeleton className="h-8 w-12" />
+										</CardContent>
+									</Card>
+								))
+							) : stats ? (
+								<>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-muted-foreground">
+												{t.admin.allTickets}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{stats.total_tickets}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-info">
+												{t.admin.openTickets}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{stats.open_tickets}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-warning">
+												{t.admin.inProgressTickets}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{stats.in_progress_tickets}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-success">
+												{t.admin.resolvedTickets}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{stats.resolved_tickets}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-muted-foreground">
+												{t.admin.closedTickets}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{stats.closed_tickets}</TypographyStats>
+										</CardContent>
+									</Card>
+								</>
+							) : null}
+						</div>
+					</BlurFade>
 
-			<BlurFade delay={0.2}>
-				<div className="flex flex-wrap items-center gap-4 p-4 bg-muted/50 rounded-lg">
-					<div className="flex items-center gap-2">
-						<IconFilter className="size-4 text-muted-foreground" />
-						<span className="text-sm font-medium">{t.common.filters}:</span>
-					</div>
-					<Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as TicketStatus | "all"); setCurrentPage(0); }}>
-						<SelectTrigger className="w-40">
-							<SelectValue placeholder={t.admin.filterByStatus} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">{t.common.all}</SelectItem>
-							{statuses.map((status) => (
-								<SelectItem key={status} value={status}>
-									{t.support.statuses[status]}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<Select value={priorityFilter} onValueChange={(v) => { setPriorityFilter(v as TicketPriority | "all"); setCurrentPage(0); }}>
-						<SelectTrigger className="w-40">
-							<SelectValue placeholder={t.admin.filterByPriority} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">{t.common.all}</SelectItem>
-							{priorities.map((priority) => (
-								<SelectItem key={priority} value={priority}>
-									{t.support.priorities[priority]}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v as TicketCategory | "all"); setCurrentPage(0); }}>
-						<SelectTrigger className="w-40">
-							<SelectValue placeholder={t.admin.filterByCategory} />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">{t.common.all}</SelectItem>
-							{categories.map((category) => (
-								<SelectItem key={category} value={category}>
-									{t.support.categories[category]}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
-			</BlurFade>
+					<BlurFade delay={0.2}>
+						<div className="flex flex-wrap items-center gap-4 p-4 bg-muted/50 rounded-lg">
+							<div className="flex items-center gap-2">
+								<Icon icon={IconFilter} size="sm" className="text-muted-foreground" />
+								<span className="text-sm font-medium">{t.common.filters}:</span>
+							</div>
+							<Select
+								value={statusFilter}
+								onValueChange={(v) => {
+									setStatusFilter(v as TicketStatus | "all");
+									setCurrentPage(0);
+								}}
+							>
+								<SelectTrigger className="w-40">
+									<SelectValue placeholder={t.admin.filterByStatus} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">{t.common.all}</SelectItem>
+									{statuses.map((status) => (
+										<SelectItem key={status} value={status}>
+											{t.support.statuses[status]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Select
+								value={priorityFilter}
+								onValueChange={(v) => {
+									setPriorityFilter(v as TicketPriority | "all");
+									setCurrentPage(0);
+								}}
+							>
+								<SelectTrigger className="w-40">
+									<SelectValue placeholder={t.admin.filterByPriority} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">{t.common.all}</SelectItem>
+									{priorities.map((priority) => (
+										<SelectItem key={priority} value={priority}>
+											{t.support.priorities[priority]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Select
+								value={categoryFilter}
+								onValueChange={(v) => {
+									setCategoryFilter(v as TicketCategory | "all");
+									setCurrentPage(0);
+								}}
+							>
+								<SelectTrigger className="w-40">
+									<SelectValue placeholder={t.admin.filterByCategory} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">{t.common.all}</SelectItem>
+									{categories.map((category) => (
+										<SelectItem key={category} value={category}>
+											{t.support.categories[category]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</BlurFade>
 
-			<BlurFade delay={0.25}>
-				{isLoading ? (
-					<div className="border rounded-md">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>{t.support.ticketSubject}</TableHead>
-									<TableHead>{t.admin.users}</TableHead>
-									<TableHead>{t.support.ticketCategory}</TableHead>
-									<TableHead>{t.support.ticketPriority}</TableHead>
-									<TableHead>{t.common.status}</TableHead>
-									<TableHead>{t.templates.columns.created}</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{[...Array(5)].map((_, i) => (
-									<TableRow key={i}>
-										<TableCell><Skeleton className="h-5 w-48" /></TableCell>
-										<TableCell><Skeleton className="h-5 w-32" /></TableCell>
-										<TableCell><Skeleton className="h-5 w-20" /></TableCell>
-										<TableCell><Skeleton className="h-5 w-16" /></TableCell>
-										<TableCell><Skeleton className="h-5 w-24" /></TableCell>
-										<TableCell><Skeleton className="h-5 w-28" /></TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					</div>
-				) : data?.tickets && data.tickets.length > 0 ? (
-					<div className="space-y-4">
-						<div className="border rounded-md">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>{t.support.ticketSubject}</TableHead>
-										<TableHead>{t.admin.users}</TableHead>
-										<TableHead>{t.support.ticketCategory}</TableHead>
-										<TableHead>{t.support.ticketPriority}</TableHead>
-										<TableHead>{t.common.status}</TableHead>
-										<TableHead>{t.templates.columns.created}</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{data.tickets.map((ticket) => {
-										const StatusIcon = statusIcons[ticket.status];
-										return (
-											<TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50">
+					<BlurFade delay={0.25}>
+						{isLoading ? (
+							<div className="border rounded-md">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>{t.support.ticketSubject}</TableHead>
+											<TableHead>{t.admin.users}</TableHead>
+											<TableHead>{t.support.ticketCategory}</TableHead>
+											<TableHead>{t.support.ticketPriority}</TableHead>
+											<TableHead>{t.common.status}</TableHead>
+											<TableHead>{t.templates.columns.created}</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{[...Array(5)].map((_, i) => (
+											<TableRow key={i}>
 												<TableCell>
-													<Link
-														href={`/admin/support/${ticket.id}`}
-														className="font-medium hover:underline"
-													>
-														{ticket.subject}
-													</Link>
-												</TableCell>
-												<TableCell className="text-muted-foreground">
-													{ticket.user_id}
+													<Skeleton className="h-5 w-48" />
 												</TableCell>
 												<TableCell>
-													<Badge variant="outline">
-														{t.support.categories[ticket.category]}
-													</Badge>
+													<Skeleton className="h-5 w-32" />
 												</TableCell>
 												<TableCell>
-													<Badge className={priorityColors[ticket.priority]}>
-														{t.support.priorities[ticket.priority]}
-													</Badge>
+													<Skeleton className="h-5 w-20" />
 												</TableCell>
 												<TableCell>
-													<Badge className={`gap-1 ${statusColors[ticket.status]}`}>
-														<StatusIcon className="size-3" />
-														{t.support.statuses[ticket.status]}
-													</Badge>
+													<Skeleton className="h-5 w-16" />
 												</TableCell>
-												<TableCell className="text-muted-foreground">
-													{new Date(ticket.created_at).toLocaleDateString()}
+												<TableCell>
+													<Skeleton className="h-5 w-24" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-5 w-28" />
 												</TableCell>
 											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</div>
-
-						<div className="flex items-center justify-between">
-							<p className="text-sm text-muted-foreground">
-								{t.common.showing} {(data.page * data.page_size) + 1}-{(data.page * data.page_size) + (data.tickets?.length || 0)} {t.common.of} {data.total}
-							</p>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-									disabled={currentPage === 0}
-								>
-									{t.common.previous}
-								</Button>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setCurrentPage(currentPage + 1)}
-									disabled={!data.tickets || currentPage >= data.total_pages - 1}
-								>
-									{t.common.next}
-								</Button>
+										))}
+									</TableBody>
+								</Table>
 							</div>
+						) : data?.tickets && data.tickets.length > 0 ? (
+							<div className="space-y-4">
+								<div className="border rounded-md">
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>{t.support.ticketSubject}</TableHead>
+												<TableHead>{t.admin.users}</TableHead>
+												<TableHead>{t.support.ticketCategory}</TableHead>
+												<TableHead>{t.support.ticketPriority}</TableHead>
+												<TableHead>{t.common.status}</TableHead>
+												<TableHead>{t.templates.columns.created}</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{data.tickets.map((ticket) => {
+												const StatusIcon = statusIcons[ticket.status];
+												return (
+													<TableRow key={ticket.id} className="cursor-pointer hover:bg-muted/50">
+														<TableCell>
+															<Link
+																href={`/admin/support/${ticket.id}`}
+																className="font-medium hover:underline"
+															>
+																{ticket.subject}
+															</Link>
+														</TableCell>
+														<TableCell className="text-muted-foreground">
+															{ticket.user_id}
+														</TableCell>
+														<TableCell>
+															<Badge variant="outline">
+																{t.support.categories[ticket.category]}
+															</Badge>
+														</TableCell>
+														<TableCell>
+															<Badge className={priorityColors[ticket.priority]}>
+																{t.support.priorities[ticket.priority]}
+															</Badge>
+														</TableCell>
+														<TableCell>
+															<Badge className={`gap-1 ${statusColors[ticket.status]}`}>
+																<Icon icon={StatusIcon} size="xs" />
+																{t.support.statuses[ticket.status]}
+															</Badge>
+														</TableCell>
+														<TableCell className="text-muted-foreground">
+															{new Date(ticket.created_at).toLocaleDateString()}
+														</TableCell>
+													</TableRow>
+												);
+											})}
+										</TableBody>
+									</Table>
+								</div>
+
+								<div className="flex items-center justify-between">
+									<TypographyMuted>
+										{t.common.showing} {data.offset + 1}-{data.offset + (data.tickets?.length || 0)}{" "}
+										{t.common.of} {data.total}
+									</TypographyMuted>
+									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+											disabled={currentPage === 0}
+										>
+											{t.common.previous}
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setCurrentPage(currentPage + 1)}
+											disabled={!data.tickets || data.offset + data.limit >= data.total}
+										>
+											{t.common.next}
+										</Button>
+									</div>
+								</div>
+							</div>
+						) : (
+							<Empty>
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<Icon icon={IconTicket} size="xl" className="text-muted-foreground" />
+									</EmptyMedia>
+									<EmptyTitle>{t.admin.noTickets}</EmptyTitle>
+									<EmptyDescription>{t.support.noTicketsDescription}</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
+						)}
+					</BlurFade>
+				</TabsContent>
+
+				<TabsContent value="flagged-requests" className="space-y-6">
+					<BlurFade delay={0.15}>
+						<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+							{flaggedStatsLoading ? (
+								[...Array(5)].map((_, i) => (
+									<Card key={i}>
+										<CardHeader className="pb-2">
+											<Skeleton className="h-4 w-20" />
+										</CardHeader>
+										<CardContent>
+											<Skeleton className="h-8 w-12" />
+										</CardContent>
+									</Card>
+								))
+							) : flaggedStats ? (
+								<>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-muted-foreground">
+												{t.admin.allTickets}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{flaggedStats.total}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-warning-foreground">
+												{t.admin.pending}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{flaggedStats.pending}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-info">
+												{t.admin.reviewed}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{flaggedStats.reviewed}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-muted-foreground">
+												{t.admin.dismissed}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{flaggedStats.dismissed}</TypographyStats>
+										</CardContent>
+									</Card>
+									<Card>
+										<CardHeader className="pb-2">
+											<CardTitle className="text-sm font-medium text-success">
+												{t.admin.actionTaken}
+											</CardTitle>
+										</CardHeader>
+										<CardContent>
+											<TypographyStats>{flaggedStats.action_taken}</TypographyStats>
+										</CardContent>
+									</Card>
+								</>
+							) : null}
 						</div>
-					</div>
-				) : (
-					<Empty>
-						<EmptyHeader>
-							<EmptyMedia variant="icon">
-								<IconTicket className="size-8 text-muted-foreground" />
-							</EmptyMedia>
-							<EmptyTitle>{t.admin.noTickets}</EmptyTitle>
-							<EmptyDescription>{t.support.noTicketsDescription}</EmptyDescription>
-						</EmptyHeader>
-					</Empty>
-				)}
-			</BlurFade>
+					</BlurFade>
+
+					<BlurFade delay={0.2}>
+						<div className="flex flex-wrap items-center gap-4 p-4 bg-muted/50 rounded-lg">
+							<div className="flex items-center gap-2">
+								<Icon icon={IconFilter} size="sm" className="text-muted-foreground" />
+								<span className="text-sm font-medium">{t.common.filters}:</span>
+							</div>
+							<Select
+								value={flaggedStatusFilter}
+								onValueChange={(v) => {
+									setFlaggedStatusFilter(v as FlaggedRequestStatus | "all");
+									setFlaggedRequestsPage(0);
+								}}
+							>
+								<SelectTrigger className="w-40">
+									<SelectValue placeholder={t.admin.filterByStatus} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">{t.common.all}</SelectItem>
+									{flaggedStatuses.map((status) => (
+										<SelectItem key={status} value={status}>
+											{t.admin.flaggedStatuses[status]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<Select
+								value={flaggedSeverityFilter}
+								onValueChange={(v) => {
+									setFlaggedSeverityFilter(v as FlaggedRequestSeverity | "all");
+									setFlaggedRequestsPage(0);
+								}}
+							>
+								<SelectTrigger className="w-40">
+									<SelectValue placeholder={t.admin.filterBySeverity} />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">{t.common.all}</SelectItem>
+									{severities.map((severity) => (
+										<SelectItem key={severity} value={severity}>
+											{t.admin.severities[severity]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</BlurFade>
+
+					<BlurFade delay={0.25}>
+						{flaggedRequestsLoading ? (
+							<div className="border rounded-md">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>{t.admin.messageContent}</TableHead>
+											<TableHead>{t.admin.reason}</TableHead>
+											<TableHead>{t.admin.severity}</TableHead>
+											<TableHead>{t.common.status}</TableHead>
+											<TableHead>{t.templates.columns.created}</TableHead>
+											<TableHead className="w-25">{t.common.actions}</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{[...Array(5)].map((_, i) => (
+											<TableRow key={i}>
+												<TableCell>
+													<Skeleton className="h-5 w-48" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-5 w-32" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-5 w-16" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-5 w-20" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-5 w-24" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-8 w-16" />
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
+						) : flaggedRequestsData?.flagged_requests &&
+						  flaggedRequestsData.flagged_requests.length > 0 ? (
+							<div className="space-y-4">
+								<div className="border rounded-md">
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>{t.admin.messageContent}</TableHead>
+												<TableHead>{t.admin.reason}</TableHead>
+												<TableHead>{t.admin.severity}</TableHead>
+												<TableHead>{t.common.status}</TableHead>
+												<TableHead>{t.templates.columns.created}</TableHead>
+												<TableHead className="w-25">{t.common.actions}</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{flaggedRequestsData.flagged_requests.map((request) => (
+												<TableRow key={request.id}>
+													<TableCell className="max-w-xs">
+														<TypographyP className="truncate mt-0" title={request.message_content}>
+															{request.message_content}
+														</TypographyP>
+													</TableCell>
+													<TableCell className="max-w-xs">
+														<TypographyMuted className="truncate" title={request.reason}>
+															{request.reason}
+														</TypographyMuted>
+													</TableCell>
+													<TableCell>
+														<Badge className={severityColors[request.severity]}>
+															{t.admin.severities[request.severity]}
+														</Badge>
+													</TableCell>
+													<TableCell>
+														<Badge className={flaggedStatusColors[request.status]}>
+															{t.admin.flaggedStatuses[request.status]}
+														</Badge>
+													</TableCell>
+													<TableCell className="text-muted-foreground">
+														{new Date(request.created_at).toLocaleDateString()}
+													</TableCell>
+													<TableCell>
+														<div className="flex items-center gap-1">
+															{request.status === "pending" && (
+																<Button
+																	variant="ghost"
+																	size="icon-sm"
+																	onClick={() =>
+																		openReviewDialog(request.id, request.message_content)
+																	}
+																	title={t.admin.review}
+																>
+																	<Icon icon={IconEye} size="sm" />
+																</Button>
+															)}
+															<Button
+																variant="ghost"
+																size="icon-sm"
+																className="text-destructive hover:text-destructive"
+																onClick={() => handleDeleteFlaggedRequest(request.id)}
+																disabled={deleteFlaggedRequestMutation.isPending}
+																title={t.common.delete}
+															>
+																<Icon icon={IconTrash} size="sm" />
+															</Button>
+														</div>
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</div>
+
+								<div className="flex items-center justify-between">
+									<TypographyMuted>
+										{t.common.showing} {flaggedRequestsData.offset + 1}-
+										{flaggedRequestsData.offset +
+											(flaggedRequestsData.flagged_requests?.length || 0)}{" "}
+										{t.common.of} {flaggedRequestsData.total}
+									</TypographyMuted>
+									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setFlaggedRequestsPage(Math.max(0, flaggedRequestsPage - 1))}
+											disabled={flaggedRequestsPage === 0}
+										>
+											{t.common.previous}
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => setFlaggedRequestsPage(flaggedRequestsPage + 1)}
+											disabled={
+												!flaggedRequestsData.flagged_requests ||
+												flaggedRequestsData.offset + flaggedRequestsData.flagged_requests.length >=
+													flaggedRequestsData.total
+											}
+										>
+											{t.common.next}
+										</Button>
+									</div>
+								</div>
+							</div>
+						) : (
+							<Empty>
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<Icon icon={IconFlag} size="xl" className="text-muted-foreground" />
+									</EmptyMedia>
+									<EmptyTitle>{t.admin.noFlaggedRequests}</EmptyTitle>
+									<EmptyDescription>{t.admin.noFlaggedRequestsDescription}</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
+						)}
+					</BlurFade>
 				</TabsContent>
 
 				<TabsContent value="error-reports" className="space-y-6">
@@ -413,7 +861,7 @@ export default function AdminSupportPage() {
 								onClick={handleDeleteSelected}
 								disabled={deleteErrorReportsMutation.isPending}
 							>
-								<IconTrash className="size-4 mr-2" />
+								<Icon icon={IconTrash} size="sm" className="mr-2" />
 								{t.admin.deleteSelected}
 							</Button>
 						</div>
@@ -434,12 +882,24 @@ export default function AdminSupportPage() {
 								<TableBody>
 									{[...Array(5)].map((_, i) => (
 										<TableRow key={i}>
-											<TableCell><Skeleton className="h-5 w-5" /></TableCell>
-											<TableCell><Skeleton className="h-5 w-16" /></TableCell>
-											<TableCell><Skeleton className="h-5 w-48" /></TableCell>
-											<TableCell><Skeleton className="h-5 w-32" /></TableCell>
-											<TableCell><Skeleton className="h-5 w-24" /></TableCell>
-											<TableCell><Skeleton className="h-5 w-28" /></TableCell>
+											<TableCell>
+												<Skeleton className="h-5 w-5" />
+											</TableCell>
+											<TableCell>
+												<Skeleton className="h-5 w-16" />
+											</TableCell>
+											<TableCell>
+												<Skeleton className="h-5 w-48" />
+											</TableCell>
+											<TableCell>
+												<Skeleton className="h-5 w-32" />
+											</TableCell>
+											<TableCell>
+												<Skeleton className="h-5 w-24" />
+											</TableCell>
+											<TableCell>
+												<Skeleton className="h-5 w-28" />
+											</TableCell>
 										</TableRow>
 									))}
 								</TableBody>
@@ -452,10 +912,7 @@ export default function AdminSupportPage() {
 									<TableHeader>
 										<TableRow>
 											<TableHead className="w-12">
-												<Checkbox
-													checked={isAllSelected}
-													onCheckedChange={handleSelectAll}
-												/>
+												<Checkbox checked={isAllSelected} onCheckedChange={handleSelectAll} />
 											</TableHead>
 											<TableHead>{t.admin.errorCode}</TableHead>
 											<TableHead>{t.admin.errorMessage}</TableHead>
@@ -470,15 +927,15 @@ export default function AdminSupportPage() {
 												<TableCell>
 													<Checkbox
 														checked={selectedErrorReports.has(report.id)}
-														onCheckedChange={(checked) => handleSelectOne(report.id, checked as boolean)}
+														onCheckedChange={(checked) =>
+															handleSelectOne(report.id, checked as boolean)
+														}
 													/>
 												</TableCell>
 												<TableCell>
 													<Badge variant="outline">{report.error_code}</Badge>
 												</TableCell>
-												<TableCell className="max-w-xs truncate">
-													{report.error_message}
-												</TableCell>
+												<TableCell className="max-w-xs truncate">{report.error_message}</TableCell>
 												<TableCell className="max-w-xs truncate text-muted-foreground">
 													{report.url}
 												</TableCell>
@@ -504,9 +961,11 @@ export default function AdminSupportPage() {
 							</div>
 
 							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">
-									{t.common.showing} {(errorReportsData.page * errorReportsData.page_size) + 1}-{(errorReportsData.page * errorReportsData.page_size) + (errorReportsData.error_reports?.length || 0)} {t.common.of} {errorReportsData.total}
-								</p>
+								<TypographyMuted>
+									{t.common.showing} {errorReportsData.offset + 1}-
+									{errorReportsData.offset + (errorReportsData.error_reports?.length || 0)}{" "}
+									{t.common.of} {errorReportsData.total}
+								</TypographyMuted>
 								<div className="flex items-center gap-2">
 									<Button
 										variant="outline"
@@ -520,7 +979,10 @@ export default function AdminSupportPage() {
 										variant="outline"
 										size="sm"
 										onClick={() => setErrorReportsPage(errorReportsPage + 1)}
-										disabled={!errorReportsData.error_reports || errorReportsPage >= errorReportsData.total_pages - 1}
+										disabled={
+											!errorReportsData.error_reports ||
+											errorReportsData.offset + errorReportsData.limit >= errorReportsData.total
+										}
 									>
 										{t.common.next}
 									</Button>
@@ -531,7 +993,7 @@ export default function AdminSupportPage() {
 						<Empty>
 							<EmptyHeader>
 								<EmptyMedia variant="icon">
-									<IconBug className="size-8 text-muted-foreground" />
+									<Icon icon={IconBug} size="xl" className="text-muted-foreground" />
 								</EmptyMedia>
 								<EmptyTitle>{t.admin.noErrorReports}</EmptyTitle>
 								<EmptyDescription>{t.admin.noErrorReportsDescription}</EmptyDescription>
@@ -540,6 +1002,62 @@ export default function AdminSupportPage() {
 					)}
 				</TabsContent>
 			</Tabs>
+
+			<Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>{t.admin.reviewFlaggedRequest}</DialogTitle>
+						<DialogDescription>{t.admin.reviewFlaggedRequestDescription}</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						{selectedFlaggedRequest && (
+							<div className="p-3 bg-muted rounded-md">
+								<Label className="text-xs text-muted-foreground">{t.admin.messageContent}</Label>
+								<TypographyP className="mt-1 text-sm">{selectedFlaggedRequest.content}</TypographyP>
+							</div>
+						)}
+						<div className="space-y-2">
+							<Label>{t.common.status}</Label>
+							<Select
+								value={reviewStatus}
+								onValueChange={(v) => setReviewStatus(v as FlaggedRequestStatus)}
+							>
+								<SelectTrigger>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="reviewed">{t.admin.flaggedStatuses.reviewed}</SelectItem>
+									<SelectItem value="dismissed">{t.admin.flaggedStatuses.dismissed}</SelectItem>
+									<SelectItem value="action_taken">
+										{t.admin.flaggedStatuses.action_taken}
+									</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="space-y-2">
+							<Label>{t.admin.reviewNotes}</Label>
+							<textarea
+								value={reviewNotes}
+								onChange={(e) => setReviewNotes(e.target.value)}
+								placeholder={t.admin.reviewNotesPlaceholder}
+								className="w-full px-3 py-2 border rounded-md text-sm"
+								rows={3}
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+							{t.common.cancel}
+						</Button>
+						<Button
+							onClick={handleReviewFlaggedRequest}
+							disabled={reviewFlaggedRequestMutation.isPending}
+						>
+							{reviewFlaggedRequestMutation.isPending ? t.common.saving : t.admin.submitReview}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

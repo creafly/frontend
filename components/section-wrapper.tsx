@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import Container from "./container";
+import { TypographyH2, TypographyMuted } from "./typography";
 
 interface SectionWrapperProps {
 	children: React.ReactNode;
@@ -46,8 +47,14 @@ export function SectionHeader({
 
 	return (
 		<div className={cn("mb-12", alignClass, className)}>
-			<h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">{title}</h2>
-			{subtitle && <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>}
+			<TypographyH2 className={cn("mb-4 sm:text-4xl", alignClass)}>{title}</TypographyH2>
+			{subtitle && (
+				<TypographyMuted
+					className={cn("text-lg max-w-2xl", alignClass, align === "center" && "mx-auto")}
+				>
+					{subtitle}
+				</TypographyMuted>
+			)}
 		</div>
 	);
 }

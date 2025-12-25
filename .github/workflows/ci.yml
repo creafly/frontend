@@ -21,8 +21,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -136,3 +134,64 @@ jobs:
           echo ""
           echo "  Secrets (Settings → Secrets and variables → Actions → Secrets):"
           echo "    - REGISTRY_TOKEN"
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Check deployment configuration
+        id: check
+        run: |
+          if [ -n "${{ secrets.SERVER_HOST }}" ] && [ -n "${{ secrets.SERVER_SSH_KEY }}" ] && [ -n "${{ vars.REGISTRY_URL }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "::warning::Deployment skipped: SERVER_HOST, SERVER_SSH_KEY, or REGISTRY_URL not configured"
+          fi
+
+      - name: Deploy via SSH
+        if: steps.check.outputs.configured == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: REGISTRY_URL,REGISTRY_REPOSITORY,SERVICE_NAME
+          script: |
+            set -e
+            IMAGE="${REGISTRY_URL}/${REGISTRY_REPOSITORY}/${SERVICE_NAME}:latest"
+            echo "Deploying ${SERVICE_NAME} from ${IMAGE}..."
+            
+            docker pull "${IMAGE}"
+            
+            cd /opt/creafly
+            docker compose pull ${SERVICE_NAME}
+            docker compose up -d ${SERVICE_NAME}
+            
+            sleep 5
+            if docker compose ps ${SERVICE_NAME} | grep -q "Up"; then
+              echo "Service ${SERVICE_NAME} is running"
+            else
+              echo "ERROR: Service ${SERVICE_NAME} failed to start"
+              docker compose logs --tail=50 ${SERVICE_NAME}
+              exit 1
+            fi
+        env:
+          REGISTRY_URL: ${{ vars.REGISTRY_URL }}
+          REGISTRY_REPOSITORY: ${{ vars.REGISTRY_REPOSITORY }}
+          SERVICE_NAME: ${{ env.SERVICE_NAME }}
+
+      - name: Skip notice
+        if: steps.check.outputs.configured == 'false'
+        run: |
+          echo "Deployment skipped: Server not configured"
+          echo ""
+          echo "To enable deployment, configure the following:"
+          echo "  Secrets:"
+          echo "    - SERVER_HOST: Your server IP address"
+          echo "    - SERVER_SSH_KEY: Private SSH key for root user"
+          echo "  Variables:"
+          echo "    - REGISTRY_URL, REGISTRY_REPOSITORY"

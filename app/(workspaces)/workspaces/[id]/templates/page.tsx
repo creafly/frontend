@@ -49,7 +49,13 @@ import { motion } from "motion/react";
 import { BlurFade } from "@/components/ui/blur-fade";
 import type { Template } from "@/types";
 import Container from "@/components/container";
-import { TypographyH3, TypographyP } from "@/components/typography";
+import {
+	TypographyH3,
+	TypographyP,
+	TypographyError,
+	TypographyMuted,
+	Icon,
+} from "@/components/typography";
 import { CardPagination } from "@/components/ui/card-pagination";
 
 export default function TemplatesPage() {
@@ -123,18 +129,18 @@ export default function TemplatesPage() {
 	if (error) {
 		return (
 			<div className="flex items-center justify-center h-64">
-				<p className="text-destructive">
+				<TypographyError>
 					{t.errors.loadingTemplates}: {error.message}
-				</p>
+				</TypographyError>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			<Container>
+		<div className="h-full space-y-6">
+			<Container className="pb-0 max-w-full">
 				<BlurFade delay={0.1}>
-					<div className="flex items-center justify-between">
+					<div className="flex flex-wrap items-center justify-between gap-2">
 						<div>
 							<TypographyH3>{t.templates.title}</TypographyH3>
 							<TypographyP className="mt-1 text-muted-foreground">
@@ -145,7 +151,7 @@ export default function TemplatesPage() {
 							<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
 								<Button asChild className="shadow-lg shadow-primary/20">
 									<Link href={`/workspaces/${workspaceId}/templates/new`}>
-										<IconPlus className="size-4 mr-2" />
+										<Icon icon={IconPlus} size="sm" className="mr-2" />
 										{t.templates.createTemplate}
 									</Link>
 								</Button>
@@ -155,7 +161,7 @@ export default function TemplatesPage() {
 				</BlurFade>
 			</Container>
 
-			<Container>
+			<Container className="pt-0 max-w-full">
 				{isLoading ? (
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 						{[...Array(6)].map((_, i) => (
@@ -181,12 +187,15 @@ export default function TemplatesPage() {
 											<CardContent className="p-4">
 												<div className="flex items-start justify-between gap-3">
 													<div className="min-w-0 flex-1">
-														<h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+														<TypographyH3
+															size="2xs"
+															className="truncate group-hover:text-primary transition-colors"
+														>
 															{template.name}
-														</h3>
-														<p className="text-sm text-muted-foreground truncate mt-0.5">
+														</TypographyH3>
+														<TypographyMuted className="truncate mt-0.5">
 															{template.subject}
-														</p>
+														</TypographyMuted>
 													</div>
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
@@ -195,13 +204,13 @@ export default function TemplatesPage() {
 																size="icon-sm"
 																className="opacity-0 group-hover:opacity-100 transition-opacity"
 															>
-																<IconDotsVertical className="size-4" />
+																<Icon icon={IconDotsVertical} size="sm" />
 															</Button>
 														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end">
+														<DropdownMenuContent className="w-max" align="end">
 															<DropdownMenuItem asChild>
 																<Link href={`/workspaces/${workspaceId}/templates/${template.id}`}>
-																	<IconEye className="size-4 mr-2" />
+																	<Icon icon={IconEye} size="sm" className="mr-2" />
 																	{t.common.view}
 																</Link>
 															</DropdownMenuItem>
@@ -210,14 +219,14 @@ export default function TemplatesPage() {
 																	<Link
 																		href={`/workspaces/${workspaceId}/templates/${template.id}/edit`}
 																	>
-																		<IconEdit className="size-4 mr-2" />
+																		<Icon icon={IconEdit} size="sm" className="mr-2" />
 																		{t.common.edit}
 																	</Link>
 																</DropdownMenuItem>
 															)}
 															{canEdit && (
 																<DropdownMenuItem onClick={() => handleDuplicate(template)}>
-																	<IconCopy className="size-4 mr-2" />
+																	<Icon icon={IconCopy} size="sm" className="mr-2" />
 																	{t.common.duplicate}
 																</DropdownMenuItem>
 															)}
@@ -226,7 +235,7 @@ export default function TemplatesPage() {
 																	className="text-destructive focus:text-destructive"
 																	onClick={() => openDeleteDialog(template)}
 																>
-																	<IconTrash className="size-4 mr-2" />
+																	<Icon icon={IconTrash} size="sm" className="mr-2" />
 																	{t.common.delete}
 																</DropdownMenuItem>
 															)}
@@ -246,9 +255,9 @@ export default function TemplatesPage() {
 													<Badge variant="outline">{getTemplateTypeLabel(template.template)}</Badge>
 												</div>
 
-												<p className="text-xs text-muted-foreground mt-3">
+												<TypographyMuted className="text-xs mt-3">
 													{formatDate(template.createdAt, locale)}
-												</p>
+												</TypographyMuted>
 											</CardContent>
 										</Card>
 									</motion.div>
@@ -272,29 +281,29 @@ export default function TemplatesPage() {
 					</>
 				) : (
 					<BlurFade delay={0.2}>
-						<Empty>
-							<EmptyHeader>
-								<EmptyMedia variant="icon">
-									<div className="relative flex items-center justify-center p-2 bg-muted rounded-lg">
-										<IconTemplate className="size-8 text-muted-foreground relative bg-transparent" />
-									</div>
-								</EmptyMedia>
-								<EmptyTitle>{t.templates.noTemplates}</EmptyTitle>
-								<EmptyDescription>{t.templates.noTemplatesDescription}</EmptyDescription>
-							</EmptyHeader>
-							<EmptyContent>
-								{canCreate && (
-									<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-										<Button asChild className="shadow-lg shadow-primary/20">
-											<Link href={`/workspaces/${workspaceId}/templates/new`}>
-												<IconPlus className="size-4 mr-2" />
-												{t.templates.createTemplate}
-											</Link>
-										</Button>
-									</motion.div>
-								)}
-							</EmptyContent>
-						</Empty>
+						<div className="flex-1 flex items-center justify-center min-h-80">
+							<Empty>
+								<EmptyHeader>
+									<EmptyMedia variant="icon">
+										<Icon icon={IconTemplate} size="lg" className="text-muted-foreground" />
+									</EmptyMedia>
+									<EmptyTitle>{t.templates.noTemplates}</EmptyTitle>
+									<EmptyDescription>{t.templates.noTemplatesDescription}</EmptyDescription>
+								</EmptyHeader>
+								<EmptyContent>
+									{canCreate && (
+										<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+											<Button asChild className="shadow-lg shadow-primary/20">
+												<Link href={`/workspaces/${workspaceId}/templates/new`}>
+													<Icon icon={IconPlus} size="sm" className="mr-2" />
+													{t.templates.createTemplate}
+												</Link>
+											</Button>
+										</motion.div>
+									)}
+								</EmptyContent>
+							</Empty>
+						</div>
 					</BlurFade>
 				)}
 			</Container>

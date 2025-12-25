@@ -6,12 +6,16 @@ import { toast } from "sonner";
 import { IconLoader2, IconUser } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
+import { Icon } from "@/components/typography";
 import { useAuth } from "@/providers/auth-provider";
-import { identityApi, IdentityApiError } from "@/lib/api/identity";
+import { useFieldErrors } from "@/hooks/use-field-errors";
+import { identityApi } from "@/lib/api/identity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+
+type ProfileFields = "firstName" | "lastName" | "username";
 
 interface ProfileInfoFormProps {
 	compact?: boolean;
@@ -21,6 +25,8 @@ export function ProfileInfoForm({ compact = false }: ProfileInfoFormProps) {
 	const t = useTranslations();
 	const { user, tokens } = useAuth();
 	const queryClient = useQueryClient();
+	const { fieldErrors, handleError, clearFieldError, clearAllErrors } =
+		useFieldErrors<ProfileFields>();
 
 	const [firstName, setFirstName] = useState(user?.firstName || "");
 	const [lastName, setLastName] = useState(user?.lastName || "");
@@ -38,18 +44,16 @@ export function ProfileInfoForm({ compact = false }: ProfileInfoFormProps) {
 		onSuccess: () => {
 			toast.success(t.profile.saved);
 			queryClient.invalidateQueries({ queryKey: ["user"] });
+			clearAllErrors();
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error("Failed to update profile");
-			}
+			handleError(error, "Failed to update profile");
 		},
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		clearAllErrors();
 		updateMutation.mutate();
 	};
 
@@ -58,36 +62,48 @@ export function ProfileInfoForm({ compact = false }: ProfileInfoFormProps) {
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<FieldGroup>
 					<div className="grid grid-cols-2 gap-4">
-						<Field>
+						<Field data-invalid={!!fieldErrors.firstName}>
 							<FieldLabel>{t.profile.firstName}</FieldLabel>
 							<Input
 								value={firstName}
-								onChange={(e) => setFirstName(e.target.value)}
+								onChange={(e) => {
+									setFirstName(e.target.value);
+									clearFieldError("firstName");
+								}}
 								placeholder={t.auth.firstNamePlaceholder}
 							/>
+							<FieldError>{fieldErrors.firstName}</FieldError>
 						</Field>
-						<Field>
+						<Field data-invalid={!!fieldErrors.lastName}>
 							<FieldLabel>{t.profile.lastName}</FieldLabel>
 							<Input
 								value={lastName}
-								onChange={(e) => setLastName(e.target.value)}
+								onChange={(e) => {
+									setLastName(e.target.value);
+									clearFieldError("lastName");
+								}}
 								placeholder={t.auth.lastNamePlaceholder}
 							/>
+							<FieldError>{fieldErrors.lastName}</FieldError>
 						</Field>
 					</div>
-					<Field>
+					<Field data-invalid={!!fieldErrors.username}>
 						<FieldLabel>{t.profile.username}</FieldLabel>
 						<Input
 							value={username}
-							onChange={(e) => setUsername(e.target.value)}
+							onChange={(e) => {
+								setUsername(e.target.value);
+								clearFieldError("username");
+							}}
 							placeholder={t.auth.usernamePlaceholder}
 						/>
+						<FieldError>{fieldErrors.username}</FieldError>
 					</Field>
 				</FieldGroup>
 				<Button type="submit" disabled={updateMutation.isPending}>
 					{updateMutation.isPending ? (
 						<>
-							<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+							<Icon icon={IconLoader2} className="mr-2 animate-spin" />
 							{t.profile.saving}
 						</>
 					) : (
@@ -99,11 +115,11 @@ export function ProfileInfoForm({ compact = false }: ProfileInfoFormProps) {
 	}
 
 	return (
-		<Card clear>
+		<Card variant="ghost">
 			<CardHeader>
 				<div className="flex items-center gap-3">
 					<div className="p-2 rounded-lg bg-muted">
-						<IconUser className="h-6 w-6 text-muted-foreground" />
+						<Icon icon={IconUser} size="lg" className="text-muted-foreground" />
 					</div>
 					<div>
 						<CardTitle>{t.profile.personalInfo}</CardTitle>
@@ -115,30 +131,42 @@ export function ProfileInfoForm({ compact = false }: ProfileInfoFormProps) {
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<FieldGroup>
 						<div className="grid grid-cols-2 gap-4">
-							<Field>
+							<Field data-invalid={!!fieldErrors.firstName}>
 								<FieldLabel>{t.profile.firstName}</FieldLabel>
 								<Input
 									value={firstName}
-									onChange={(e) => setFirstName(e.target.value)}
+									onChange={(e) => {
+										setFirstName(e.target.value);
+										clearFieldError("firstName");
+									}}
 									placeholder={t.auth.firstNamePlaceholder}
 								/>
+								<FieldError>{fieldErrors.firstName}</FieldError>
 							</Field>
-							<Field>
+							<Field data-invalid={!!fieldErrors.lastName}>
 								<FieldLabel>{t.profile.lastName}</FieldLabel>
 								<Input
 									value={lastName}
-									onChange={(e) => setLastName(e.target.value)}
+									onChange={(e) => {
+										setLastName(e.target.value);
+										clearFieldError("lastName");
+									}}
 									placeholder={t.auth.lastNamePlaceholder}
 								/>
+								<FieldError>{fieldErrors.lastName}</FieldError>
 							</Field>
 						</div>
-						<Field>
+						<Field data-invalid={!!fieldErrors.username}>
 							<FieldLabel>{t.profile.username}</FieldLabel>
 							<Input
 								value={username}
-								onChange={(e) => setUsername(e.target.value)}
+								onChange={(e) => {
+									setUsername(e.target.value);
+									clearFieldError("username");
+								}}
 								placeholder={t.auth.usernamePlaceholder}
 							/>
+							<FieldError>{fieldErrors.username}</FieldError>
 						</Field>
 						<Field>
 							<FieldLabel>{t.profile.email}</FieldLabel>
@@ -148,7 +176,7 @@ export function ProfileInfoForm({ compact = false }: ProfileInfoFormProps) {
 					<Button type="submit" disabled={updateMutation.isPending}>
 						{updateMutation.isPending ? (
 							<>
-								<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+								<Icon icon={IconLoader2} className="mr-2 animate-spin" />
 								{t.profile.saving}
 							</>
 						) : (

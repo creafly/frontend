@@ -20,6 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { BlockStyleEditorInline } from "./block-style-editor";
 import { IconTrash } from "@tabler/icons-react";
+import { Icon, TypographyMuted } from "@/components/typography";
 import type { Block, BlockStyle, CalloutVariant, BadgeVariant } from "@/types";
 
 interface BlockEditPopoverProps {
@@ -67,14 +68,10 @@ export function BlockEditPopover({
         return "Divider";
       case "list":
         return "List Block";
-      case "social":
-        return "Social Links";
       case "footer":
         return "Footer Block";
       case "header":
         return "Header Block";
-      case "card":
-        return "Card Block";
       case "link":
         return "Link";
       case "icon":
@@ -307,38 +304,11 @@ export function BlockEditPopover({
           </div>
         );
 
-      case "card":
-        return (
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor={`card-title-${path}`}>Title</Label>
-              <Input
-                id={`card-title-${path}`}
-                value={block.title}
-                onChange={(e) => updateField("title", e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor={`card-desc-${path}`}>Description</Label>
-              <Textarea
-                id={`card-desc-${path}`}
-                value={block.description || ""}
-                onChange={(e) =>
-                  updateField("description", e.target.value || undefined)
-                }
-                rows={2}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        );
-
       case "divider":
         return (
-          <p className="text-sm text-muted-foreground">
+          <TypographyMuted>
             No editable properties for divider.
-          </p>
+          </TypographyMuted>
         );
 
       case "link":
@@ -500,9 +470,9 @@ export function BlockEditPopover({
                 className="mt-1"
               />
             </div>
-            <p className="text-xs text-muted-foreground">
+            <TypographyMuted className="text-xs">
               Content is managed via nested blocks.
-            </p>
+            </TypographyMuted>
           </div>
         );
       }
@@ -634,9 +604,9 @@ export function BlockEditPopover({
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <TypographyMuted className="text-xs">
               Drag blocks into this container to add children.
-            </p>
+            </TypographyMuted>
           </div>
         );
 
@@ -722,9 +692,9 @@ export function BlockEditPopover({
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <TypographyMuted className="text-xs">
               Drag blocks into this container to add children.
-            </p>
+            </TypographyMuted>
           </div>
         );
 
@@ -734,16 +704,16 @@ export function BlockEditPopover({
       case "card_footer":
       case "section":
         return (
-          <p className="text-sm text-muted-foreground">
+          <TypographyMuted>
             Drag blocks into this container to add children.
-          </p>
+          </TypographyMuted>
         );
 
       default:
         return (
-          <p className="text-sm text-muted-foreground">
+          <TypographyMuted>
             This block type is not editable.
-          </p>
+          </TypographyMuted>
         );
     }
   };
@@ -777,7 +747,7 @@ export function BlockEditPopover({
                 onDelete();
               }}
             >
-              <IconTrash className="size-4" />
+              <Icon icon={IconTrash} size="sm" />
             </Button>
           </div>
           <Separator />

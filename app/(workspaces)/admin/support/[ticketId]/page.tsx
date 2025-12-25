@@ -18,9 +18,20 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useTranslations } from "@/providers/i18n-provider";
-import { useAdminTicket, useAdminTicketMessages, useAdminCreateMessage, useAdminUpdateTicket } from "@/hooks/use-support";
+import {
+	useAdminTicket,
+	useAdminTicketMessages,
+	useAdminCreateMessage,
+	useAdminUpdateTicket,
+} from "@/hooks/use-support";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { TypographyH3 } from "@/components/typography";
+import {
+	TypographyH3,
+	TypographyError,
+	Icon,
+	TypographyP,
+	TypographyMuted,
+} from "@/components/typography";
 import {
 	IconArrowLeft,
 	IconClock,
@@ -42,17 +53,17 @@ const statusIcons: Record<TicketStatus, React.ComponentType<{ className?: string
 };
 
 const statusColors: Record<TicketStatus, string> = {
-	open: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-	in_progress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-	resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-	closed: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+	open: "bg-info/10 text-info",
+	in_progress: "bg-warning/10 text-warning",
+	resolved: "bg-success/10 text-success",
+	closed: "bg-muted text-muted-foreground",
 };
 
 const priorityColors: Record<TicketPriority, string> = {
-	low: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
-	medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-	high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-	urgent: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+	low: "bg-muted text-muted-foreground",
+	medium: "bg-info/10 text-info",
+	high: "bg-warning/10 text-warning-foreground",
+	urgent: "bg-destructive/10 text-destructive",
 };
 
 export default function AdminTicketDetailPage() {
@@ -112,7 +123,7 @@ export default function AdminTicketDetailPage() {
 	if (ticketError) {
 		return (
 			<div className="flex items-center justify-center h-64">
-				<p className="text-destructive">{ticketError.message}</p>
+				<TypographyError>{ticketError.message}</TypographyError>
 			</div>
 		);
 	}
@@ -125,7 +136,7 @@ export default function AdminTicketDetailPage() {
 						href="/admin/support"
 						className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
 					>
-						<IconArrowLeft className="size-4 mr-1" />
+						<Icon icon={IconArrowLeft} size="sm" className="mr-1" />
 						{t.support.backToTickets}
 					</Link>
 
@@ -154,7 +165,7 @@ export default function AdminTicketDetailPage() {
 									const StatusIcon = statusIcons[ticket.status];
 									return (
 										<Badge className={`gap-1 ${statusColors[ticket.status]}`}>
-											<StatusIcon className="size-3" />
+											<Icon icon={StatusIcon} size="xs" />
 											{t.support.statuses[ticket.status]}
 										</Badge>
 									);
@@ -183,7 +194,9 @@ export default function AdminTicketDetailPage() {
 									<CardTitle className="text-base">{t.support.ticketDescription}</CardTitle>
 								</CardHeader>
 								<CardContent>
-									<p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
+									<TypographyP className="text-sm whitespace-pre-wrap mt-0">
+										{ticket.description}
+									</TypographyP>
 								</CardContent>
 							</Card>
 						) : null}
@@ -216,15 +229,13 @@ export default function AdminTicketDetailPage() {
 												<div key={msg.id} className="flex gap-3">
 													<div
 														className={`flex size-8 items-center justify-center rounded-full ${
-															isStaff
-																? "bg-primary text-primary-foreground"
-																: "bg-muted"
+															isStaff ? "bg-primary text-primary-foreground" : "bg-muted"
 														}`}
 													>
 														{isStaff ? (
-															<IconHeadset className="size-4" />
+															<Icon icon={IconHeadset} size="sm" />
 														) : (
-															<IconUser className="size-4" />
+															<Icon icon={IconUser} size="sm" />
 														)}
 													</div>
 													<div className="flex-1">
@@ -238,9 +249,7 @@ export default function AdminTicketDetailPage() {
 														</div>
 														<div
 															className={`mt-1 p-3 rounded-lg text-sm whitespace-pre-wrap ${
-																isStaff
-																	? "bg-primary/10 border border-primary/20"
-																	: "bg-muted"
+																isStaff ? "bg-primary/10 border border-primary/20" : "bg-muted"
 															}`}
 														>
 															{msg.content}
@@ -251,9 +260,9 @@ export default function AdminTicketDetailPage() {
 										})}
 									</div>
 								) : (
-									<p className="text-center text-muted-foreground py-8">
+									<TypographyMuted className="text-center py-8">
 										{t.support.noTicketsDescription}
-									</p>
+									</TypographyMuted>
 								)}
 
 								<Separator />
@@ -270,7 +279,7 @@ export default function AdminTicketDetailPage() {
 											onClick={handleSendMessage}
 											disabled={createMessage.isPending || !message.trim()}
 										>
-											<IconSend className="size-4 mr-2" />
+											<Icon icon={IconSend} size="sm" className="mr-2" />
 											{t.admin.sendReply}
 										</Button>
 									</div>
@@ -342,11 +351,15 @@ export default function AdminTicketDetailPage() {
 												<span>{t.support.categories[ticket.category]}</span>
 											</div>
 											<div className="flex justify-between">
-												<span className="text-muted-foreground">{t.templates.columns.created}:</span>
+												<span className="text-muted-foreground">
+													{t.templates.columns.created}:
+												</span>
 												<span>{new Date(ticket.created_at).toLocaleDateString()}</span>
 											</div>
 											<div className="flex justify-between">
-												<span className="text-muted-foreground">{t.templates.columns.updated}:</span>
+												<span className="text-muted-foreground">
+													{t.templates.columns.updated}:
+												</span>
 												<span>{new Date(ticket.updated_at).toLocaleDateString()}</span>
 											</div>
 										</div>

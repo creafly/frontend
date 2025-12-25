@@ -17,6 +17,7 @@ import { parseBlocks } from "@/lib/utils/blocks";
 import { formatDateTime } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 import { IconArrowLeft, IconEdit, IconLayoutSidebarRight } from "@tabler/icons-react";
+import { Icon, TypographyH1, TypographyError, TypographyMuted, TypographyLabel } from "@/components/typography";
 
 export default function TemplateViewPage({
 	params,
@@ -65,9 +66,9 @@ export default function TemplateViewPage({
 	if (error) {
 		return (
 			<div className="flex items-center justify-center h-full">
-				<p className="text-destructive">
+				<TypographyError>
 					{t.errors.loadingTemplates}: {error.message}
-				</p>
+				</TypographyError>
 			</div>
 		);
 	}
@@ -100,7 +101,7 @@ export default function TemplateViewPage({
 	if (!template) {
 		return (
 			<div className="flex items-center justify-center h-full">
-				<p className="text-muted-foreground">Template not found</p>
+				<TypographyMuted>Template not found</TypographyMuted>
 			</div>
 		);
 	}
@@ -111,12 +112,12 @@ export default function TemplateViewPage({
 				<div className="flex items-center gap-3">
 					<Button variant="ghost" size="icon" asChild>
 						<Link href={`/workspaces/${resolvedParams.id}/templates`}>
-							<IconArrowLeft className="size-4" />
+							<Icon icon={IconArrowLeft} size="sm" />
 						</Link>
 					</Button>
 					<div>
-						<h1 className="text-lg font-semibold text-foreground">{template.name}</h1>
-						<p className="text-sm text-muted-foreground">{template.subject}</p>
+						<TypographyH1 size="xs" className="font-semibold">{template.name}</TypographyH1>
+						<TypographyMuted>{template.subject}</TypographyMuted>
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
@@ -126,12 +127,12 @@ export default function TemplateViewPage({
 						onClick={() => setSidebarOpen(!sidebarOpen)}
 						title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
 					>
-						<IconLayoutSidebarRight className="size-4" />
+						<Icon icon={IconLayoutSidebarRight} size="sm" />
 					</Button>
 					{canEdit && (
 						<Button asChild>
 							<Link href={`/workspaces/${resolvedParams.id}/templates/${template.id}/edit`}>
-								<IconEdit className="size-4 mr-2" />
+								<Icon icon={IconEdit} size="sm" className="mr-2" />
 								{t.common.edit}
 							</Link>
 						</Button>
@@ -140,7 +141,7 @@ export default function TemplateViewPage({
 			</div>
 
 			<div className="flex-1 flex overflow-hidden">
-				<div className="flex-1 overflow-auto">
+				<div className="py-4 flex-1 overflow-auto">
 					<div className="w-full mx-auto h-full">
 						{previewHtml && <EmailPreview html={previewHtml} height="100%" fullWidth />}
 					</div>
@@ -159,29 +160,29 @@ export default function TemplateViewPage({
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div>
-									<p className="text-sm text-muted-foreground">{t.templates.columns.type}</p>
+									<TypographyMuted>{t.templates.columns.type}</TypographyMuted>
 									<Badge className="mt-1">
 										{t.templates.types[template.template as keyof typeof t.templates.types] ??
 											template.template}
 									</Badge>
 								</div>
 								<div>
-									<p className="text-sm text-muted-foreground">{t.templates.columns.status}</p>
+									<TypographyMuted>{t.templates.columns.status}</TypographyMuted>
 									<Badge variant={template.isActive ? "default" : "secondary"} className="mt-1">
 										{template.isActive ? t.common.active : t.common.inactive}
 									</Badge>
 								</div>
 								<div>
-									<p className="text-sm text-muted-foreground">{t.templates.columns.created}</p>
-									<p className="text-sm font-medium mt-1">
+									<TypographyMuted>{t.templates.columns.created}</TypographyMuted>
+									<TypographyLabel className="mt-1">
 										{formatDateTime(template.createdAt, locale)}
-									</p>
+									</TypographyLabel>
 								</div>
 								<div>
-									<p className="text-sm text-muted-foreground">{t.templates.columns.updated}</p>
-									<p className="text-sm font-medium mt-1">
+									<TypographyMuted>{t.templates.columns.updated}</TypographyMuted>
+									<TypographyLabel className="mt-1">
 										{formatDateTime(template.updatedAt, locale)}
-									</p>
+									</TypographyLabel>
 								</div>
 							</CardContent>
 						</Card>

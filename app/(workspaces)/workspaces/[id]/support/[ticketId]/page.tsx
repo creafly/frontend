@@ -14,7 +14,13 @@ import { useTicket, useTicketMessages, useCreateMessage } from "@/hooks/use-supp
 import { useAuth } from "@/providers/auth-provider";
 import { BlurFade } from "@/components/ui/blur-fade";
 import Container from "@/components/container";
-import { TypographyH3, TypographyP } from "@/components/typography";
+import {
+	TypographyH3,
+	TypographyError,
+	Icon,
+	TypographyP,
+	TypographyMuted,
+} from "@/components/typography";
 import {
 	IconArrowLeft,
 	IconClock,
@@ -36,17 +42,17 @@ const statusIcons: Record<TicketStatus, React.ComponentType<{ className?: string
 };
 
 const statusColors: Record<TicketStatus, string> = {
-	open: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-	in_progress: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-	resolved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-	closed: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+	open: "bg-info/10 text-info",
+	in_progress: "bg-warning/10 text-warning-foreground",
+	resolved: "bg-success/10 text-success",
+	closed: "bg-muted text-muted-foreground",
 };
 
 const priorityColors: Record<TicketPriority, string> = {
-	low: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
-	medium: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-	high: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-	urgent: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+	low: "bg-muted text-muted-foreground",
+	medium: "bg-info/10 text-info",
+	high: "bg-warning/10 text-warning-foreground",
+	urgent: "bg-destructive/10 text-destructive",
 };
 
 export default function TicketDetailPage() {
@@ -81,7 +87,7 @@ export default function TicketDetailPage() {
 		return (
 			<Container className="py-6">
 				<div className="flex items-center justify-center h-64">
-					<p className="text-destructive">{ticketError.message}</p>
+					<TypographyError>{ticketError.message}</TypographyError>
 				</div>
 			</Container>
 		);
@@ -91,14 +97,14 @@ export default function TicketDetailPage() {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<Container className="py-6 max-w-4xl">
+			<Container className="py-6 max-w-full">
 				<BlurFade delay={0.1}>
 					<div className="mb-6">
 						<Link
 							href={`/workspaces/${workspaceId}/support`}
 							className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
 						>
-							<IconArrowLeft className="size-4 mr-1" />
+							<Icon icon={IconArrowLeft} size="sm" className="mr-1" />
 							{t.support.backToTickets}
 						</Link>
 
@@ -119,7 +125,7 @@ export default function TicketDetailPage() {
 											const StatusIcon = statusIcons[ticket.status];
 											return (
 												<Badge className={`gap-1 ${statusColors[ticket.status]}`}>
-													<StatusIcon className="size-3" />
+													<Icon icon={StatusIcon} size="xs" />
 													{t.support.statuses[ticket.status]}
 												</Badge>
 											);
@@ -155,7 +161,9 @@ export default function TicketDetailPage() {
 								<CardTitle className="text-base">{t.support.ticketDescription}</CardTitle>
 							</CardHeader>
 							<CardContent>
-								<p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
+								<TypographyP className="text-sm whitespace-pre-wrap mt-0">
+									{ticket.description}
+								</TypographyP>
 							</CardContent>
 						</Card>
 					) : null}
@@ -184,7 +192,7 @@ export default function TicketDetailPage() {
 									{messages.map((msg) => {
 										const isCurrentUser = msg.user_id === user?.id;
 										const isStaff = msg.is_staff;
-										
+
 										return (
 											<div
 												key={msg.id}
@@ -192,22 +200,16 @@ export default function TicketDetailPage() {
 											>
 												<div
 													className={`flex size-8 items-center justify-center rounded-full ${
-														isStaff
-															? "bg-primary text-primary-foreground"
-															: "bg-muted"
+														isStaff ? "bg-primary text-primary-foreground" : "bg-muted"
 													}`}
 												>
 													{isStaff ? (
-														<IconHeadset className="size-4" />
+														<Icon icon={IconHeadset} size="sm" />
 													) : (
-														<IconUser className="size-4" />
+														<Icon icon={IconUser} size="sm" />
 													)}
 												</div>
-												<div
-													className={`flex-1 max-w-[80%] ${
-														isCurrentUser ? "text-right" : ""
-													}`}
-												>
+												<div className={`flex-1 max-w-[80%] ${isCurrentUser ? "text-right" : ""}`}>
 													<div
 														className={`inline-flex items-center gap-2 text-sm ${
 															isCurrentUser ? "flex-row-reverse" : ""
@@ -237,9 +239,9 @@ export default function TicketDetailPage() {
 									})}
 								</div>
 							) : (
-								<p className="text-center text-muted-foreground py-8">
+								<TypographyMuted className="text-center py-8">
 									{t.support.noTicketsDescription}
-								</p>
+								</TypographyMuted>
 							)}
 
 							{!isTicketClosed && (
@@ -257,7 +259,7 @@ export default function TicketDetailPage() {
 												onClick={handleSendMessage}
 												disabled={createMessage.isPending || !message.trim()}
 											>
-												<IconSend className="size-4 mr-2" />
+												<Icon icon={IconSend} size="sm" className="mr-2" />
 												{t.support.sendMessage}
 											</Button>
 										</div>

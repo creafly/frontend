@@ -2,12 +2,38 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { IconPlus, IconTrash, IconEdit, IconLoader2, IconCopyPlus } from "@tabler/icons-react";
+import {
+	IconPlus,
+	IconTrash,
+	IconEdit,
+	IconLoader2,
+	IconCopyPlus,
+	IconSquare,
+	IconSquareCheck,
+	IconX,
+	IconPalette,
+} from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
-import { useCreateColor, useUpdateColor, useDeleteColor } from "@/hooks/use-branding";
+import { Icon, TypographyH3, TypographyMuted, TypographyP } from "@/components/typography";
+import {
+	Empty,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+	EmptyDescription,
+	EmptyContent,
+} from "@/components/ui/empty";
+import {
+	useColors,
+	useCreateColor,
+	useUpdateColor,
+	useDeleteColor,
+	useDeleteColorsBatch,
+} from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -28,7 +54,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Field, FieldGroup, FieldLabelWithTooltip } from "@/components/ui/field";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CardPagination } from "@/components/ui/card-pagination";
 import type { BrandColor } from "@/types/branding";
+
+const ITEMS_PER_PAGE = 12;
 
 interface ColorRow {
 	id: string;
@@ -38,10 +67,9 @@ interface ColorRow {
 
 interface ColorsSectionProps {
 	tenantId: string;
-	colors: BrandColor[];
 }
 
-export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
+export function ColorsSection({ tenantId }: ColorsSectionProps) {
 	const t = useTranslations();
 
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -49,6 +77,11 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 	const [isEditOpen, setIsEditOpen] = useState(false);
 	const [deleteColorId, setDeleteColorId] = useState<string | null>(null);
 	const [selectedColor, setSelectedColor] = useState<BrandColor | null>(null);
+
+	const [isSelectionMode, setIsSelectionMode] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+	const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
+	const [currentPage, setCurrentPage] = useState(1);
 
 	const [name, setName] = useState("");
 	const [value, setValue] = useState("#000000");
@@ -58,9 +91,19 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 	]);
 	const [isBatchCreating, setIsBatchCreating] = useState(false);
 
+	const { data: colorsData, isLoading } = useColors(tenantId, {
+		limit: ITEMS_PER_PAGE,
+		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+	});
+
+	const colors = colorsData?.colors || [];
+	const totalColors = colorsData?.total || 0;
+	const totalPages = Math.ceil(totalColors / ITEMS_PER_PAGE);
+
 	const createColor = useCreateColor();
 	const updateColor = useUpdateColor();
 	const deleteColor = useDeleteColor();
+	const deleteColorsBatch = useDeleteColorsBatch();
 
 	const resetForm = () => {
 		setName("");
@@ -95,11 +138,11 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 				tenantId,
 				request: { name: name.trim(), value },
 			});
-			toast.success(t.branding?.colorCreated || "Color created");
+			toast.success(t.branding.colorCreated);
 			setIsCreateOpen(false);
 			resetForm();
 		} catch {
-			toast.error(t.branding?.colorCreateFailed || "Failed to create color");
+			toast.error(t.branding.colorCreateFailed);
 		}
 	};
 
@@ -128,22 +171,17 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 		setIsBatchCreating(false);
 
 		if (failCount === 0) {
-			toast.success(
-				(t.branding?.batchCreateSuccess || "{count} items created successfully").replace(
-					"{count}",
-					String(successCount)
-				)
-			);
+			toast.success(t.branding.batchCreateSuccess.replace("{count}", String(successCount)));
 			setIsBatchCreateOpen(false);
 			resetBatchForm();
 		} else if (successCount > 0) {
 			toast.warning(
-				(t.branding?.batchCreatePartial || "{success} of {total} items created")
+				t.branding.batchCreatePartial
 					.replace("{success}", String(successCount))
 					.replace("{total}", String(validRows.length))
 			);
 		} else {
-			toast.error(t.branding?.colorCreateFailed || "Failed to create colors");
+			toast.error(t.branding.colorCreateFailed);
 		}
 	};
 
@@ -157,11 +195,11 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 				colorId: selectedColor.id,
 				request: { name: name.trim(), value },
 			});
-			toast.success(t.branding?.colorUpdated || "Color updated");
+			toast.success(t.branding.colorUpdated);
 			setIsEditOpen(false);
 			resetForm();
 		} catch {
-			toast.error(t.branding?.colorUpdateFailed || "Failed to update color");
+			toast.error(t.branding.colorUpdateFailed);
 		}
 	};
 
@@ -170,10 +208,10 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 
 		try {
 			await deleteColor.mutateAsync({ tenantId, colorId: deleteColorId });
-			toast.success(t.branding?.colorDeleted || "Color deleted");
+			toast.success(t.branding.colorDeleted);
 			setDeleteColorId(null);
 		} catch {
-			toast.error(t.branding?.colorDeleteFailed || "Failed to delete color");
+			toast.error(t.branding.colorDeleteFailed);
 		}
 	};
 
@@ -184,71 +222,203 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 		setIsEditOpen(true);
 	};
 
-	const sortedColors = [...colors].sort((a, b) => a.order - b.order);
+	const toggleSelection = (id: string) => {
+		setSelectedIds((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(id)) {
+				newSet.delete(id);
+			} else {
+				newSet.add(id);
+			}
+			return newSet;
+		});
+	};
+
+	const selectAll = () => {
+		setSelectedIds(new Set(colors.map((c) => c.id)));
+	};
+
+	const deselectAll = () => {
+		setSelectedIds(new Set());
+	};
+
+	const exitSelectionMode = () => {
+		setIsSelectionMode(false);
+		setSelectedIds(new Set());
+	};
+
+	const handleBatchDelete = async () => {
+		try {
+			await deleteColorsBatch.mutateAsync({
+				tenantId,
+				request: { ids: Array.from(selectedIds) },
+			});
+			toast.success(t.branding.batchDeleteSuccess.replace("{count}", String(selectedIds.size)));
+			setIsBatchDeleteOpen(false);
+			exitSelectionMode();
+		} catch {
+			toast.error(t.branding.batchDeleteFailed);
+		}
+	};
+
+	const sortedColors = colors;
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center py-8">
+				<Icon icon={IconLoader2} size="lg" className="animate-spin text-muted-foreground" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between">
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<div>
-					<h3 className="text-lg font-medium">{t.branding?.colors || "Colors"}</h3>
-					<p className="text-sm text-muted-foreground">
-						{t.branding?.colorsDescription || "Define your brand color palette"}
-					</p>
+					<TypographyH3 size="xs">{t.branding.colors}</TypographyH3>
+					<TypographyMuted>{t.branding.colorsDescription}</TypographyMuted>
 				</div>
-				<div className="flex gap-2">
-					<Button variant="outline" onClick={() => setIsBatchCreateOpen(true)}>
-						<IconCopyPlus className="mr-2 h-4 w-4" />
-						{t.branding?.addMultiple || "Add Multiple"}
-					</Button>
-					<Button onClick={() => setIsCreateOpen(true)}>
-						<IconPlus className="mr-2 h-4 w-4" />
-						{t.branding?.addColor || "Add Color"}
-					</Button>
+				<div className="flex flex-wrap gap-2">
+					{isSelectionMode ? (
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={selectedIds.size === colors.length ? deselectAll : selectAll}
+							>
+								{selectedIds.size === colors.length ? (
+									<>
+										<Icon icon={IconSquare} size="sm" className="mr-2" />
+										{t.common.deselectAll}
+									</>
+								) : (
+									<>
+										<Icon icon={IconSquareCheck} size="sm" className="mr-2" />
+										{t.common.selectAll}
+									</>
+								)}
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								onClick={() => setIsBatchDeleteOpen(true)}
+								disabled={selectedIds.size === 0}
+							>
+								<Icon icon={IconTrash} size="sm" className="mr-2" />
+								{t.branding.deleteSelected} ({selectedIds.size})
+							</Button>
+							<Button variant="ghost" size="sm" onClick={exitSelectionMode}>
+								<Icon icon={IconX} size="sm" className="mr-2" />
+								{t.common.cancel}
+							</Button>
+						</>
+					) : (
+						<>
+							{colors.length > 0 && (
+								<Button variant="outline" onClick={() => setIsSelectionMode(true)}>
+									<Icon icon={IconSquareCheck} size="sm" className="mr-2" />
+									{t.branding.selectItems}
+								</Button>
+							)}
+							<Button variant="outline" onClick={() => setIsBatchCreateOpen(true)}>
+								<Icon icon={IconCopyPlus} size="sm" className="mr-2" />
+								{t.branding.addMultiple}
+							</Button>
+							<Button onClick={() => setIsCreateOpen(true)}>
+								<Icon icon={IconPlus} size="sm" className="mr-2" />
+								{t.branding.addColor}
+							</Button>
+						</>
+					)}
 				</div>
 			</div>
 
-			{sortedColors.length === 0 ? (
-				<div className="text-center py-8 border rounded-lg bg-card">
-					<p className="text-muted-foreground">{t.branding?.noColors || "No colors defined yet"}</p>
+			{sortedColors.length === 0 && totalColors === 0 ? (
+				<div className="flex-1 flex items-center justify-center min-h-60">
+					<Empty>
+						<EmptyHeader>
+							<EmptyMedia variant="icon" size="lg">
+								<Icon icon={IconPalette} size="xl" className="text-muted-foreground" />
+							</EmptyMedia>
+							<EmptyTitle>{t.branding.noColors}</EmptyTitle>
+							<EmptyDescription>{t.branding.noColorsDescription}</EmptyDescription>
+						</EmptyHeader>
+						<EmptyContent>
+							<Button onClick={() => setIsCreateOpen(true)}>
+								<Icon icon={IconPlus} size="sm" className="mr-2" />
+								{t.branding.addColor}
+							</Button>
+						</EmptyContent>
+					</Empty>
 				</div>
 			) : (
-				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-					{sortedColors.map((color) => (
-						<div
-							key={color.id}
-							className="p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors"
-						>
+				<>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+						{sortedColors.map((color) => (
 							<div
-								className="w-full h-16 rounded-md mb-3 border"
-								style={{ backgroundColor: color.value }}
-							/>
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="font-medium text-sm">{color.name}</p>
-									<p className="text-xs text-muted-foreground uppercase">{color.value}</p>
-								</div>
-								<div className="flex gap-1">
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-8 w-8"
-										onClick={() => openEditDialog(color)}
-									>
-										<IconEdit className="h-4 w-4" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-8 w-8 text-destructive hover:text-destructive"
-										onClick={() => setDeleteColorId(color.id)}
-									>
-										<IconTrash className="h-4 w-4" />
-									</Button>
+								key={color.id}
+								className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
+									isSelectionMode && selectedIds.has(color.id) ? "ring-2 ring-primary" : ""
+								}`}
+								onClick={isSelectionMode ? () => toggleSelection(color.id) : undefined}
+							>
+								{isSelectionMode && (
+									<div className="flex justify-end mb-2">
+										<Checkbox
+											checked={selectedIds.has(color.id)}
+											onCheckedChange={() => toggleSelection(color.id)}
+										/>
+									</div>
+								)}
+								<div
+									className="w-full h-16 rounded-md mb-3 border"
+									style={{ backgroundColor: color.value }}
+								/>
+								<div className="flex items-center justify-between">
+									<div>
+										<TypographyP className="font-medium text-sm mt-0">{color.name}</TypographyP>
+										<TypographyMuted className="text-xs uppercase">{color.value}</TypographyMuted>
+									</div>
+									{!isSelectionMode && (
+										<div className="flex gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8"
+												onClick={() => openEditDialog(color)}
+											>
+												<Icon icon={IconEdit} size="sm" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 text-destructive hover:text-destructive"
+												onClick={() => setDeleteColorId(color.id)}
+											>
+												<Icon icon={IconTrash} size="sm" />
+											</Button>
+										</div>
+									)}
 								</div>
 							</div>
-						</div>
-					))}
-				</div>
+						))}
+					</div>
+
+					<CardPagination
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onPageChange={setCurrentPage}
+						totalItems={totalColors}
+						itemsPerPage={ITEMS_PER_PAGE}
+						labels={{
+							previous: t.common.previous,
+							next: t.common.next,
+							of: t.common.of,
+							showing: t.common.showing,
+							items: t.common.items,
+						}}
+					/>
+				</>
 			)}
 
 			<Dialog
@@ -261,16 +431,14 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 				<DialogContent>
 					<form onSubmit={handleCreate}>
 						<DialogHeader>
-							<DialogTitle>{t.branding?.addColor || "Add Color"}</DialogTitle>
-							<DialogDescription>
-								{t.branding?.addColorDescription || "Add a new color to your brand palette"}
-							</DialogDescription>
+							<DialogTitle>{t.branding.addColor}</DialogTitle>
+							<DialogDescription>{t.branding.addColorDescription}</DialogDescription>
 						</DialogHeader>
 						<div className="py-4">
 							<FieldGroup>
 								<Field>
-									<FieldLabelWithTooltip tooltip={t.branding?.tooltips?.colorName}>
-										{t.branding?.colorName || "Name"}
+									<FieldLabelWithTooltip tooltip={t.branding.tooltips.colorName}>
+										{t.branding.colorName}
 									</FieldLabelWithTooltip>
 									<Input
 										value={name}
@@ -280,8 +448,8 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 									/>
 								</Field>
 								<Field>
-									<FieldLabelWithTooltip tooltip={t.branding?.tooltips?.colorValue}>
-										{t.branding?.colorValue || "Color"}
+									<FieldLabelWithTooltip tooltip={t.branding.tooltips.colorValue}>
+										{t.branding.colorValue}
 									</FieldLabelWithTooltip>
 									<div className="flex gap-2">
 										<Input
@@ -305,7 +473,9 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 								{t.common.cancel}
 							</Button>
 							<Button type="submit" disabled={createColor.isPending}>
-								{createColor.isPending && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+								{createColor.isPending && (
+									<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+								)}
 								{t.common.create}
 							</Button>
 						</DialogFooter>
@@ -323,19 +493,19 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 				<DialogContent>
 					<form onSubmit={handleEdit}>
 						<DialogHeader>
-							<DialogTitle>{t.branding?.editColor || "Edit Color"}</DialogTitle>
+							<DialogTitle>{t.branding.editColor}</DialogTitle>
 						</DialogHeader>
 						<div className="py-4">
 							<FieldGroup>
 								<Field>
-									<FieldLabelWithTooltip tooltip={t.branding?.tooltips?.colorName}>
-										{t.branding?.colorName || "Name"}
+									<FieldLabelWithTooltip tooltip={t.branding.tooltips.colorName}>
+										{t.branding.colorName}
 									</FieldLabelWithTooltip>
 									<Input value={name} onChange={(e) => setName(e.target.value)} required />
 								</Field>
 								<Field>
-									<FieldLabelWithTooltip tooltip={t.branding?.tooltips?.colorValue}>
-										{t.branding?.colorValue || "Color"}
+									<FieldLabelWithTooltip tooltip={t.branding.tooltips.colorValue}>
+										{t.branding.colorValue}
 									</FieldLabelWithTooltip>
 									<div className="flex gap-2">
 										<Input
@@ -358,7 +528,9 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 								{t.common.cancel}
 							</Button>
 							<Button type="submit" disabled={updateColor.isPending}>
-								{updateColor.isPending && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+								{updateColor.isPending && (
+									<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+								)}
 								{t.common.save}
 							</Button>
 						</DialogFooter>
@@ -376,11 +548,8 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 				<DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
 					<form onSubmit={handleBatchCreate} className="flex flex-col flex-1 overflow-hidden">
 						<DialogHeader>
-							<DialogTitle>{t.branding?.batchCreateColors || "Add Multiple Colors"}</DialogTitle>
-							<DialogDescription>
-								{t.branding?.batchCreateColorsDescription ||
-									"Add multiple colors at once to your brand palette"}
-							</DialogDescription>
+							<DialogTitle>{t.branding.batchCreateColors}</DialogTitle>
+							<DialogDescription>{t.branding.batchCreateColorsDescription}</DialogDescription>
 						</DialogHeader>
 						<ScrollArea className="flex-1 max-h-[60vh] py-4">
 							<div className="space-y-4 pr-4">
@@ -390,8 +559,8 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 										className="flex flex-col sm:items-end gap-3 p-3 border rounded-lg bg-muted/30"
 									>
 										<div className="flex-1 min-w-0 w-full">
-											<FieldLabelWithTooltip tooltip={t.branding?.tooltips?.colorName}>
-												{t.branding?.colorName || "Name"}
+											<FieldLabelWithTooltip tooltip={t.branding.tooltips.colorName}>
+												{t.branding.colorName}
 											</FieldLabelWithTooltip>
 											<Input
 												value={row.name}
@@ -400,8 +569,8 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 											/>
 										</div>
 										<div className="flex-1 min-w-0 w-full">
-											<FieldLabelWithTooltip tooltip={t.branding?.tooltips?.colorValue}>
-												{t.branding?.colorValue || "Color"}
+											<FieldLabelWithTooltip tooltip={t.branding.tooltips.colorValue}>
+												{t.branding.colorValue}
 											</FieldLabelWithTooltip>
 											<div className="flex gap-2">
 												<Input
@@ -425,7 +594,7 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 											disabled={batchRows.length === 1}
 											className="text-destructive hover:text-destructive shrink-0 self-end sm:self-auto sm:h-10"
 										>
-											<IconTrash className="h-4 w-4 mr-1" />
+											<Icon icon={IconTrash} size="sm" className="mr-1" />
 											{t.common.delete}
 										</Button>
 									</div>
@@ -434,8 +603,8 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 						</ScrollArea>
 						<div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-4 border-t z-10 bg-card">
 							<Button type="button" variant="outline" onClick={addBatchRow}>
-								<IconPlus className="mr-2 h-4 w-4" />
-								{t.branding?.addRow || "Add Row"}
+								<Icon icon={IconPlus} size="sm" className="mr-2" />
+								{t.branding.addRow}
 							</Button>
 							<div className="flex gap-2 justify-end">
 								<Button type="button" variant="outline" onClick={() => setIsBatchCreateOpen(false)}>
@@ -445,8 +614,10 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 									type="submit"
 									disabled={isBatchCreating || batchRows.every((r) => !r.name.trim())}
 								>
-									{isBatchCreating && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
-									{isBatchCreating ? t.branding?.creatingItems || "Creating..." : t.common.create}
+									{isBatchCreating && (
+										<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+									)}
+									{isBatchCreating ? t.branding.creatingItems : t.common.create}
 								</Button>
 							</div>
 						</div>
@@ -457,10 +628,8 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 			<AlertDialog open={!!deleteColorId} onOpenChange={(open) => !open && setDeleteColorId(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>{t.branding?.deleteColor || "Delete Color"}</AlertDialogTitle>
-						<AlertDialogDescription>
-							{t.branding?.deleteColorConfirm || "Are you sure you want to delete this color?"}
-						</AlertDialogDescription>
+						<AlertDialogTitle>{t.branding.deleteColor}</AlertDialogTitle>
+						<AlertDialogDescription>{t.branding.deleteColorConfirm}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
@@ -468,7 +637,32 @@ export function ColorsSection({ tenantId, colors }: ColorsSectionProps) {
 							onClick={handleDelete}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{deleteColor.isPending && <IconLoader2 className="mr-2 h-4 w-4 animate-spin" />}
+							{deleteColor.isPending && (
+								<Icon icon={IconLoader2} size="md" className="mr-2 animate-spin" />
+							)}
+							{t.common.delete}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog open={isBatchDeleteOpen} onOpenChange={setIsBatchDeleteOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t.branding.deleteSelected}</AlertDialogTitle>
+						<AlertDialogDescription>
+							{t.branding.batchDeleteConfirm.replace("{count}", String(selectedIds.size))}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleBatchDelete}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{deleteColorsBatch.isPending && (
+								<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+							)}
 							{t.common.delete}
 						</AlertDialogAction>
 					</AlertDialogFooter>

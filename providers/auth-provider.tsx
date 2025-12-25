@@ -34,6 +34,9 @@ interface AuthContextValue extends AuthState {
 	register: (request: RegisterRequest) => Promise<void>;
 	logout: () => void;
 	refreshTokens: () => Promise<boolean>;
+	verifyEmail: (code: string) => Promise<{ success: boolean; error?: string }>;
+	resendVerificationEmail: () => Promise<{ success: boolean; error?: string }>;
+	updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -110,8 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				return true;
 			}
 			return false;
-		} catch {
-			logout();
+		} catch (error) {
+			if (error instanceof IdentityApiError && error.status === 401) {
+				logout();
+			}
 			return false;
 		} finally {
 			isRefreshingRef.current = false;
@@ -119,20 +124,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}, [logout]);
 
 	const scheduleTokenRefresh = useCallback(
-		(expiresIn: number) => {
+		(expiresAt: number) => {
 			if (refreshTimerRef.current) {
 				clearTimeout(refreshTimerRef.current);
 			}
 
-			const refreshIn = Math.max(expiresIn * 1000 - TOKEN_REFRESH_MARGIN, 0);
+			const now = Date.now();
+			const expiresAtMs = expiresAt * 1000;
+			const refreshIn = Math.max(expiresAtMs - now - TOKEN_REFRESH_MARGIN, 0);
 
 			if (refreshIn > 0) {
 				refreshTimerRef.current = setTimeout(async () => {
 					const success = await refreshTokens();
 					if (success) {
 						const stored = getStoredAuth();
-						if (stored?.tokens?.expiresIn) {
-							scheduleTokenRefresh(stored.tokens.expiresIn);
+						if (stored?.tokens?.expiresAt) {
+							scheduleTokenRefresh(stored.tokens.expiresAt);
 						}
 					}
 				}, refreshIn);
@@ -165,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				isAuthenticated: true,
 			});
 
-			scheduleTokenRefresh(response.tokens.expiresIn);
+			scheduleTokenRefresh(response.tokens.expiresAt);
 
 			return { success: true };
 		},
@@ -188,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				isAuthenticated: true,
 			});
 
-			scheduleTokenRefresh(response.tokens.expiresIn);
+			scheduleTokenRefresh(response.tokens.expiresAt);
 		},
 		[scheduleTokenRefresh]
 	);
@@ -209,10 +216,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				isAuthenticated: true,
 			});
 
-			scheduleTokenRefresh(response.tokens.expiresIn);
+			scheduleTokenRefresh(response.tokens.expiresAt);
 		},
 		[scheduleTokenRefresh]
 	);
+
+	const verifyEmail = useCallback(
+		async (code: string): Promise<{ success: boolean; error?: string }> => {
+			const stored = getStoredAuth();
+			if (!stored?.tokens?.accessToken) {
+				return { success: false, error: "Not authenticated" };
+			}
+
+			try {
+				const response = await identityApi.verifyEmail(stored.tokens.accessToken, code);
+				if (response.error) {
+					return { success: false, error: response.error };
+				}
+
+				const updatedUser: User = {
+					...stored.user,
+					emailVerified: true,
+					emailVerifiedAt: new Date().toISOString(),
+				};
+				setStoredAuth(updatedUser, stored.tokens);
+				setState((prev) => ({
+					...prev,
+					user: updatedUser,
+				}));
+
+				return { success: true };
+			} catch (error) {
+				if (error instanceof IdentityApiError) {
+					return { success: false, error: error.message };
+				}
+				return { success: false, error: "Failed to verify email" };
+			}
+		},
+		[]
+	);
+
+	const resendVerificationEmail = useCallback(async (): Promise<{
+		success: boolean;
+		error?: string;
+	}> => {
+		const stored = getStoredAuth();
+		if (!stored?.tokens?.accessToken) {
+			return { success: false, error: "Not authenticated" };
+		}
+
+		try {
+			const response = await identityApi.resendVerificationEmail(stored.tokens.accessToken);
+			if (response.error) {
+				return { success: false, error: response.error };
+			}
+			return { success: true };
+		} catch (error) {
+			if (error instanceof IdentityApiError) {
+				return { success: false, error: error.message };
+			}
+			return { success: false, error: "Failed to resend verification email" };
+		}
+	}, []);
+
+	const updateUser = useCallback((user: User) => {
+		const stored = getStoredAuth();
+		if (stored?.tokens) {
+			setStoredAuth(user, stored.tokens);
+			setState((prev) => ({
+				...prev,
+				user,
+			}));
+		}
+	}, []);
 
 	useEffect(() => {
 		const initAuth = async () => {
@@ -232,21 +308,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 						isLoading: false,
 						isAuthenticated: true,
 					});
-					scheduleTokenRefresh(stored.tokens.expiresIn);
+					scheduleTokenRefresh(stored.tokens.expiresAt);
 				} else {
 					const refreshed = await refreshTokens();
-					if (!refreshed) {
-						logout();
+					if (refreshed) {
+						const newStored = getStoredAuth();
+						if (newStored?.tokens?.expiresAt) {
+							scheduleTokenRefresh(newStored.tokens.expiresAt);
+						}
 					}
 				}
 			} catch (error) {
 				if (error instanceof IdentityApiError && error.status === 401) {
 					const refreshed = await refreshTokens();
-					if (!refreshed) {
-						logout();
+					if (refreshed) {
+						const newStored = getStoredAuth();
+						if (newStored?.tokens?.expiresAt) {
+							scheduleTokenRefresh(newStored.tokens.expiresAt);
+						}
 					}
 				} else {
-					logout();
+					console.error("Auth init error (not logging out):", error);
+					setState({
+						user: stored.user,
+						tokens: stored.tokens,
+						isLoading: false,
+						isAuthenticated: true,
+					});
+					scheduleTokenRefresh(stored.tokens.expiresAt);
 				}
 			}
 		};
@@ -269,6 +358,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				register,
 				logout,
 				refreshTokens,
+				verifyEmail,
+				resendVerificationEmail,
+				updateUser,
 			}}
 		>
 			{children}

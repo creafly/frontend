@@ -6,10 +6,8 @@ export type BlockType =
 	| "spacer"
 	| "divider"
 	| "list"
-	| "social"
 	| "footer"
 	| "header"
-	| "card"
 	| "section"
 	| "conditional"
 	| "grid_wrapper"
@@ -129,18 +127,6 @@ export interface ListBlock {
 	style?: BlockStyle;
 }
 
-export interface SocialLink {
-	platform: string;
-	url: string;
-	icon?: string;
-}
-
-export interface SocialBlock {
-	type: "social";
-	links: SocialLink[];
-	style?: BlockStyle;
-}
-
 export interface FooterLink {
 	text: string;
 	url: string;
@@ -168,18 +154,6 @@ export interface HeaderBlock {
 	logoWidth?: number;
 	title?: string;
 	navLinks?: NavLink[];
-	style?: BlockStyle;
-}
-
-export interface CardBlock {
-	type: "card";
-	imageUrl?: string;
-	imageAlt?: string;
-	title: string;
-	description?: string;
-	ctaText?: string;
-	ctaUrl?: string;
-	layout?: "vertical" | "horizontal";
 	style?: BlockStyle;
 }
 
@@ -294,10 +268,8 @@ export type Block =
 	| SpacerBlock
 	| DividerBlock
 	| ListBlock
-	| SocialBlock
 	| FooterBlock
 	| HeaderBlock
-	| CardBlock
 	| SectionBlock
 	| ConditionalBlock
 	| GridWrapperBlock
@@ -466,6 +438,8 @@ export interface User {
 	blockReason?: string;
 	blockedAt?: string;
 	totpEnabled: boolean;
+	emailVerified: boolean;
+	emailVerifiedAt?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -473,7 +447,7 @@ export interface User {
 export interface AuthTokens {
 	accessToken: string;
 	refreshToken: string;
-	expiresIn: number;
+	expiresAt: number;
 }
 
 export interface LoginRequest {
@@ -518,6 +492,10 @@ export interface Tenant {
 	displayName: string;
 	slug: string;
 	isActive: boolean;
+	isBlocked: boolean;
+	blockReason?: string;
+	blockedAt?: string;
+	blockedBy?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -668,6 +646,27 @@ export interface TokenUsageSummary {
 	remainingTokens: number;
 }
 
+export interface TokenUsageLog {
+	id: string;
+	tenantId: string;
+	userId?: string;
+	action: string;
+	description?: string;
+	inputTokens: number;
+	outputTokens: number;
+	totalTokens: number;
+	modelName?: string;
+	metadata?: string;
+	createdAt: string;
+}
+
+export interface TokenUsageLogList {
+	items: TokenUsageLog[];
+	totalCount: number;
+	limit: number;
+	offset: number;
+}
+
 export interface SubscribeRequest {
 	planId: string;
 	billingCycle: BillingCycle;
@@ -685,3 +684,78 @@ export interface CheckCanGenerateResponse {
 export interface SubscriptionWithPlan extends Subscription {
 	plan?: Plan;
 }
+
+export interface ConversationMessage {
+	id: string;
+	conversationId: string;
+	role: "user" | "assistant";
+	content: string;
+	type?: "email" | "conversation" | "subscription_error";
+	html?: string;
+	template?: string;
+	subject?: string;
+	summary?: string;
+	props?: Record<string, unknown>;
+	blocks?: Block[];
+	tokenUsage?: TokenUsage;
+	createdAt: string;
+}
+
+export interface Conversation {
+	id: string;
+	tenantId: string;
+	userId: string;
+	title: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ConversationWithMessages extends Conversation {
+	messages: ConversationMessage[];
+}
+
+export interface ConversationListItem {
+	id: string;
+	title: string | null;
+	createdAt: string;
+	updatedAt: string;
+	lastMessage?: {
+		content: string;
+		createdAt: string;
+	} | null;
+}
+
+export interface ConversationListResponse {
+	conversations: ConversationListItem[];
+	total: number;
+	offset: number;
+	limit: number;
+}
+
+export interface ConversationSingleResponse {
+	conversation: ConversationWithMessages;
+}
+
+export interface CreateConversationRequest {
+	tenantId: string;
+	title?: string;
+}
+
+export interface AddMessageRequest {
+	role: "user" | "assistant";
+	content: string;
+	type?: "email" | "conversation" | "subscription_error";
+	html?: string;
+	template?: string;
+	subject?: string;
+	summary?: string;
+	props?: Record<string, unknown>;
+	blocks?: Block[];
+	tokenUsage?: TokenUsage;
+}
+
+export interface MessageSingleResponse {
+	message: ConversationMessage;
+}
+
+export * from "./jobs";

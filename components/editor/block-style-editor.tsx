@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { IconPalette, IconBoxMargin, IconLetterCase, IconBorderCorners } from "@tabler/icons-react";
 import { useTranslations } from "@/providers/i18n-provider";
 import { useFonts } from "@/hooks/use-api";
+import { TypographyH4 } from "@/components/typography";
 import type { BlockStyle, BlockType } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -159,13 +160,11 @@ function getApplicableTabs(blockType: BlockType): string[] {
 		case "button":
 			return ["spacing", "colors", "border"];
 		case "image":
-		case "card":
 			return ["spacing", "border"];
 		case "divider":
 			return ["spacing", "colors"];
 		case "header":
 		case "footer":
-		case "social":
 			return ["spacing", "colors"];
 		case "section":
 		case "grid_wrapper":
@@ -210,7 +209,7 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 			<PopoverContent className="w-80" align="end">
 				<div className="space-y-4">
 					<div className="flex items-center justify-between">
-						<h4 className="font-medium text-sm">{t.styles?.title || "Block Style"}</h4>
+						<TypographyH4 size="xs">{t.styles.title}</TypographyH4>
 						{hasAnyStyle && (
 							<Button
 								type="button"
@@ -219,7 +218,7 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 								className="h-7 text-xs"
 								onClick={() => onChange({})}
 							>
-								{t.styles?.reset || "Reset"}
+								{t.styles.reset}
 							</Button>
 						)}
 					</div>
@@ -229,25 +228,25 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 							{applicableTabs.includes("spacing") && (
 								<TabsTrigger value="spacing" className="text-xs flex-1">
 									<IconBoxMargin className="size-3 mr-1" />
-									{t.styles?.spacing || "Spacing"}
+									{t.styles.spacing}
 								</TabsTrigger>
 							)}
 							{applicableTabs.includes("colors") && (
 								<TabsTrigger value="colors" className="text-xs flex-1">
 									<IconPalette className="size-3 mr-1" />
-									{t.styles?.colors || "Colors"}
+									{t.styles.colors}
 								</TabsTrigger>
 							)}
 							{applicableTabs.includes("typography") && (
 								<TabsTrigger value="typography" className="text-xs flex-1">
 									<IconLetterCase className="size-3 mr-1" />
-									{t.styles?.typography || "Text"}
+									{t.styles.typography}
 								</TabsTrigger>
 							)}
 							{applicableTabs.includes("border") && (
 								<TabsTrigger value="border" className="text-xs flex-1">
 									<IconBorderCorners className="size-3 mr-1" />
-									{t.styles?.border || "Border"}
+									{t.styles.border}
 								</TabsTrigger>
 							)}
 						</TabsList>
@@ -255,27 +254,25 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 						{applicableTabs.includes("spacing") && (
 							<TabsContent value="spacing" className="mt-4 space-y-4">
 								<div>
-									<Label className="text-xs font-medium mb-2 block">
-										{t.styles?.padding || "Padding"}
-									</Label>
+									<Label className="text-xs font-medium mb-2 block">{t.styles.padding}</Label>
 									<div className="grid grid-cols-2 gap-2">
 										<NumberInput
-											label={t.styles?.top || "Top"}
+											label={t.styles.top}
 											value={style.paddingTop}
 											onChange={(v) => updateStyle({ paddingTop: v })}
 										/>
 										<NumberInput
-											label={t.styles?.bottom || "Bottom"}
+											label={t.styles.bottom}
 											value={style.paddingBottom}
 											onChange={(v) => updateStyle({ paddingBottom: v })}
 										/>
 										<NumberInput
-											label={t.styles?.left || "Left"}
+											label={t.styles.left}
 											value={style.paddingLeft}
 											onChange={(v) => updateStyle({ paddingLeft: v })}
 										/>
 										<NumberInput
-											label={t.styles?.right || "Right"}
+											label={t.styles.right}
 											value={style.paddingRight}
 											onChange={(v) => updateStyle({ paddingRight: v })}
 										/>
@@ -283,27 +280,25 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 								</div>
 								<Separator />
 								<div>
-									<Label className="text-xs font-medium mb-2 block">
-										{t.styles?.margin || "Margin"}
-									</Label>
+									<Label className="text-xs font-medium mb-2 block">{t.styles.margin}</Label>
 									<div className="grid grid-cols-2 gap-2">
 										<NumberInput
-											label={t.styles?.top || "Top"}
+											label={t.styles.top}
 											value={style.marginTop}
 											onChange={(v) => updateStyle({ marginTop: v })}
 										/>
 										<NumberInput
-											label={t.styles?.bottom || "Bottom"}
+											label={t.styles.bottom}
 											value={style.marginBottom}
 											onChange={(v) => updateStyle({ marginBottom: v })}
 										/>
 										<NumberInput
-											label={t.styles?.left || "Left"}
+											label={t.styles.left}
 											value={style.marginLeft}
 											onChange={(v) => updateStyle({ marginLeft: v })}
 										/>
 										<NumberInput
-											label={t.styles?.right || "Right"}
+											label={t.styles.right}
 											value={style.marginRight}
 											onChange={(v) => updateStyle({ marginRight: v })}
 										/>
@@ -315,13 +310,13 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 						{applicableTabs.includes("colors") && (
 							<TabsContent value="colors" className="mt-4 space-y-4">
 								<ColorPicker
-									label={t.styles?.backgroundColor || "Background Color"}
+									label={t.styles.backgroundColor}
 									value={style.backgroundColor}
 									onChange={(v) => updateStyle({ backgroundColor: v })}
 								/>
 								<Separator />
 								<ColorPicker
-									label={t.styles?.textColor || "Text Color"}
+									label={t.styles.textColor}
 									value={style.textColor}
 									onChange={(v) => updateStyle({ textColor: v })}
 								/>
@@ -329,12 +324,12 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 									<>
 										<Separator />
 										<ColorPicker
-											label={t.styles?.buttonColor || "Button Color"}
+											label={t.styles.buttonColor}
 											value={style.buttonColor}
 											onChange={(v) => updateStyle({ buttonColor: v })}
 										/>
 										<ColorPicker
-											label={t.styles?.buttonTextColor || "Button Text Color"}
+											label={t.styles.buttonTextColor}
 											value={style.buttonTextColor}
 											onChange={(v) => updateStyle({ buttonTextColor: v })}
 										/>
@@ -346,7 +341,7 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 						{applicableTabs.includes("typography") && (
 							<TabsContent value="typography" className="mt-4 space-y-4">
 								<div className="space-y-1">
-									<Label className="text-xs">{t.styles?.fontFamily || "Font Family"}</Label>
+									<Label className="text-xs">{t.styles.fontFamily}</Label>
 									<Select
 										value={style.fontFamily || "__default__"}
 										onValueChange={(v) =>
@@ -369,14 +364,14 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 									</Select>
 								</div>
 								<NumberInput
-									label={t.styles?.fontSize || "Font Size"}
+									label={t.styles.fontSize}
 									value={style.fontSize}
 									onChange={(v) => updateStyle({ fontSize: v })}
 									min={10}
 									max={72}
 								/>
 								<div className="space-y-1">
-									<Label className="text-xs">{t.styles?.fontWeight || "Font Weight"}</Label>
+									<Label className="text-xs">{t.styles.fontWeight}</Label>
 									<Select
 										value={style.fontWeight || "normal"}
 										onValueChange={(v) =>
@@ -397,7 +392,7 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 									</Select>
 								</div>
 								<div className="space-y-1">
-									<Label className="text-xs">{t.styles?.textAlign || "Text Align"}</Label>
+									<Label className="text-xs">{t.styles.textAlign}</Label>
 									<Select
 										value={style.textAlign || "left"}
 										onValueChange={(v) =>
@@ -422,20 +417,20 @@ export function BlockStyleEditor({ style = {}, onChange, blockType }: BlockStyle
 						{applicableTabs.includes("border") && (
 							<TabsContent value="border" className="mt-4 space-y-4">
 								<NumberInput
-									label={t.styles?.borderRadius || "Border Radius"}
+									label={t.styles.borderRadius}
 									value={style.borderRadius}
 									onChange={(v) => updateStyle({ borderRadius: v })}
 									max={50}
 								/>
 								<NumberInput
-									label={t.styles?.borderWidth || "Border Width"}
+									label={t.styles.borderWidth}
 									value={style.borderWidth}
 									onChange={(v) => updateStyle({ borderWidth: v })}
 									max={10}
 								/>
 								{(style.borderWidth ?? 0) > 0 && (
 									<ColorPicker
-										label={t.styles?.borderColor || "Border Color"}
+										label={t.styles.borderColor}
 										value={style.borderColor}
 										onChange={(v) => updateStyle({ borderColor: v })}
 									/>
@@ -471,7 +466,9 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 	return (
 		<div className="space-y-3">
 			<div className="flex items-center justify-between">
-				<h4 className="font-medium text-xs text-muted-foreground">{t.styles?.title || "Style"}</h4>
+				<TypographyH4 size="2xs" className="text-muted-foreground">
+					{t.styles.title}
+				</TypographyH4>
 				{hasAnyStyle && (
 					<Button
 						type="button"
@@ -480,7 +477,7 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 						className="h-6 text-xs px-2"
 						onClick={() => onChange({})}
 					>
-						{t.styles?.reset || "Reset"}
+						{t.styles.reset}
 					</Button>
 				)}
 			</div>
@@ -512,27 +509,25 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 				{applicableTabs.includes("spacing") && (
 					<TabsContent value="spacing" className="mt-3 space-y-3">
 						<div>
-							<Label className="text-xs font-medium mb-2 block">
-								{t.styles?.padding || "Padding"}
-							</Label>
+							<Label className="text-xs font-medium mb-2 block">{t.styles.padding}</Label>
 							<div className="grid grid-cols-2 gap-2">
 								<NumberInput
-									label={t.styles?.top || "Top"}
+									label={t.styles.top}
 									value={style.paddingTop}
 									onChange={(v) => updateStyle({ paddingTop: v })}
 								/>
 								<NumberInput
-									label={t.styles?.bottom || "Bottom"}
+									label={t.styles.bottom}
 									value={style.paddingBottom}
 									onChange={(v) => updateStyle({ paddingBottom: v })}
 								/>
 								<NumberInput
-									label={t.styles?.left || "Left"}
+									label={t.styles.left}
 									value={style.paddingLeft}
 									onChange={(v) => updateStyle({ paddingLeft: v })}
 								/>
 								<NumberInput
-									label={t.styles?.right || "Right"}
+									label={t.styles.right}
 									value={style.paddingRight}
 									onChange={(v) => updateStyle({ paddingRight: v })}
 								/>
@@ -540,27 +535,25 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 						</div>
 						<Separator />
 						<div>
-							<Label className="text-xs font-medium mb-2 block">
-								{t.styles?.margin || "Margin"}
-							</Label>
+							<Label className="text-xs font-medium mb-2 block">{t.styles.margin}</Label>
 							<div className="grid grid-cols-2 gap-2">
 								<NumberInput
-									label={t.styles?.top || "Top"}
+									label={t.styles.top}
 									value={style.marginTop}
 									onChange={(v) => updateStyle({ marginTop: v })}
 								/>
 								<NumberInput
-									label={t.styles?.bottom || "Bottom"}
+									label={t.styles.bottom}
 									value={style.marginBottom}
 									onChange={(v) => updateStyle({ marginBottom: v })}
 								/>
 								<NumberInput
-									label={t.styles?.left || "Left"}
+									label={t.styles.left}
 									value={style.marginLeft}
 									onChange={(v) => updateStyle({ marginLeft: v })}
 								/>
 								<NumberInput
-									label={t.styles?.right || "Right"}
+									label={t.styles.right}
 									value={style.marginRight}
 									onChange={(v) => updateStyle({ marginRight: v })}
 								/>
@@ -572,13 +565,13 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 				{applicableTabs.includes("colors") && (
 					<TabsContent value="colors" className="mt-3 space-y-3">
 						<ColorPicker
-							label={t.styles?.backgroundColor || "Background"}
+							label={t.styles.backgroundColor}
 							value={style.backgroundColor}
 							onChange={(v) => updateStyle({ backgroundColor: v })}
 						/>
 						<Separator />
 						<ColorPicker
-							label={t.styles?.textColor || "Text Color"}
+							label={t.styles.textColor}
 							value={style.textColor}
 							onChange={(v) => updateStyle({ textColor: v })}
 						/>
@@ -586,12 +579,12 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 							<>
 								<Separator />
 								<ColorPicker
-									label={t.styles?.buttonColor || "Button Color"}
+									label={t.styles.buttonColor}
 									value={style.buttonColor}
 									onChange={(v) => updateStyle({ buttonColor: v })}
 								/>
 								<ColorPicker
-									label={t.styles?.buttonTextColor || "Button Text"}
+									label={t.styles.buttonTextColor}
 									value={style.buttonTextColor}
 									onChange={(v) => updateStyle({ buttonTextColor: v })}
 								/>
@@ -603,7 +596,7 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 				{applicableTabs.includes("typography") && (
 					<TabsContent value="typography" className="mt-3 space-y-3">
 						<div className="space-y-1">
-							<Label className="text-xs">{t.styles?.fontFamily || "Font"}</Label>
+							<Label className="text-xs">{t.styles.fontFamily}</Label>
 							<Select
 								value={style.fontFamily || "__default__"}
 								onValueChange={(v) =>
@@ -627,14 +620,14 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 						</div>
 						<div className="grid grid-cols-2 gap-2">
 							<NumberInput
-								label={t.styles?.fontSize || "Size"}
+								label={t.styles.fontSize}
 								value={style.fontSize}
 								onChange={(v) => updateStyle({ fontSize: v })}
 								min={10}
 								max={72}
 							/>
 							<div className="space-y-1">
-								<Label className="text-xs">{t.styles?.fontWeight || "Weight"}</Label>
+								<Label className="text-xs">{t.styles.fontWeight}</Label>
 								<Select
 									value={style.fontWeight || "normal"}
 									onValueChange={(v) =>
@@ -656,7 +649,7 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 							</div>
 						</div>
 						<div className="space-y-1">
-							<Label className="text-xs">{t.styles?.textAlign || "Align"}</Label>
+							<Label className="text-xs">{t.styles.textAlign}</Label>
 							<Select
 								value={style.textAlign || "left"}
 								onValueChange={(v) =>
@@ -682,13 +675,13 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 					<TabsContent value="border" className="mt-3 space-y-3">
 						<div className="grid grid-cols-2 gap-2">
 							<NumberInput
-								label={t.styles?.borderRadius || "Radius"}
+								label={t.styles.borderRadius}
 								value={style.borderRadius}
 								onChange={(v) => updateStyle({ borderRadius: v })}
 								max={50}
 							/>
 							<NumberInput
-								label={t.styles?.borderWidth || "Width"}
+								label={t.styles.borderWidth}
 								value={style.borderWidth}
 								onChange={(v) => updateStyle({ borderWidth: v })}
 								max={10}
@@ -696,7 +689,7 @@ export function BlockStyleEditorInline({ style = {}, onChange, blockType }: Bloc
 						</div>
 						{(style.borderWidth ?? 0) > 0 && (
 							<ColorPicker
-								label={t.styles?.borderColor || "Border Color"}
+								label={t.styles.borderColor}
 								value={style.borderColor}
 								onChange={(v) => updateStyle({ borderColor: v })}
 							/>

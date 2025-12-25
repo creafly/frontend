@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Icon } from "@/components/typography";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { IconLayoutSidebar } from "@tabler/icons-react";
 
@@ -250,7 +251,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
 			}}
 			{...props}
 		>
-			<IconLayoutSidebar />
+			<Icon icon={IconLayoutSidebar} />
 			<span className="sr-only">Toggle Sidebar</span>
 		</Button>
 	);

@@ -1,10 +1,15 @@
 import type {
 	TenantBranding,
 	BrandLogo,
+	BrandLogoList,
 	BrandColor,
+	BrandColorList,
 	BrandFont,
+	BrandFontList,
 	BrandSpacing,
+	BrandSpacingList,
 	BrandRadius,
+	BrandRadiusList,
 	CreateBrandLogoRequest,
 	UpdateBrandLogoRequest,
 	CreateBrandColorRequest,
@@ -27,13 +32,19 @@ import type {
 	BatchCreateRadiusRequest,
 	BatchUpdateRadiusRequest,
 	BatchDeleteRequest,
+	BrandParsingRequest,
+	CreateParsingRequest,
+	ApproveParsingRequest,
 } from "@/types/branding";
+import { createServiceFetch, ApiError, type FetchOptions } from "./fetch-with-retry";
 
 const BRANDING_API_URL = process.env.NEXT_PUBLIC_BRANDING_URL || "http://localhost:8084";
 
-class BrandingApiError extends Error {
-	constructor(public status: number, message: string) {
-		super(message);
+const serviceFetch = createServiceFetch(BRANDING_API_URL);
+
+class BrandingApiError extends ApiError {
+	constructor(status: number, message: string) {
+		super(status, message);
 		this.name = "BrandingApiError";
 	}
 }
@@ -42,37 +53,13 @@ async function fetchBrandingApi<T>(
 	endpoint: string,
 	accessToken: string,
 	tenantId: string,
-	options?: RequestInit & { skipContentType?: boolean }
+	options?: FetchOptions
 ): Promise<T> {
-	const url = `${BRANDING_API_URL}${endpoint}`;
-	const { skipContentType, ...fetchOptions } = options || {};
-
-	const headers: HeadersInit = {
-		...(fetchOptions?.headers || {}),
-		Authorization: `Bearer ${accessToken}`,
-		"X-Tenant-ID": tenantId,
-	};
-
-	if (!skipContentType && fetchOptions?.body) {
-		(headers as Record<string, string>)["Content-Type"] = "application/json";
-	}
-
-	const response = await fetch(url, {
-		...fetchOptions,
-		headers,
+	return serviceFetch<T>(endpoint, {
+		...options,
+		accessToken,
+		tenantId,
 	});
-
-	if (response.status === 204) {
-		return {} as T;
-	}
-
-	const data = await response.json();
-
-	if (!response.ok) {
-		throw new BrandingApiError(response.status, data.error || "An error occurred");
-	}
-
-	return data;
 }
 
 export const brandingApi = {
@@ -80,15 +67,15 @@ export const brandingApi = {
 		return fetchBrandingApi<TenantBranding>("/api/v1/branding", accessToken, tenantId);
 	},
 
-	getLogos: async (accessToken: string, tenantId: string) => {
-		return fetchBrandingApi<BrandLogo[]>("/api/v1/logos", accessToken, tenantId);
+	getLogos: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		const queryString = searchParams.toString();
+		return fetchBrandingApi<BrandLogoList>(`/api/v1/logos${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
 
-	createLogo: async (
-		accessToken: string,
-		tenantId: string,
-		request: CreateBrandLogoRequest
-	) => {
+	createLogo: async (accessToken: string, tenantId: string, request: CreateBrandLogoRequest) => {
 		return fetchBrandingApi<BrandLogo>("/api/v1/logos", accessToken, tenantId, {
 			method: "POST",
 			body: JSON.stringify(request),
@@ -100,15 +87,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchCreateLogoRequest
 	) => {
-		return fetchBrandingApi<BrandLogo[]>(
-			"/api/v1/logos/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "POST",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<BrandLogo[]>("/api/v1/logos/batch", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
 	},
 
 	updateLogo: async (
@@ -141,46 +123,29 @@ export const brandingApi = {
 		});
 	},
 
-	deleteLogosBatch: async (
-		accessToken: string,
-		tenantId: string,
-		request: BatchDeleteRequest
-	) => {
+	deleteLogosBatch: async (accessToken: string, tenantId: string, request: BatchDeleteRequest) => {
 		return fetchBrandingApi<void>("/api/v1/logos/batch", accessToken, tenantId, {
 			method: "DELETE",
 			body: JSON.stringify(request),
 		});
 	},
 
-	reorderLogos: async (
-		accessToken: string,
-		tenantId: string,
-		request: ReorderRequest
-	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/logos/reorder",
-			accessToken,
-			tenantId,
-			{
-				method: "PUT",
-				body: JSON.stringify(request),
-			}
-		);
+	reorderLogos: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
+		return fetchBrandingApi<void>("/api/v1/logos/reorder", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 
-	getColors: async (accessToken: string, tenantId: string) => {
-		return fetchBrandingApi<BrandColor[]>(
-			"/api/v1/colors",
-			accessToken,
-			tenantId
-		);
+	getColors: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		const queryString = searchParams.toString();
+		return fetchBrandingApi<BrandColorList>(`/api/v1/colors${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
 
-	createColor: async (
-		accessToken: string,
-		tenantId: string,
-		request: CreateBrandColorRequest
-	) => {
+	createColor: async (accessToken: string, tenantId: string, request: CreateBrandColorRequest) => {
 		return fetchBrandingApi<BrandColor>("/api/v1/colors", accessToken, tenantId, {
 			method: "POST",
 			body: JSON.stringify(request),
@@ -206,20 +171,11 @@ export const brandingApi = {
 		});
 	},
 
-	reorderColors: async (
-		accessToken: string,
-		tenantId: string,
-		request: ReorderRequest
-	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/colors/reorder",
-			accessToken,
-			tenantId,
-			{
-				method: "PUT",
-				body: JSON.stringify(request),
-			}
-		);
+	reorderColors: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
+		return fetchBrandingApi<void>("/api/v1/colors/reorder", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 
 	createColorsBatch: async (
@@ -227,15 +183,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchCreateColorRequest
 	) => {
-		return fetchBrandingApi<BrandColor[]>(
-			"/api/v1/colors/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "POST",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<BrandColor[]>("/api/v1/colors/batch", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
 	},
 
 	updateColorsBatch: async (
@@ -249,26 +200,22 @@ export const brandingApi = {
 		});
 	},
 
-	deleteColorsBatch: async (
-		accessToken: string,
-		tenantId: string,
-		request: BatchDeleteRequest
-	) => {
+	deleteColorsBatch: async (accessToken: string, tenantId: string, request: BatchDeleteRequest) => {
 		return fetchBrandingApi<void>("/api/v1/colors/batch", accessToken, tenantId, {
 			method: "DELETE",
 			body: JSON.stringify(request),
 		});
 	},
 
-	getFonts: async (accessToken: string, tenantId: string) => {
-		return fetchBrandingApi<BrandFont[]>("/api/v1/fonts", accessToken, tenantId);
+	getFonts: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		const queryString = searchParams.toString();
+		return fetchBrandingApi<BrandFontList>(`/api/v1/fonts${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
 
-	createFont: async (
-		accessToken: string,
-		tenantId: string,
-		request: CreateBrandFontRequest
-	) => {
+	createFont: async (accessToken: string, tenantId: string, request: CreateBrandFontRequest) => {
 		return fetchBrandingApi<BrandFont>("/api/v1/fonts", accessToken, tenantId, {
 			method: "POST",
 			body: JSON.stringify(request),
@@ -294,20 +241,11 @@ export const brandingApi = {
 		});
 	},
 
-	reorderFonts: async (
-		accessToken: string,
-		tenantId: string,
-		request: ReorderRequest
-	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/fonts/reorder",
-			accessToken,
-			tenantId,
-			{
-				method: "PUT",
-				body: JSON.stringify(request),
-			}
-		);
+	reorderFonts: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
+		return fetchBrandingApi<void>("/api/v1/fonts/reorder", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 
 	createFontsBatch: async (
@@ -315,15 +253,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchCreateFontRequest
 	) => {
-		return fetchBrandingApi<BrandFont[]>(
-			"/api/v1/fonts/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "POST",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<BrandFont[]>("/api/v1/fonts/batch", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
 	},
 
 	updateFontsBatch: async (
@@ -337,23 +270,19 @@ export const brandingApi = {
 		});
 	},
 
-	deleteFontsBatch: async (
-		accessToken: string,
-		tenantId: string,
-		request: BatchDeleteRequest
-	) => {
+	deleteFontsBatch: async (accessToken: string, tenantId: string, request: BatchDeleteRequest) => {
 		return fetchBrandingApi<void>("/api/v1/fonts/batch", accessToken, tenantId, {
 			method: "DELETE",
 			body: JSON.stringify(request),
 		});
 	},
 
-	getSpacings: async (accessToken: string, tenantId: string) => {
-		return fetchBrandingApi<BrandSpacing[]>(
-			"/api/v1/spacings",
-			accessToken,
-			tenantId
-		);
+	getSpacings: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		const queryString = searchParams.toString();
+		return fetchBrandingApi<BrandSpacingList>(`/api/v1/spacings${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
 
 	createSpacing: async (
@@ -361,15 +290,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: CreateBrandSpacingRequest
 	) => {
-		return fetchBrandingApi<BrandSpacing>(
-			"/api/v1/spacings",
-			accessToken,
-			tenantId,
-			{
-				method: "POST",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<BrandSpacing>("/api/v1/spacings", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
 	},
 
 	updateSpacing: async (
@@ -391,20 +315,11 @@ export const brandingApi = {
 		});
 	},
 
-	reorderSpacings: async (
-		accessToken: string,
-		tenantId: string,
-		request: ReorderRequest
-	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/spacings/reorder",
-			accessToken,
-			tenantId,
-			{
-				method: "PUT",
-				body: JSON.stringify(request),
-			}
-		);
+	reorderSpacings: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
+		return fetchBrandingApi<void>("/api/v1/spacings/reorder", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 
 	createSpacingsBatch: async (
@@ -412,15 +327,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchCreateSpacingRequest
 	) => {
-		return fetchBrandingApi<BrandSpacing[]>(
-			"/api/v1/spacings/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "POST",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<BrandSpacing[]>("/api/v1/spacings/batch", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
 	},
 
 	updateSpacingsBatch: async (
@@ -428,15 +338,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchUpdateSpacingRequest
 	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/spacings/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "PUT",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<void>("/api/v1/spacings/batch", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 
 	deleteSpacingsBatch: async (
@@ -444,23 +349,18 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchDeleteRequest
 	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/spacings/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "DELETE",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<void>("/api/v1/spacings/batch", accessToken, tenantId, {
+			method: "DELETE",
+			body: JSON.stringify(request),
+		});
 	},
 
-	getRadii: async (accessToken: string, tenantId: string) => {
-		return fetchBrandingApi<BrandRadius[]>(
-			"/api/v1/radii",
-			accessToken,
-			tenantId
-		);
+	getRadii: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		const queryString = searchParams.toString();
+		return fetchBrandingApi<BrandRadiusList>(`/api/v1/radii${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
 
 	createRadius: async (
@@ -493,20 +393,11 @@ export const brandingApi = {
 		});
 	},
 
-	reorderRadii: async (
-		accessToken: string,
-		tenantId: string,
-		request: ReorderRequest
-	) => {
-		return fetchBrandingApi<void>(
-			"/api/v1/radii/reorder",
-			accessToken,
-			tenantId,
-			{
-				method: "PUT",
-				body: JSON.stringify(request),
-			}
-		);
+	reorderRadii: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
+		return fetchBrandingApi<void>("/api/v1/radii/reorder", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 
 	createRadiiBatch: async (
@@ -514,15 +405,10 @@ export const brandingApi = {
 		tenantId: string,
 		request: BatchCreateRadiusRequest
 	) => {
-		return fetchBrandingApi<BrandRadius[]>(
-			"/api/v1/radii/batch",
-			accessToken,
-			tenantId,
-			{
-				method: "POST",
-				body: JSON.stringify(request),
-			}
-		);
+		return fetchBrandingApi<BrandRadius[]>("/api/v1/radii/batch", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
 	},
 
 	updateRadiiBatch: async (
@@ -536,15 +422,87 @@ export const brandingApi = {
 		});
 	},
 
-	deleteRadiiBatch: async (
-		accessToken: string,
-		tenantId: string,
-		request: BatchDeleteRequest
-	) => {
+	deleteRadiiBatch: async (accessToken: string, tenantId: string, request: BatchDeleteRequest) => {
 		return fetchBrandingApi<void>("/api/v1/radii/batch", accessToken, tenantId, {
 			method: "DELETE",
 			body: JSON.stringify(request),
 		});
+	},
+
+	createParsingRequest: async (
+		accessToken: string,
+		tenantId: string,
+		request: CreateParsingRequest
+	) => {
+		return fetchBrandingApi<BrandParsingRequest>("/api/v1/parsing", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	getParsingRequests: async (accessToken: string, tenantId: string, limit = 10, offset = 0) => {
+		return fetchBrandingApi<{ data: BrandParsingRequest[] }>(
+			`/api/v1/parsing?limit=${limit}&offset=${offset}`,
+			accessToken,
+			tenantId
+		);
+	},
+
+	getParsingRequest: async (accessToken: string, tenantId: string, requestId: string) => {
+		return fetchBrandingApi<BrandParsingRequest>(
+			`/api/v1/parsing/${requestId}`,
+			accessToken,
+			tenantId
+		);
+	},
+
+	getLatestParsingRequest: async (accessToken: string, tenantId: string) => {
+		return fetchBrandingApi<BrandParsingRequest | { data: null }>(
+			"/api/v1/parsing/latest",
+			accessToken,
+			tenantId
+		);
+	},
+
+	approveParsingRequest: async (
+		accessToken: string,
+		tenantId: string,
+		requestId: string,
+		request?: ApproveParsingRequest
+	) => {
+		return fetchBrandingApi<{ message: string }>(
+			`/api/v1/parsing/${requestId}/approve`,
+			accessToken,
+			tenantId,
+			{
+				method: "POST",
+				body: JSON.stringify(request || {}),
+			}
+		);
+	},
+
+	rejectParsingRequest: async (accessToken: string, tenantId: string, requestId: string) => {
+		return fetchBrandingApi<{ message: string }>(
+			`/api/v1/parsing/${requestId}/reject`,
+			accessToken,
+			tenantId,
+			{
+				method: "POST",
+				body: JSON.stringify({}),
+			}
+		);
+	},
+
+	deleteParsingRequest: async (accessToken: string, tenantId: string, requestId: string) => {
+		return fetchBrandingApi<{ message: string }>(
+			`/api/v1/parsing/${requestId}`,
+			accessToken,
+			tenantId,
+			{
+				method: "DELETE",
+				skipContentType: true,
+			}
+		);
 	},
 };
 
