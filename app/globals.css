@@ -49,6 +49,12 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
 
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
   --animate-shiny-text: shiny-text 8s infinite;
   --animate-gradient: gradient 8s linear infinite;
   --animate-shimmer-slide: shimmer-slide var(--speed, 2s) ease-in-out infinite alternate;
@@ -59,6 +65,55 @@
   --animate-grid: grid 15s linear infinite;
   --animate-aurora: aurora 60s linear infinite;
   --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out none 1 var(--delay, 0ms);
+  --animate-marquee: marquee var(--duration) linear infinite;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  --animate-border-beam: border-beam calc(var(--duration)*1s) infinite linear;
+  --animate-pulse-border: pulse-border 2s ease-in-out infinite;
+  --animate-spotlight: spotlight 2s ease .75s 1 forwards;
+
+  @keyframes spotlight {
+    0% {
+      opacity: 0;
+      transform: translate(-72%, -62%) scale(0.5);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -40%) scale(1);
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
+  }
+
+  @keyframes border-beam {
+    100% {
+      offset-distance: 100%;
+    }
+  }
+
+  @keyframes pulse-border {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(var(--primary), 0);
+    }
+  }
 
   @keyframes aurora {
     from {
@@ -194,6 +249,12 @@
    --success: oklch(0.55 0.16 145);
    --success-foreground: oklch(0.98 0 0);
 
+   --warning: oklch(0.75 0.15 75);
+   --warning-foreground: oklch(0.25 0.05 75);
+
+   --info: oklch(0.55 0.15 230);
+   --info-foreground: oklch(0.98 0 0);
+
    --chart-1: oklch(0.55 0.20 265);
    --chart-2: oklch(0.60 0.16 180);
    --chart-3: oklch(0.55 0.16 145);
@@ -243,6 +304,12 @@
    --success: oklch(0.65 0.15 145);
    --success-foreground: oklch(0.13 0.015 145);
 
+   --warning: oklch(0.80 0.14 75);
+   --warning-foreground: oklch(0.25 0.05 75);
+
+   --info: oklch(0.60 0.14 230);
+   --info-foreground: oklch(0.13 0.015 230);
+
    --chart-1: oklch(0.60 0.18 265);
    --chart-2: oklch(0.65 0.14 180);
    --chart-3: oklch(0.65 0.15 145);
@@ -285,6 +352,15 @@
   input[type="number"] {
     -moz-appearance: textfield;
     appearance: textfield;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 

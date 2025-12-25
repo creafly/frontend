@@ -9,6 +9,7 @@ import {
 	IconAlertOctagon,
 	IconLoader,
 } from "@tabler/icons-react";
+import { Icon } from "@/components/typography";
 
 const Toaster = ({ ...props }: ToasterProps) => {
 	const { theme = "system" } = useTheme();
@@ -18,11 +19,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
 			theme={theme as ToasterProps["theme"]}
 			className="toaster group"
 			icons={{
-				success: <IconCircleCheck className="size-4" />,
-				info: <IconInfoCircle className="size-4" />,
-				warning: <IconAlertTriangle className="size-4" />,
-				error: <IconAlertOctagon className="size-4" />,
-				loading: <IconLoader className="size-4 animate-spin" />,
+				success: <Icon icon={IconCircleCheck} />,
+				info: <Icon icon={IconInfoCircle} />,
+				warning: <Icon icon={IconAlertTriangle} />,
+				error: <Icon icon={IconAlertOctagon} />,
+				loading: <Icon icon={IconLoader} className="animate-spin" />,
 			}}
 			style={
 				{

@@ -20,6 +20,7 @@ import { BlockStyleEditor } from "./block-style-editor";
 import { IconTrash, IconGripVertical, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import type { Block, BlockStyle } from "@/types";
 import { cn } from "@/lib/utils";
+import { TypographyMuted } from "@/components/typography";
 
 interface SortableBlockItemProps {
 	id: string;
@@ -80,14 +81,10 @@ export function SortableBlockItem({
 				return "Divider";
 			case "list":
 				return `List (${block.items.length} items)`;
-			case "social":
-				return `Social Links (${block.links.length})`;
 			case "footer":
 				return `Footer: ${block.companyName}`;
 			case "header":
 				return `Header: ${block.title || "Logo"}`;
-			case "card":
-				return `Card: ${block.title}`;
 			default:
 				return block.type;
 		}
@@ -314,70 +311,18 @@ export function SortableBlockItem({
 					</div>
 				);
 
-			case "card":
-				return (
-					<div className="space-y-3">
-						<div>
-							<Label htmlFor={`card-title-${index}`}>Title</Label>
-							<Input
-								id={`card-title-${index}`}
-								value={block.title}
-								onChange={(e) => updateField("title", e.target.value)}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-desc-${index}`}>Description (optional)</Label>
-							<Textarea
-								id={`card-desc-${index}`}
-								value={block.description || ""}
-								onChange={(e) => updateField("description", e.target.value || undefined)}
-								rows={2}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-image-${index}`}>Image URL (optional)</Label>
-							<Input
-								id={`card-image-${index}`}
-								value={block.imageUrl || ""}
-								onChange={(e) => updateField("imageUrl", e.target.value || undefined)}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-cta-${index}`}>CTA Text (optional)</Label>
-							<Input
-								id={`card-cta-${index}`}
-								value={block.ctaText || ""}
-								onChange={(e) => updateField("ctaText", e.target.value || undefined)}
-								className="mt-1"
-							/>
-						</div>
-						<div>
-							<Label htmlFor={`card-cta-url-${index}`}>CTA URL (optional)</Label>
-							<Input
-								id={`card-cta-url-${index}`}
-								value={block.ctaUrl || ""}
-								onChange={(e) => updateField("ctaUrl", e.target.value || undefined)}
-								className="mt-1"
-							/>
-						</div>
-					</div>
-				);
-
 			case "divider":
 				return (
-					<p className="text-sm text-muted-foreground">
+					<TypographyMuted>
 						A horizontal line divider. No editable properties.
-					</p>
+					</TypographyMuted>
 				);
 
 			default:
 				return (
-					<p className="text-sm text-muted-foreground">
+					<TypographyMuted>
 						This block type is not yet editable in the UI.
-					</p>
+					</TypographyMuted>
 				);
 		}
 	};

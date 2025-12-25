@@ -55,7 +55,13 @@ import {
 import { toast } from "sonner";
 import { BlurFade } from "@/components/ui/blur-fade";
 import Container from "@/components/container";
-import { TypographyH3, TypographyP } from "@/components/typography";
+import {
+	TypographyH3,
+	TypographyP,
+	TypographyError,
+	TypographyMuted,
+	Icon,
+} from "@/components/typography";
 import { UserAvatar } from "@/components/shared";
 import type { User, Role } from "@/types";
 
@@ -177,7 +183,7 @@ export default function UsersPage() {
 		return (
 			<Container>
 				<div className="flex items-center justify-center h-64">
-					<p className="text-destructive">{error.message}</p>
+					<TypographyError>{error.message}</TypographyError>
 				</div>
 			</Container>
 		);
@@ -185,7 +191,7 @@ export default function UsersPage() {
 
 	return (
 		<div className="space-y-6">
-			<Container className="p-0">
+			<Container className="p-0 max-w-full">
 				<BlurFade delay={0.1}>
 					<div>
 						<TypographyH3>{t.admin.users}</TypographyH3>
@@ -196,7 +202,7 @@ export default function UsersPage() {
 				</BlurFade>
 			</Container>
 
-			<Container className="p-0">
+			<Container className="p-0 max-w-full">
 				<BlurFade delay={0.15}>
 					{isLoading ? (
 						<div className="border rounded-md">
@@ -263,19 +269,19 @@ export default function UsersPage() {
 												</TableCell>
 												<TableCell>
 													<div className="flex items-center gap-2">
-														<IconMail className="size-4 text-muted-foreground" />
+														<Icon icon={IconMail} size="sm" className="text-muted-foreground" />
 														{user.email}
 													</div>
 												</TableCell>
 												<TableCell>
 													{user.isBlocked ? (
 														<Badge variant="destructive" className="gap-1">
-															<IconBan className="size-3" />
+															<Icon icon={IconBan} size="xs" />
 															{t.admin.blocked}
 														</Badge>
 													) : (
 														<Badge variant="outline" className="gap-1">
-															<IconUser className="size-3" />
+															<Icon icon={IconUser} size="xs" />
 															{t.common.active}
 														</Badge>
 													)}
@@ -297,17 +303,17 @@ export default function UsersPage() {
 																onClick={() => openUserRolesDialog(user)}
 																title={t.admin.assignRole}
 															>
-																<IconShield className="size-4" />
+																<Icon icon={IconShield} size="sm" />
 															</Button>
 															{user.isBlocked ? (
 																<Button
 																	variant="ghost"
 																	size="icon-sm"
-																	className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+																	className="text-success hover:text-success/80"
 																	onClick={() => openUnblockDialog(user)}
 																	title={t.admin.unblockUser}
 																>
-																	<IconShieldCheck className="size-4" />
+																	<Icon icon={IconShieldCheck} size="sm" />
 																</Button>
 															) : (
 																<Button
@@ -317,7 +323,7 @@ export default function UsersPage() {
 																	onClick={() => openBlockDialog(user)}
 																	title={t.admin.blockUser}
 																>
-																	<IconBan className="size-4" />
+																	<Icon icon={IconBan} size="sm" />
 																</Button>
 															)}
 														</div>
@@ -329,11 +335,11 @@ export default function UsersPage() {
 								</Table>
 							</div>
 
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">
+							<div className="flex flex-wrap items-center justify-between gap-2">
+								<TypographyMuted>
 									{t.common.showing} {data.offset + 1}-{data.offset + (data.users?.length || 0)} of
 									page {currentPage + 1}
-								</p>
+								</TypographyMuted>
 								<div className="flex items-center gap-2">
 									<Button
 										variant="outline"
@@ -359,7 +365,7 @@ export default function UsersPage() {
 							<Empty>
 								<EmptyHeader>
 									<EmptyMedia variant="icon">
-										<IconUser className="size-8 text-muted-foreground" />
+										<Icon icon={IconUser} size="xl" className="text-muted-foreground" />
 									</EmptyMedia>
 									<EmptyTitle>{t.admin.noUsers}</EmptyTitle>
 								</EmptyHeader>
@@ -440,12 +446,12 @@ export default function UsersPage() {
 					<div className="py-4">
 						{userRolesLoading ? (
 							<div className="flex items-center justify-center py-8">
-								<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+								<Icon icon={IconLoader2} size="md" className="animate-spin text-muted-foreground" />
 								<span className="ml-2 text-sm text-muted-foreground">Loading roles...</span>
 							</div>
 						) : rolesLoading ? (
 							<div className="flex items-center justify-center py-8">
-								<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+								<Icon icon={IconLoader2} size="md" className="animate-spin text-muted-foreground" />
 								<span className="ml-2 text-sm text-muted-foreground">Loading roles...</span>
 							</div>
 						) : rolesData && rolesData.roles && rolesData.roles.length > 0 ? (
@@ -467,11 +473,13 @@ export default function UsersPage() {
 													className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
 												>
 													<div className="flex items-center gap-2">
-														<IconShield className="h-3 w-3 text-primary" />
+														<Icon icon={IconShield} size="xs" className="text-primary" />
 														<span>{role.name}</span>
 													</div>
 													{role.description && (
-														<p className="text-xs text-muted-foreground mt-1">{role.description}</p>
+														<TypographyMuted className="text-xs mt-1">
+															{role.description}
+														</TypographyMuted>
 													)}
 												</label>
 											</div>

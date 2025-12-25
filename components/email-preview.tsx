@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Icon } from "@/components/typography";
 import { IconDeviceDesktop, IconDeviceTablet, IconDeviceMobile } from "@tabler/icons-react";
 import { type ViewportSize, getIframeWidth } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -32,13 +33,13 @@ export function EmailPreview({
 				<Tabs value={viewportSize} onValueChange={(v) => setViewportSize(v as ViewportSize)}>
 					<TabsList>
 						<TabsTrigger value="desktop">
-							<IconDeviceDesktop className="size-4" />
+							<Icon icon={IconDeviceDesktop} />
 						</TabsTrigger>
 						<TabsTrigger value="tablet">
-							<IconDeviceTablet className="size-4" />
+							<Icon icon={IconDeviceTablet} />
 						</TabsTrigger>
 						<TabsTrigger value="mobile">
-							<IconDeviceMobile className="size-4" />
+							<Icon icon={IconDeviceMobile} />
 						</TabsTrigger>
 					</TabsList>
 				</Tabs>
@@ -62,7 +63,7 @@ export function EmailPreview({
 	}
 
 	return (
-		<Card clear className="h-full">
+		<Card variant="ghost" className="h-full">
 			<CardContent className={cn("h-full", fullWidth && "max-w-full w-full")}>
 				{content}
 			</CardContent>
@@ -93,13 +94,13 @@ export function InlineEmailPreview({
 					<Tabs value={viewportSize} onValueChange={(v) => setViewportSize(v as ViewportSize)}>
 						<TabsList className="h-8">
 							<TabsTrigger value="desktop" className="px-2.5 py-1.5">
-								<IconDeviceDesktop className="size-4" />
+								<Icon icon={IconDeviceDesktop} />
 							</TabsTrigger>
 							<TabsTrigger value="tablet" className="px-2.5 py-1.5">
-								<IconDeviceTablet className="size-4" />
+								<Icon icon={IconDeviceTablet} />
 							</TabsTrigger>
 							<TabsTrigger value="mobile" className="px-2.5 py-1.5">
-								<IconDeviceMobile className="size-4" />
+								<Icon icon={IconDeviceMobile} />
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>

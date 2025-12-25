@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRefineTemplate } from "@/hooks/use-api";
+import { useGenerationJob } from "@/hooks/use-jobs";
 import { useTranslations, useI18n } from "@/providers/i18n-provider";
 import { getTenantId } from "@/lib/tenant";
-import { ApiError } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -19,8 +18,9 @@ import {
 	IconGripVertical,
 	IconCreditCard,
 } from "@tabler/icons-react";
+import { Icon, TypographyH3, TypographyP, TypographyMuted } from "@/components/typography";
 import { motion, AnimatePresence, useDragControls } from "motion/react";
-import type { Block, TokenUsage } from "@/types";
+import type { Block, TokenUsage, GenerationResult, JobTokenUsage } from "@/types";
 
 interface Message {
 	id: string;
@@ -54,73 +54,58 @@ export function RefinementChat({
 }: RefinementChatProps) {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [input, setInput] = useState("");
+	const [pendingBlocks, setPendingBlocks] = useState<Block[] | null>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const constraintsRef = useRef<HTMLDivElement>(null);
 	const dragControls = useDragControls();
-	const refineTemplate = useRefineTemplate();
 	const t = useTranslations();
 	const { locale } = useI18n();
 
+	const currentBlocksRef = useRef<Block[]>(blocks);
 	useEffect(() => {
-		if (scrollRef.current) {
-			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-		}
-	}, [messages]);
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!input.trim() || refineTemplate.isPending) return;
-
-		const userMessage: Message = {
-			id: Date.now().toString(),
-			role: "user",
-			content: input,
-		};
-
-		setMessages((prev) => [...prev, userMessage]);
-		setInput("");
-
-		try {
-			const tenantId = getTenantId();
-			if (!tenantId) {
-				toast.error("No tenant selected");
-				return;
+		if (messages.length > 0) {
+			const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant" && m.blocks);
+			if (lastAssistantMessage?.blocks) {
+				currentBlocksRef.current = lastAssistantMessage.blocks;
 			}
+		} else {
+			currentBlocksRef.current = blocks;
+		}
+	}, [messages, blocks]);
 
-			const currentBlocks =
-				messages.length > 0 ? messages[messages.length - 1].blocks ?? blocks : blocks;
+	const handleJobComplete = useCallback(
+		(result: GenerationResult, html: string | null, tokenUsage: JobTokenUsage | null) => {
+			const convertedTokenUsage: TokenUsage | undefined = tokenUsage
+				? {
+						promptTokens: tokenUsage.inputTokens,
+						completionTokens: tokenUsage.outputTokens,
+						totalTokens: tokenUsage.totalTokens,
+				  }
+				: undefined;
 
-			const result = await refineTemplate.mutateAsync({
-				task: input,
-				tenantId,
-				locale: locale === "ru" ? "ru-RU" : "en-US",
-				currentTemplate: {
-					template: templateType,
-					subject,
-					props: {
-						...props,
-						blocks: currentBlocks,
-					},
-					blocks: currentBlocks,
-				},
-			});
-
-			if (result.output) {
+			if (result.template) {
 				const newBlocks =
-					result.output.template === "media_digest" &&
-					result.output.props?.blocks &&
-					Array.isArray(result.output.props.blocks)
-						? (result.output.props.blocks as Block[])
-						: currentBlocks;
+					result.template === "media_digest" && result.blocks && Array.isArray(result.blocks)
+						? (result.blocks as unknown as Block[])
+						: pendingBlocks || blocks;
 
 				const assistantMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: "assistant",
-					content: result.output.summary || t.refinement.changesApplied,
+					content: result.summary || t.refinement.changesApplied,
 					blocks: newBlocks,
-					tokenUsage: result.tokenUsage,
+					tokenUsage: convertedTokenUsage,
 				};
 
+				setMessages((prev) => [...prev, assistantMessage]);
+				setPendingBlocks(null);
+			} else if (result.type === "conversation" && result.content) {
+				const assistantMessage: Message = {
+					id: (Date.now() + 1).toString(),
+					role: "assistant",
+					content: result.content,
+					tokenUsage: convertedTokenUsage,
+				};
 				setMessages((prev) => [...prev, assistantMessage]);
 			} else {
 				const errorMessage: Message = {
@@ -130,8 +115,13 @@ export function RefinementChat({
 				};
 				setMessages((prev) => [...prev, errorMessage]);
 			}
-		} catch (error) {
-			if (error instanceof ApiError && error.code === "NO_ACTIVE_SUBSCRIPTION") {
+		},
+		[blocks, pendingBlocks, t.refinement.changesApplied, t.errors.refineFailed]
+	);
+
+	const handleJobError = useCallback(
+		(error: string, errorCode: string | null) => {
+			if (errorCode === "INSUFFICIENT_TOKENS" || errorCode === "NO_ACTIVE_SUBSCRIPTION") {
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: "assistant",
@@ -143,10 +133,67 @@ export function RefinementChat({
 				const errorMessage: Message = {
 					id: (Date.now() + 1).toString(),
 					role: "assistant",
-					content: error instanceof Error ? error.message : t.errors.refineFailed,
+					content: error || t.errors.refineFailed,
 				};
 				setMessages((prev) => [...prev, errorMessage]);
 			}
+		},
+		[t.errors.noActiveSubscription, t.errors.refineFailed]
+	);
+
+	const generationJob = useGenerationJob({
+		onComplete: handleJobComplete,
+		onError: handleJobError,
+	});
+
+	useEffect(() => {
+		if (scrollRef.current) {
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+		}
+	}, [messages]);
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!input.trim() || generationJob.isRunning) return;
+
+		const userMessage: Message = {
+			id: Date.now().toString(),
+			role: "user",
+			content: input,
+		};
+
+		setMessages((prev) => [...prev, userMessage]);
+		const userInput = input;
+		setInput("");
+
+		try {
+			const tenantId = getTenantId();
+			if (!tenantId) {
+				toast.error("No tenant selected");
+				return;
+			}
+
+			const currentBlocks = currentBlocksRef.current;
+			setPendingBlocks(currentBlocks);
+
+			await generationJob.startRefine({
+				tenantId,
+				task: userInput,
+				existingTemplate: templateType,
+				existingProps: {
+					...props,
+					blocks: currentBlocks,
+				},
+				existingBlocks: currentBlocks as unknown as Record<string, unknown>[],
+				language: locale === "ru" ? "ru-RU" : "en-US",
+			});
+		} catch (error) {
+			const errorMessage: Message = {
+				id: (Date.now() + 1).toString(),
+				role: "assistant",
+				content: error instanceof Error ? error.message : t.errors.refineFailed,
+			};
+			setMessages((prev) => [...prev, errorMessage]);
 		}
 	};
 
@@ -181,19 +228,19 @@ export function RefinementChat({
 				>
 					<div className="flex items-center gap-3">
 						<div className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br from-primary/20 to-primary/5">
-							<IconSparkles className="size-4 text-primary" />
+							<Icon icon={IconSparkles} size="sm" className="text-primary" />
 						</div>
-						<h3 className="font-semibold text-sm">{t.refinement.title}</h3>
+						<TypographyH3 size="2xs">{t.refinement.title}</TypographyH3>
 					</div>
 					<div className="flex items-center gap-1">
-						<IconGripVertical className="size-4 text-muted-foreground" />
+						<Icon icon={IconGripVertical} size="sm" className="text-muted-foreground" />
 						<Button
 							variant="ghost"
 							size="icon-sm"
 							onClick={onClose}
 							className="hover:bg-destructive/10 hover:text-destructive"
 						>
-							<IconX className="size-4" />
+							<Icon icon={IconX} size="sm" />
 						</Button>
 					</div>
 				</div>
@@ -204,7 +251,7 @@ export function RefinementChat({
 							<div className="text-center text-muted-foreground py-4 text-sm">
 								<p>{t.refinement.startDescription}</p>
 								<div className="mt-3 space-y-1 text-xs text-left">
-									<p className="font-medium">{t.refinement.examples.title}:</p>
+									<TypographyP className="font-medium mt-0">{t.refinement.examples.title}:</TypographyP>
 									<ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
 										<li>{t.refinement.examples.formal}</li>
 										<li>{t.refinement.examples.cta}</li>
@@ -229,19 +276,19 @@ export function RefinementChat({
 											message.role === "user"
 												? "bg-primary text-primary-foreground rounded-br-sm"
 												: message.isSubscriptionError
-												? "bg-amber-500/10 border border-amber-500/20"
+												? "bg-warning/10 border border-warning/20"
 												: "bg-muted/70 rounded-bl-sm"
 										)}
 									>
 										{message.isSubscriptionError ? (
 											<div className="space-y-2">
 												<div className="flex items-center gap-2">
-													<IconCreditCard className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
+													<Icon icon={IconCreditCard} size="sm" className="text-warning shrink-0" />
 													<p>{message.content}</p>
 												</div>
 												<Button asChild size="sm" variant="default" className="w-full">
 													<Link href={`/workspaces/${workspaceSlug}/subscription`}>
-														<IconCreditCard className="size-3 mr-1.5" />
+														<Icon icon={IconCreditCard} size="xs" className="mr-1.5" />
 														{t.errors.noActiveSubscriptionLink}
 													</Link>
 												</Button>
@@ -255,14 +302,14 @@ export function RefinementChat({
 														className="mt-2 w-full shadow-lg shadow-primary/20"
 														onClick={() => handleApplyChanges(message)}
 													>
-														<IconCheck className="size-3 mr-1.5" />
+														<Icon icon={IconCheck} size="xs" className="mr-1.5" />
 														{t.refinement.applyChanges}
 													</Button>
 												)}
 												{message.tokenUsage && (
-													<p className="text-xs opacity-60 mt-1.5">
+													<TypographyMuted className="text-xs opacity-60 mt-1.5">
 														{message.tokenUsage.totalTokens} tokens
-													</p>
+													</TypographyMuted>
 												)}
 											</>
 										)}
@@ -271,25 +318,25 @@ export function RefinementChat({
 							))}
 						</AnimatePresence>
 
-						{refineTemplate.isPending && (
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								className="flex justify-start"
+					{generationJob.isRunning && (
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							className="flex justify-start"
+						>
+							<motion.span
+								className="text-sm text-muted-foreground"
+								animate={{ opacity: [0.4, 1, 0.4] }}
+								transition={{
+									duration: 1.5,
+									repeat: Infinity,
+									ease: "easeInOut",
+								}}
 							>
-								<motion.span
-									className="text-sm text-muted-foreground"
-									animate={{ opacity: [0.4, 1, 0.4] }}
-									transition={{
-										duration: 1.5,
-										repeat: Infinity,
-										ease: "easeInOut",
-									}}
-								>
-									{t.refinement.refining}
-								</motion.span>
-							</motion.div>
-						)}
+								{generationJob.progressMessage || t.refinement.refining}
+							</motion.span>
+						</motion.div>
+					)}
 					</div>
 				</ScrollArea>
 
@@ -301,17 +348,17 @@ export function RefinementChat({
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
 								placeholder={t.refinement.placeholder}
-								disabled={refineTemplate.isPending}
+								disabled={generationJob.isRunning}
 								className="flex-1 text-sm border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
 							/>
 							<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 								<Button
 									type="submit"
 									size="icon"
-									disabled={!input.trim() || refineTemplate.isPending}
+									disabled={!input.trim() || generationJob.isRunning}
 									className="rounded-lg shadow-lg shadow-primary/25 disabled:shadow-none"
 								>
-									<IconSend className="size-4" />
+									<Icon icon={IconSend} size="sm" />
 								</Button>
 							</motion.div>
 						</div>

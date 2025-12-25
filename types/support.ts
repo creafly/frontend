@@ -78,9 +78,8 @@ export interface CreateErrorReportRequest {
 export interface TicketListResponse {
 	tickets: Ticket[];
 	total: number;
-	page: number;
-	page_size: number;
-	total_pages: number;
+	offset: number;
+	limit: number;
 }
 
 export interface TicketStats {
@@ -97,7 +96,48 @@ export interface TicketStats {
 export interface ErrorReportListResponse {
 	error_reports: ErrorReport[];
 	total: number;
-	page: number;
-	page_size: number;
-	total_pages: number;
+	offset: number;
+	limit: number;
+}
+
+export type FlaggedRequestSeverity = "low" | "medium" | "high" | "critical";
+export type FlaggedRequestStatus = "pending" | "reviewed" | "dismissed" | "action_taken";
+
+export interface FlaggedRequest {
+	id: string;
+	tenant_id: string;
+	user_id: string;
+	conversation_id?: string;
+	message_content: string;
+	reason: string;
+	severity: FlaggedRequestSeverity;
+	status: FlaggedRequestStatus;
+	ai_confidence?: number;
+	categories: string[];
+	reviewed_by?: string;
+	reviewed_at?: string;
+	review_notes?: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface FlaggedRequestListResponse {
+	flagged_requests: FlaggedRequest[];
+	offset: number;
+	limit: number;
+	total: number;
+}
+
+export interface FlaggedRequestStats {
+	total: number;
+	pending: number;
+	reviewed: number;
+	dismissed: number;
+	action_taken: number;
+	by_severity: Record<FlaggedRequestSeverity, number>;
+}
+
+export interface ReviewFlaggedRequestRequest {
+	status: FlaggedRequestStatus;
+	review_notes?: string;
 }

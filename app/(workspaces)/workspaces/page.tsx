@@ -17,7 +17,8 @@ import {
 import { useTranslations } from "@/providers/i18n-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useTenantPermissions } from "@/providers/tenant-permissions-provider";
-import { identityApi, IdentityApiError } from "@/lib/api/identity";
+import { useFieldErrors } from "@/hooks/use-field-errors";
+import { identityApi } from "@/lib/api/identity";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,9 +32,24 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabelWithTooltip, FieldDescription } from "@/components/ui/field";
+import {
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabelWithTooltip,
+	FieldDescription,
+} from "@/components/ui/field";
 import { TenantAvatar } from "@/components/shared";
+import {
+	Icon,
+	TypographyH1,
+	TypographyH2,
+	TypographyH3,
+	TypographyMuted,
+} from "@/components/typography";
 import type { Tenant } from "@/types";
+
+type WorkspaceFormFields = "name" | "displayName" | "slug";
 
 export default function WorkspacesPage() {
 	const t = useTranslations();
@@ -41,6 +57,8 @@ export default function WorkspacesPage() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
 	const { setTenant } = useTenantPermissions();
+	const { fieldErrors, handleError, clearFieldError, clearAllErrors } =
+		useFieldErrors<WorkspaceFormFields>();
 
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [name, setName] = useState("");
@@ -73,20 +91,18 @@ export default function WorkspacesPage() {
 				setName("");
 				setDisplayName("");
 				setSlug("");
+				clearAllErrors();
 				handleEnterWorkspace(response.tenant);
 			}
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error("Failed to create workspace");
-			}
+			handleError(error, "Failed to create workspace");
 		},
 	});
 
 	const handleCreate = (e: React.FormEvent) => {
 		e.preventDefault();
+		clearAllErrors();
 		if (!name.trim()) return;
 		createMutation.mutate({
 			name: name.trim(),
@@ -111,15 +127,15 @@ export default function WorkspacesPage() {
 	return (
 		<div className="flex min-h-[calc(100vh-3.5rem)] flex-col">
 			<div className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-				<div className="flex h-16 items-center justify-between px-6">
+				<div className="flex flex-wrap h-full md:h-16 items-center justify-between px-6 gap-2 py-4 md:py-0">
 					<div>
-						<h1 className="text-xl font-semibold">{t.workspaces.title}</h1>
-						<p className="text-sm text-muted-foreground">{t.workspaces.subtitle}</p>
+						<TypographyH1 size="xs">{t.workspaces.title}</TypographyH1>
+						<TypographyMuted>{t.workspaces.subtitle}</TypographyMuted>
 					</div>
 					<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
 						<DialogTrigger asChild>
 							<Button>
-								<IconPlus className="mr-2 h-4 w-4" />
+								<Icon icon={IconPlus} size="sm" className="mr-2" />
 								{t.workspaces.createWorkspace}
 							</Button>
 						</DialogTrigger>
@@ -130,43 +146,62 @@ export default function WorkspacesPage() {
 									<DialogDescription>{t.workspaces.noWorkspacesDescription}</DialogDescription>
 								</DialogHeader>
 								<FieldGroup className="py-4">
-									<Field>
-										<FieldLabelWithTooltip htmlFor="name" tooltip={t.workspaces.tooltips?.workspaceName}>
+									<Field data-invalid={!!fieldErrors.name}>
+										<FieldLabelWithTooltip
+											htmlFor="name"
+											tooltip={t.workspaces.tooltips?.workspaceName}
+										>
 											{t.workspaces.workspaceName}
 										</FieldLabelWithTooltip>
 										<Input
 											id="name"
 											value={name}
-											onChange={(e) => setName(e.target.value)}
+											onChange={(e) => {
+												setName(e.target.value);
+												clearFieldError("name");
+											}}
 											placeholder={t.workspaces.workspaceNamePlaceholder}
 											required
 										/>
+										<FieldError>{fieldErrors.name}</FieldError>
 									</Field>
-									<Field>
-										<FieldLabelWithTooltip htmlFor="displayName" tooltip={t.workspaces.tooltips?.displayName}>
+									<Field data-invalid={!!fieldErrors.displayName}>
+										<FieldLabelWithTooltip
+											htmlFor="displayName"
+											tooltip={t.workspaces.tooltips?.displayName}
+										>
 											{t.workspaces.displayName}
 										</FieldLabelWithTooltip>
 										<Input
 											id="displayName"
 											value={displayName}
-											onChange={(e) => setDisplayName(e.target.value)}
+											onChange={(e) => {
+												setDisplayName(e.target.value);
+												clearFieldError("displayName");
+											}}
 											placeholder={t.workspaces.displayNamePlaceholder}
 										/>
 										<FieldDescription>{t.workspaces.displayNameHelpText}</FieldDescription>
+										<FieldError>{fieldErrors.displayName}</FieldError>
 									</Field>
-									<Field>
-										<FieldLabelWithTooltip htmlFor="slug" tooltip={t.workspaces.tooltips?.workspaceSlug}>
+									<Field data-invalid={!!fieldErrors.slug}>
+										<FieldLabelWithTooltip
+											htmlFor="slug"
+											tooltip={t.workspaces.tooltips?.workspaceSlug}
+										>
 											{t.workspaces.workspaceSlug}
 										</FieldLabelWithTooltip>
 										<Input
 											id="slug"
 											value={slug}
-											onChange={(e) =>
-												setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))
-											}
+											onChange={(e) => {
+												setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+												clearFieldError("slug");
+											}}
 											placeholder={t.workspaces.workspaceSlugPlaceholder}
 										/>
 										<FieldDescription>{t.workspaces.slugAutoGenerateHelpText}</FieldDescription>
+										<FieldError>{fieldErrors.slug}</FieldError>
 									</Field>
 								</FieldGroup>
 								<DialogFooter>
@@ -176,7 +211,7 @@ export default function WorkspacesPage() {
 									<Button type="submit" disabled={createMutation.isPending || !name.trim()}>
 										{createMutation.isPending ? (
 											<>
-												<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+												<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 												{t.workspaces.creating}
 											</>
 										) : (
@@ -190,10 +225,10 @@ export default function WorkspacesPage() {
 				</div>
 			</div>
 
-			<div className="flex-1 px-6 py-8">
+			<div className="flex-1 px-2 py-4">
 				{isLoading ? (
 					<div className="flex items-center justify-center py-20">
-						<IconLoader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+						<Icon icon={IconLoader2} size="xl" className="animate-spin text-muted-foreground" />
 					</div>
 				) : tenants.length === 0 ? (
 					<motion.div
@@ -202,14 +237,16 @@ export default function WorkspacesPage() {
 						className="flex flex-col items-center justify-center py-20 text-center"
 					>
 						<div className="rounded-full bg-muted p-6 mb-6">
-							<IconBuilding className="h-12 w-12 text-muted-foreground" />
+							<IconBuilding className="size-12 text-muted-foreground" />
 						</div>
-						<h2 className="text-2xl font-semibold mb-2">{t.workspaces.noWorkspaces}</h2>
-						<p className="text-muted-foreground mb-6 max-w-md">
+						<TypographyH2 size="sm" margin="none" className="mb-2">
+							{t.workspaces.noWorkspaces}
+						</TypographyH2>
+						<TypographyMuted className="mb-6 max-w-md">
 							{t.workspaces.noWorkspacesDescription}
-						</p>
+						</TypographyMuted>
 						<Button onClick={() => setIsCreateOpen(true)}>
-							<IconPlus className="mr-2 h-4 w-4" />
+							<Icon icon={IconPlus} size="sm" className="mr-2" />
 							{t.workspaces.createWorkspace}
 						</Button>
 					</motion.div>
@@ -227,7 +264,9 @@ export default function WorkspacesPage() {
 										tenant={tenant}
 										onEnter={() => handleEnterWorkspace(tenant)}
 										onMembers={() => router.push(`/workspaces/${tenant.slug}/settings?tab=members`)}
-										onSettings={() => router.push(`/workspaces/${tenant.slug}/settings?tab=general`)}
+										onSettings={() =>
+											router.push(`/workspaces/${tenant.slug}/settings?tab=general`)
+										}
 										t={t}
 									/>
 								</motion.div>
@@ -271,7 +310,7 @@ function WorkspaceCard({
 	return (
 		<div
 			className={cn(
-				"group relative overflow-hidden rounded-xl border bg-card p-6 transition-all hover:shadow-lg hover:border-primary/50",
+				"group relative overflow-hidden rounded-xl border bg-card p-3 md:p-6 transition-all hover:shadow-lg hover:border-primary/50",
 				"cursor-pointer"
 			)}
 			onClick={onEnter}
@@ -288,10 +327,12 @@ function WorkspaceCard({
 					/>
 				</div>
 
-				<h3 className="text-lg font-semibold mb-1">{tenant.name}</h3>
-				<p className="text-sm text-muted-foreground mb-4">/{tenant.slug}</p>
+				<TypographyH3 size="xs" className="mb-1">
+					{tenant.name}
+				</TypographyH3>
+				<TypographyMuted className="mb-4">/{tenant.slug}</TypographyMuted>
 
-				<div className="flex items-center justify-between">
+				<div className="flex flex-wrap items-center justify-between gap-2">
 					<div className="flex gap-2">
 						<Button
 							variant="ghost"
@@ -302,7 +343,7 @@ function WorkspaceCard({
 								onMembers();
 							}}
 						>
-							<IconUsers className="h-4 w-4 mr-1" />
+							<Icon icon={IconUsers} size="sm" className="mr-1" />
 							{t.workspaces.members}
 						</Button>
 						<Button
@@ -314,13 +355,13 @@ function WorkspaceCard({
 								onSettings();
 							}}
 						>
-							<IconSettings className="h-4 w-4 mr-1" />
+							<Icon icon={IconSettings} size="sm" className="mr-1" />
 							{t.workspaces.settings}
 						</Button>
 					</div>
 					<Button size="sm" className="h-8">
 						{t.workspaces.enter}
-						<IconArrowRight className="ml-1 h-4 w-4" />
+						<Icon icon={IconArrowRight} size="sm" className="ml-1" />
 					</Button>
 				</div>
 			</div>

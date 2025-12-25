@@ -23,88 +23,80 @@ import type {
 	UsersListResponse,
 	AllTenantsListResponse,
 } from "@/types";
+import { createServiceFetch, ApiError, type FetchOptions } from "./fetch-with-retry";
+import { getFingerprint } from "@/lib/fingerprint";
 
 const IDENTITY_API_URL = process.env.NEXT_PUBLIC_IDENTITY_URL || "http://localhost:8080";
 
-class IdentityApiError extends Error {
-	constructor(public status: number, message: string) {
-		super(message);
+const serviceFetch = createServiceFetch(IDENTITY_API_URL);
+
+class IdentityApiError extends ApiError {
+	constructor(status: number, message: string, code?: string) {
+		super(status, message, code);
 		this.name = "IdentityApiError";
 	}
 }
 
 async function fetchIdentityApi<T>(
 	endpoint: string,
-	options?: RequestInit & { skipContentType?: boolean }
+	options?: FetchOptions
 ): Promise<T> {
-	const url = `${IDENTITY_API_URL}${endpoint}`;
-	const { skipContentType, ...fetchOptions } = options || {};
-
-	const headers: HeadersInit = {
-		...fetchOptions?.headers,
-	};
-
-	if (!skipContentType && fetchOptions?.body) {
-		(headers as Record<string, string>)["Content-Type"] = "application/json";
-	}
-
-	const response = await fetch(url, {
-		...fetchOptions,
-		headers,
-	});
-
-	const data = await response.json();
-
-	if (!response.ok) {
-		throw new IdentityApiError(response.status, data.error || "An error occurred");
-	}
-
-	return data;
+	return serviceFetch<T>(endpoint, options);
 }
 
 async function fetchWithAuth<T>(
 	endpoint: string,
 	accessToken: string,
-	options?: RequestInit & { skipContentType?: boolean }
+	options?: FetchOptions
 ): Promise<T> {
-	const headers: HeadersInit = {
-		...(options?.headers || {}),
-		Authorization: `Bearer ${accessToken}`,
-	};
-
-	return fetchIdentityApi<T>(endpoint, {
+	return serviceFetch<T>(endpoint, {
 		...options,
-		headers,
+		accessToken,
 	});
 }
 
 export const identityApi = {
 	register: async (request: RegisterRequest) => {
+		const fingerprint = await getFingerprint();
 		return fetchIdentityApi<AuthResponse>("/api/v1/auth/register", {
 			method: "POST",
-			body: JSON.stringify(request),
+			body: JSON.stringify({ ...request, fingerprint }),
 		});
 	},
 
 	login: async (request: LoginRequest) => {
+		const fingerprint = await getFingerprint();
 		return fetchIdentityApi<AuthResponse>("/api/v1/auth/login", {
 			method: "POST",
-			body: JSON.stringify(request),
+			body: JSON.stringify({ ...request, fingerprint }),
 		});
 	},
 
 	loginVerifyTOTP: async (tempToken: string, code: string) => {
+		const fingerprint = await getFingerprint();
 		return fetchIdentityApi<AuthResponse>("/api/v1/auth/login/verify-totp", {
 			method: "POST",
-			body: JSON.stringify({ tempToken, code }),
+			body: JSON.stringify({ tempToken, code, fingerprint }),
 		});
 	},
 
 	refresh: async (refreshToken: string) => {
+		const fingerprint = await getFingerprint();
 		return fetchIdentityApi<AuthResponse>("/api/v1/auth/refresh", {
 			method: "POST",
-			body: JSON.stringify({ refreshToken }),
+			body: JSON.stringify({ refreshToken, fingerprint }),
 		});
+	},
+
+	logout: async (accessToken: string, refreshToken?: string) => {
+		return fetchWithAuth<{ message?: string; error?: string }>(
+			"/api/v1/auth/logout",
+			accessToken,
+			{
+				method: "POST",
+				body: JSON.stringify({ refreshToken }),
+			}
+		);
 	},
 
 	me: async (accessToken: string) => {
@@ -169,7 +161,7 @@ export const identityApi = {
 			name: string;
 			displayName: string;
 			isActive: boolean;
-		}>(`/api/v1/internal/tenants/resolve/${slug}`, {
+		}>(`/api/v1/tenants/resolve/${slug}`, {
 			method: "GET",
 			skipContentType: true,
 		});
@@ -697,6 +689,67 @@ export const identityApi = {
 			method: "POST",
 			body: JSON.stringify({ token, newPassword }),
 		});
+	},
+
+	getAnalytics: async (accessToken: string) => {
+		return fetchWithAuth<{
+			users: {
+				totalUsers: number;
+				activeUsers: number;
+				blockedUsers: number;
+				newUsersThisMonth: number;
+				mau: number;
+				dau: number;
+				totalTenants: number;
+			};
+		}>("/api/v1/admin/analytics", accessToken, {
+			method: "GET",
+			skipContentType: true,
+		});
+	},
+
+	blockTenant: async (accessToken: string, tenantId: string, reason: string) => {
+		return fetchWithAuth<{ message?: string; error?: string }>(
+			`/api/v1/admin/tenants/${tenantId}/block`,
+			accessToken,
+			{
+				method: "POST",
+				body: JSON.stringify({ reason }),
+			}
+		);
+	},
+
+	unblockTenant: async (accessToken: string, tenantId: string) => {
+		return fetchWithAuth<{ message?: string; error?: string }>(
+			`/api/v1/admin/tenants/${tenantId}/unblock`,
+			accessToken,
+			{
+				method: "POST",
+				skipContentType: true,
+			}
+		);
+	},
+
+	verifyEmail: async (accessToken: string, code: string) => {
+		return fetchWithAuth<{ message?: string; error?: string }>(
+			"/api/v1/verify-email",
+			accessToken,
+			{
+				method: "POST",
+				body: JSON.stringify({ code }),
+			}
+		);
+	},
+
+	resendVerificationEmail: async (accessToken: string) => {
+		return fetchWithAuth<{ message?: string; error?: string }>(
+			"/api/v1/resend-verification",
+			accessToken,
+			{
+				method: "POST",
+				skipContentType: true,
+			}
+		);
 	},
 };
 

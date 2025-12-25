@@ -5,33 +5,6 @@ import { AnimatePresence, motion, MotionProps, Variants } from "motion/react";
 
 import { cn } from "@/lib/utils";
 
-const MotionP = motion.p;
-const MotionSpan = motion.span;
-const MotionDiv = motion.div;
-const MotionH1 = motion.h1;
-const MotionH2 = motion.h2;
-const MotionH3 = motion.h3;
-const MotionH4 = motion.h4;
-const MotionH5 = motion.h5;
-const MotionH6 = motion.h6;
-
-const motionComponents: Record<string, typeof MotionP> = {
-	p: MotionP,
-	span: MotionSpan,
-	div: MotionDiv,
-	h1: MotionH1,
-	h2: MotionH2,
-	h3: MotionH3,
-	h4: MotionH4,
-	h5: MotionH5,
-	h6: MotionH6,
-};
-
-function getMotionComponent(component: ElementType): typeof MotionP {
-	const key = typeof component === "string" ? component : "p";
-	return motionComponents[key] || MotionP;
-}
-
 type AnimationType = "text" | "word" | "character" | "line";
 type AnimationVariant =
 	| "fadeIn"
@@ -300,7 +273,6 @@ const TextAnimateBase = ({
 	variants,
 	className,
 	segmentClassName,
-	as: Component = "p",
 	startOnView = true,
 	once = false,
 	by = "word",
@@ -308,8 +280,6 @@ const TextAnimateBase = ({
 	accessible = true,
 	...props
 }: TextAnimateProps) => {
-	const MotionComponent = getMotionComponent(Component);
-
 	let segments: string[] = [];
 	switch (by) {
 		case "word":
@@ -374,7 +344,7 @@ const TextAnimateBase = ({
 
 	return (
 		<AnimatePresence mode="popLayout">
-			<MotionComponent
+			<motion.span
 				variants={finalVariants.container as Variants}
 				initial="hidden"
 				whileInView={startOnView ? "show" : undefined}
@@ -401,7 +371,7 @@ const TextAnimateBase = ({
 						{segment}
 					</motion.span>
 				))}
-			</MotionComponent>
+			</motion.span>
 		</AnimatePresence>
 	);
 };

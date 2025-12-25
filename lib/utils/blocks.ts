@@ -20,21 +20,6 @@ export function parseBlocks(rawBlocks: unknown): Block[] {
 	return [];
 }
 
-interface NewsletterArticle {
-	url: string;
-	title: string;
-	excerpt?: string;
-	category?: string;
-	imageUrl?: string;
-}
-
-interface NewsletterProps {
-	date?: string;
-	articles?: NewsletterArticle[];
-	unsubscribeUrl?: string;
-	companyName?: string;
-}
-
 interface WelcomeProps {
 	userName?: string;
 	companyName?: string;
@@ -64,94 +49,23 @@ interface PasswordResetProps {
 }
 
 export function propsToBlocks(templateType: string, props: Record<string, unknown>): Block[] {
+	if ("blocks" in props && Array.isArray(props.blocks)) {
+		return props.blocks as Block[];
+	}
+
 	switch (templateType) {
 		case "newsletter":
-			return newsletterPropsToBlocks(props as NewsletterProps);
+		case "media_digest":
+			return [];
 		case "welcome":
 			return welcomePropsToBlocks(props as WelcomeProps);
 		case "order_confirmation":
 			return orderConfirmationPropsToBlocks(props as OrderConfirmationProps);
 		case "password_reset":
 			return passwordResetPropsToBlocks(props as PasswordResetProps);
-		case "media_digest":
-			return [];
 		default:
 			return [];
 	}
-}
-
-function newsletterPropsToBlocks(props: NewsletterProps): Block[] {
-	const blocks: Block[] = [];
-
-	blocks.push({
-		type: "header",
-		title: "Newsletter",
-		logoUrl: "",
-	});
-
-	if (props.date) {
-		blocks.push({
-			type: "text",
-			value: props.date,
-			style: {
-				textAlign: "center",
-				textColor: "#666",
-				marginBottom: 24,
-			},
-		});
-	}
-
-	if (props.articles && props.articles.length > 0) {
-		for (const article of props.articles) {
-			if (article.category) {
-				blocks.push({
-					type: "badge",
-					text: article.category,
-					variant: "primary",
-				});
-			}
-
-			blocks.push({
-				type: "card",
-				title: article.title,
-				description: article.excerpt,
-				imageUrl: article.imageUrl,
-				imageAlt: article.title,
-				ctaText: "Читать далее",
-				ctaUrl: article.url,
-			});
-
-			blocks.push({ type: "spacer", height: 16 });
-		}
-	} else {
-		blocks.push({
-			type: "heading",
-			level: "h2",
-			text: "Ваша рассылка",
-			style: { textAlign: "center" },
-		});
-
-		blocks.push({
-			type: "text",
-			value: "Добавьте контент в редакторе или перетащите блоки из палитры слева.",
-			style: {
-				textAlign: "center",
-				textColor: "#666",
-				marginBottom: 24,
-			},
-		});
-
-		blocks.push({ type: "spacer", height: 16 });
-	}
-
-	blocks.push({
-		type: "footer",
-		companyName: props.companyName || "Company",
-		unsubscribeUrl: props.unsubscribeUrl,
-		unsubscribeText: "Отписаться",
-	});
-
-	return blocks;
 }
 
 function welcomePropsToBlocks(props: WelcomeProps): Block[] {
@@ -159,7 +73,7 @@ function welcomePropsToBlocks(props: WelcomeProps): Block[] {
 
 	blocks.push({
 		type: "header",
-		title: props.companyName || "Welcome",
+		title: props.companyName,
 	});
 
 	blocks.push({

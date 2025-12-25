@@ -7,15 +7,21 @@ import { IconLoader2, IconLock } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
 import { useAuth } from "@/providers/auth-provider";
-import { identityApi, IdentityApiError } from "@/lib/api/identity";
+import { useFieldErrors } from "@/hooks/use-field-errors";
+import { identityApi } from "@/lib/api/identity";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Icon } from "@/components/typography";
+
+type ChangePasswordFields = "currentPassword" | "newPassword" | "confirmPassword";
 
 export function ChangePasswordForm() {
 	const t = useTranslations();
 	const { tokens } = useAuth();
+	const { fieldErrors, handleError, clearFieldError, clearAllErrors } =
+		useFieldErrors<ChangePasswordFields>();
 
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
@@ -34,18 +40,16 @@ export function ChangePasswordForm() {
 			setCurrentPassword("");
 			setNewPassword("");
 			setConfirmPassword("");
+			clearAllErrors();
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error("Failed to change password");
-			}
+			handleError(error, "Failed to change password");
 		},
 	});
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		clearAllErrors();
 		if (newPassword !== confirmPassword) {
 			toast.error(t.profile.passwordMismatch);
 			return;
@@ -54,11 +58,11 @@ export function ChangePasswordForm() {
 	};
 
 	return (
-		<Card clear>
+		<Card variant="ghost">
 			<CardHeader>
 				<div className="flex items-center gap-3">
 					<div className="p-2 rounded-lg bg-muted">
-						<IconLock className="h-6 w-6 text-muted-foreground" />
+						<Icon icon={IconLock} size="lg" className="text-muted-foreground" />
 					</div>
 					<div>
 						<CardTitle>{t.profile.changePassword}</CardTitle>
@@ -69,37 +73,49 @@ export function ChangePasswordForm() {
 			<CardContent>
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<FieldGroup>
-						<Field>
+						<Field data-invalid={!!fieldErrors.currentPassword}>
 							<FieldLabel>{t.profile.currentPassword}</FieldLabel>
 							<PasswordInput
 								value={currentPassword}
-								onChange={(e) => setCurrentPassword(e.target.value)}
+								onChange={(e) => {
+									setCurrentPassword(e.target.value);
+									clearFieldError("currentPassword");
+								}}
 								required
 							/>
+							<FieldError>{fieldErrors.currentPassword}</FieldError>
 						</Field>
-						<Field>
+						<Field data-invalid={!!fieldErrors.newPassword}>
 							<FieldLabel>{t.profile.newPassword}</FieldLabel>
 							<PasswordInput
 								value={newPassword}
-								onChange={(e) => setNewPassword(e.target.value)}
+								onChange={(e) => {
+									setNewPassword(e.target.value);
+									clearFieldError("newPassword");
+								}}
 								required
 								minLength={8}
 							/>
+							<FieldError>{fieldErrors.newPassword}</FieldError>
 						</Field>
-						<Field>
+						<Field data-invalid={!!fieldErrors.confirmPassword}>
 							<FieldLabel>{t.profile.confirmNewPassword}</FieldLabel>
 							<PasswordInput
 								value={confirmPassword}
-								onChange={(e) => setConfirmPassword(e.target.value)}
+								onChange={(e) => {
+									setConfirmPassword(e.target.value);
+									clearFieldError("confirmPassword");
+								}}
 								required
 								minLength={8}
 							/>
+							<FieldError>{fieldErrors.confirmPassword}</FieldError>
 						</Field>
 					</FieldGroup>
 					<Button type="submit" disabled={mutation.isPending}>
 						{mutation.isPending ? (
 							<>
-								<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+								<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 								{t.common.loading}
 							</>
 						) : (

@@ -1,19 +1,43 @@
 import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-function Card({
-	className,
-	size = "default",
-	clear = false,
-	...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm"; clear?: boolean }) {
+const cardVariants = cva(
+	"gap-4 overflow-hidden rounded-xl py-4 text-sm has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col",
+	{
+		variants: {
+			variant: {
+				default: "ring-foreground/10 bg-card text-card-foreground ring-1",
+				outline: "border border-border bg-transparent",
+				ghost: "bg-transparent",
+				muted: "bg-muted/50 text-card-foreground",
+				elevated:
+					"ring-foreground/10 bg-card text-card-foreground ring-1 shadow-lg shadow-foreground/5",
+			},
+			size: {
+				default: "",
+				sm: "",
+			},
+		},
+		defaultVariants: {
+			variant: "default",
+			size: "default",
+		},
+	}
+);
+
+interface CardProps extends React.ComponentProps<"div">, VariantProps<typeof cardVariants> {
+	clear?: boolean;
+}
+
+function Card({ className, variant, size = "default", clear = false, ...props }: CardProps) {
 	return (
 		<div
 			data-slot="card"
 			data-size={size}
 			className={cn(
-				"ring-foreground/10 bg-card text-card-foreground gap-4 overflow-hidden rounded-xl py-4 text-sm ring-1 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl group/card flex flex-col",
+				cardVariants({ variant: clear ? "ghost" : variant, size }),
 				className,
 				clear && "p-0 border-none ring-0 rounded-none bg-transparent"
 			)}
@@ -91,4 +115,13 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
 	);
 }
 
-export { Card, CardHeader, CardFooter, CardTitle, CardAction, CardDescription, CardContent };
+export {
+	Card,
+	CardHeader,
+	CardFooter,
+	CardTitle,
+	CardAction,
+	CardDescription,
+	CardContent,
+	cardVariants,
+};

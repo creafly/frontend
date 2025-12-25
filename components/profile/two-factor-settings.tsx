@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
+import { Icon, TypographyMuted, TypographyP } from "@/components/typography";
 import { useAuth } from "@/providers/auth-provider";
 import { identityApi, IdentityApiError } from "@/lib/api/identity";
 import { cn } from "@/lib/utils";
@@ -148,22 +149,22 @@ export function TwoFactorSettings() {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					{isEnabled ? (
-						<div className="p-2 rounded-lg bg-green-500/10">
-							<IconShieldCheck className="h-5 w-5 text-green-500" />
+						<div className="p-2 rounded-lg bg-success/10">
+							<Icon icon={IconShieldCheck} size="md" className="text-success" />
 						</div>
 					) : (
 						<div className="p-2 rounded-lg bg-muted">
-							<IconShieldOff className="h-5 w-5 text-muted-foreground" />
+							<Icon icon={IconShieldOff} size="md" className="text-muted-foreground" />
 						</div>
 					)}
 					<div>
-						<p className="font-medium">{t.twoFactor.title}</p>
-						<p className="text-sm text-muted-foreground">{t.twoFactor.description}</p>
+						<TypographyP className="font-medium mt-0">{t.twoFactor.title}</TypographyP>
+						<TypographyMuted>{t.twoFactor.description}</TypographyMuted>
 					</div>
 				</div>
 				<Badge
 					variant={isEnabled ? "default" : "secondary"}
-					className={cn(isEnabled && "bg-green-500 hover:bg-green-600")}
+					className={cn(isEnabled && "bg-success hover:bg-success/90")}
 				>
 					{isEnabled ? t.twoFactor.enabled : t.twoFactor.disabled}
 				</Badge>
@@ -171,7 +172,7 @@ export function TwoFactorSettings() {
 
 			{isLoadingStatus ? (
 				<div className="flex items-center justify-center py-4">
-					<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+					<Icon icon={IconLoader2} size="md" className="animate-spin text-muted-foreground" />
 				</div>
 			) : isEnabled ? (
 				<Button variant="destructive" size="sm" onClick={() => setIsDisableOpen(true)}>
@@ -181,7 +182,7 @@ export function TwoFactorSettings() {
 				<Button size="sm" onClick={() => setupMutation.mutate()} disabled={setupMutation.isPending}>
 					{setupMutation.isPending ? (
 						<>
-							<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+							<Icon icon={IconLoader2} className="mr-2 animate-spin" />
 							{t.common.loading}
 						</>
 					) : (
@@ -227,17 +228,13 @@ export function TwoFactorSettings() {
 										size="icon"
 										onClick={() => setShowSecret(!showSecret)}
 									>
-										{showSecret ? (
-											<IconEyeOff className="h-4 w-4" />
-										) : (
-											<IconEye className="h-4 w-4" />
-										)}
+										{showSecret ? <Icon icon={IconEyeOff} /> : <Icon icon={IconEye} />}
 									</Button>
 									<Button type="button" variant="outline" size="icon" onClick={handleCopySecret}>
 										{copied ? (
-											<IconCheck className="h-4 w-4 text-green-500" />
+											<Icon icon={IconCheck} className="text-success" />
 										) : (
-											<IconCopy className="h-4 w-4" />
+											<Icon icon={IconCopy} />
 										)}
 									</Button>
 								</div>
@@ -246,7 +243,7 @@ export function TwoFactorSettings() {
 							<FieldGroup>
 								<Field>
 									<FieldLabel>{t.twoFactor.verificationCode}</FieldLabel>
-									<div className="flex justify-center">
+									<div>
 										<InputOTP maxLength={6} value={verificationCode} onChange={setVerificationCode}>
 											<InputOTPGroup>
 												<InputOTPSlot index={0} />
@@ -280,7 +277,7 @@ export function TwoFactorSettings() {
 							>
 								{enableMutation.isPending ? (
 									<>
-										<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+										<Icon icon={IconLoader2} className="mr-2 animate-spin" />
 										{t.twoFactor.verifying}
 									</>
 								) : (
@@ -330,7 +327,7 @@ export function TwoFactorSettings() {
 							>
 								{disableMutation.isPending ? (
 									<>
-										<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+										<Icon icon={IconLoader2} className="mr-2 animate-spin" />
 										{t.common.loading}
 									</>
 								) : (

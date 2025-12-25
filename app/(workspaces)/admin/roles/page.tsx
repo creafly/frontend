@@ -58,7 +58,14 @@ import { toast } from "sonner";
 import { motion } from "motion/react";
 import { BlurFade } from "@/components/ui/blur-fade";
 import Container from "@/components/container";
-import { TypographyH3, TypographyP } from "@/components/typography";
+import {
+	TypographyH3,
+	TypographyH4,
+	TypographyP,
+	TypographyError,
+	TypographyMuted,
+	Icon,
+} from "@/components/typography";
 import type { Role, Claim } from "@/types";
 
 export default function RolesPage() {
@@ -212,7 +219,7 @@ export default function RolesPage() {
 		return (
 			<Container>
 				<div className="flex items-center justify-center h-64">
-					<p className="text-destructive">{error.message}</p>
+					<TypographyError>{error.message}</TypographyError>
 				</div>
 			</Container>
 		);
@@ -220,9 +227,9 @@ export default function RolesPage() {
 
 	return (
 		<div className="space-y-6">
-			<Container className="p-0">
+			<Container className="p-0 max-w-full">
 				<BlurFade delay={0.1}>
-					<div className="flex items-center justify-between">
+					<div className="flex flex-wrap items-center justify-between gap-2">
 						<div>
 							<TypographyH3>{t.admin.roles}</TypographyH3>
 							<TypographyP className="mt-1 text-muted-foreground">
@@ -235,7 +242,7 @@ export default function RolesPage() {
 									onClick={() => setCreateDialogOpen(true)}
 									className="shadow-lg shadow-primary/20"
 								>
-									<IconPlus className="size-4 mr-2" />
+									<Icon icon={IconPlus} size="sm" className="mr-2" />
 									{t.admin.createRole}
 								</Button>
 							</motion.div>
@@ -244,10 +251,14 @@ export default function RolesPage() {
 				</BlurFade>
 			</Container>
 
-			<Container className="p-0">
+			<Container className="p-0 max-w-full">
 				<BlurFade delay={0.15}>
 					<div className="relative mb-4">
-						<IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+						<Icon
+							icon={IconSearch}
+							size="sm"
+							className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+						/>
 						<Input
 							placeholder={t.admin.searchPlaceholder}
 							value={searchQuery}
@@ -300,7 +311,7 @@ export default function RolesPage() {
 										<TableRow key={role.id}>
 											<TableCell className="font-medium">
 												<div className="flex items-center gap-2">
-													<IconShield className="size-4 text-primary" />
+													<Icon icon={IconShield} size="sm" className="text-primary" />
 													{role.name}
 												</div>
 											</TableCell>
@@ -314,13 +325,13 @@ export default function RolesPage() {
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
 															<Button variant="ghost" size="icon-sm">
-																<IconDotsVertical className="size-4" />
+																<Icon icon={IconDotsVertical} size="sm" />
 															</Button>
 														</DropdownMenuTrigger>
 														<DropdownMenuContent align="end">
 															{canEdit && (
 																<DropdownMenuItem onClick={() => openEditDialog(role)}>
-																	<IconEdit className="size-4 mr-2" />
+																	<Icon icon={IconEdit} size="sm" className="mr-2" />
 																	{t.common.edit}
 																</DropdownMenuItem>
 															)}
@@ -329,7 +340,7 @@ export default function RolesPage() {
 																	className="text-destructive"
 																	onClick={() => openDeleteDialog(role)}
 																>
-																	<IconTrash className="size-4 mr-2" />
+																	<Icon icon={IconTrash} size="sm" className="mr-2" />
 																	{t.common.delete}
 																</DropdownMenuItem>
 															)}
@@ -343,11 +354,11 @@ export default function RolesPage() {
 							</Table>
 						</div>
 
-						<div className="flex items-center justify-between">
-							<p className="text-sm text-muted-foreground">
+						<div className="flex flex-wrap items-center justify-between gap-2">
+							<TypographyMuted>
 								{t.common.showing} {data.offset + 1}-{data.offset + (filteredRoles?.length || 0)} of
 								page {currentPage + 1}
-							</p>
+							</TypographyMuted>
 							<div className="flex items-center gap-2">
 								<Button
 									variant="outline"
@@ -373,14 +384,14 @@ export default function RolesPage() {
 						<Empty>
 							<EmptyHeader>
 								<EmptyMedia variant="icon">
-									<IconShield className="size-8 text-muted-foreground" />
+									<Icon icon={IconShield} size="xl" className="text-muted-foreground" />
 								</EmptyMedia>
 								<EmptyTitle>{t.admin.noRoles}</EmptyTitle>
 							</EmptyHeader>
 							{canCreate && (
 								<EmptyContent>
 									<Button onClick={() => setCreateDialogOpen(true)}>
-										<IconPlus className="size-4 mr-2" />
+										<Icon icon={IconPlus} size="sm" className="mr-2" />
 										{t.admin.createRole}
 									</Button>
 								</EmptyContent>
@@ -461,18 +472,20 @@ export default function RolesPage() {
 
 						<div className="space-y-4">
 							<div>
-								<h4 className="text-sm font-medium flex items-center gap-2">
-									<IconKey className="size-4" />
+								<TypographyH4 size="xs" className="flex items-center gap-2">
+									<Icon icon={IconKey} size="sm" />
 									{t.admin.roleClaims}
-								</h4>
-								<p className="text-sm text-muted-foreground mt-1">
-									{t.admin.roleClaimsDescription}
-								</p>
+								</TypographyH4>
+								<TypographyMuted className="mt-1">{t.admin.roleClaimsDescription}</TypographyMuted>
 							</div>
 
 							{claimsLoading || roleClaimsLoading ? (
 								<div className="flex items-center justify-center py-8">
-									<IconLoader className="size-5 animate-spin text-muted-foreground" />
+									<Icon
+										icon={IconLoader}
+										size="md"
+										className="animate-spin text-muted-foreground"
+									/>
 									<span className="ml-2 text-sm text-muted-foreground">
 										{t.admin.loadingClaims}
 									</span>

@@ -2,12 +2,13 @@
 
 import { useMemo } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Info } from "lucide-react";
+import { IconInfoCircle } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Icon } from "@/components/typography";
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
 	return (
@@ -143,7 +144,9 @@ function FieldLabelWithTooltip({
 			{tooltip && (
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Info className="size-3.5 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+						<button type="button" className="inline-flex cursor-help">
+							<Icon icon={IconInfoCircle} size="xs" className="text-muted-foreground hover:text-foreground transition-colors" />
+						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top" className="max-w-xs">
 						{tooltip}

@@ -29,6 +29,8 @@ export interface Translations {
 		sending: string;
 		all: string;
 		filters: string;
+		selectAll: string;
+		deselectAll: string;
 	};
 	nav: {
 		chat: string;
@@ -62,6 +64,18 @@ export interface Translations {
 		emailGenerated: string;
 		emailResponse: string;
 		conversationResponse: string;
+		conversations: string;
+		newConversation: string;
+		deleteConversation: string;
+		deleteConversationConfirm: string;
+		noConversations: string;
+		untitledConversation: string;
+		conversationDeleted: string;
+		loadMore: string;
+		showConversations: string;
+		hideConversations: string;
+		showMore: string;
+		showLess: string;
 	};
 	templates: {
 		title: string;
@@ -133,6 +147,22 @@ export interface Translations {
 		updateFailed: string;
 		noActiveSubscription: string;
 		noActiveSubscriptionLink: string;
+	};
+	validation: {
+		required: string;
+		email: string;
+		min: string;
+		max: string;
+		uuid: string;
+		password: string;
+		username: string;
+		tenantRole: string;
+		oneof: string;
+		gte: string;
+		lte: string;
+		alphanum: string;
+		url: string;
+		invalid: string;
 	};
 	blocks: {
 		addBlock: string;
@@ -281,6 +311,27 @@ export interface Translations {
 			firstName: string;
 			lastName: string;
 		};
+		accountBlocked: {
+			title: string;
+			description: string;
+			reason: string;
+			signOut: string;
+			contactSupport: string;
+		};
+		emailVerification: {
+			title: string;
+			description: string;
+			successTitle: string;
+			success: string;
+			redirecting: string;
+			invalidCode: string;
+			expired: string;
+			resend: string;
+			resendIn: string;
+			codeSent: string;
+			resendFailed: string;
+			useAnotherAccount: string;
+		};
 	};
 	landing: {
 		badge: string;
@@ -291,6 +342,8 @@ export interface Translations {
 		signIn: string;
 		features: string;
 		featuresSubtitle: string;
+		navFeatures: string;
+		navHowItWorks: string;
 		feature1Title: string;
 		feature1Description: string;
 		feature2Title: string;
@@ -308,6 +361,52 @@ export interface Translations {
 		ctaButton: string;
 		footer: string;
 		footerTagline: string;
+		footerProduct: string;
+		footerResources: string;
+		footerLegal: string;
+		footerStatus: string;
+		howItWorks: string;
+		howItWorksSubtitle: string;
+		step1Title: string;
+		step1Description: string;
+		step2Title: string;
+		step2Description: string;
+		step3Title: string;
+		step3Description: string;
+		step4Title: string;
+		step4Description: string;
+		howItWorksStep1Title: string;
+		howItWorksStep1Description: string;
+		howItWorksStep2Title: string;
+		howItWorksStep2Description: string;
+		howItWorksStep3Title: string;
+		howItWorksStep3Description: string;
+		howItWorksStep4Title: string;
+		howItWorksStep4Description: string;
+		statsTemplates: string;
+		statsUsers: string;
+		statsUptime: string;
+		testimonials: string;
+		testimonialsSubtitle: string;
+		testimonial1Text: string;
+		testimonial1Author: string;
+		testimonial1Role: string;
+		testimonial2Text: string;
+		testimonial2Author: string;
+		testimonial2Role: string;
+		testimonial3Text: string;
+		testimonial3Author: string;
+		testimonial3Role: string;
+		demo: {
+			userMessage: string;
+			aiSummary: string;
+			emailSubject: string;
+			generating: string;
+			inputPlaceholder: string;
+			saveButton: string;
+			emptyStateTitle: string;
+			emptyStateDescription: string;
+		};
 	};
 	legal: {
 		termsTitle: string;
@@ -572,9 +671,13 @@ export interface Translations {
 		roles: string;
 		claims: string;
 		users: string;
+		tenants: string;
+		dashboard: string;
+		dashboardDescription: string;
 		rolesDescription: string;
 		claimsDescription: string;
 		usersDescription: string;
+		tenantsDescription: string;
 		createRole: string;
 		createClaim: string;
 		roleName: string;
@@ -615,6 +718,11 @@ export interface Translations {
 		blockedAt: string;
 		confirmBlock: string;
 		confirmUnblock: string;
+		blockTenant: string;
+		unblockTenant: string;
+		tenantBlocked: string;
+		tenantUnblocked: string;
+		noTenants: string;
 		systemRole: string;
 		noClaimsAssigned: string;
 		manageClaimsFor: string;
@@ -657,6 +765,112 @@ export interface Translations {
 		deleteSelected: string;
 		selectedCount: string;
 		errorReportsDeleted: string;
+		flaggedRequests: string;
+		flaggedRequestsDescription: string;
+		noFlaggedRequests: string;
+		noFlaggedRequestsDescription: string;
+		messageContent: string;
+		reason: string;
+		severity: string;
+		filterBySeverity: string;
+		pending: string;
+		reviewed: string;
+		dismissed: string;
+		actionTaken: string;
+		review: string;
+		reviewFlaggedRequest: string;
+		reviewFlaggedRequestDescription: string;
+		reviewNotes: string;
+		reviewNotesPlaceholder: string;
+		submitReview: string;
+		flaggedRequestReviewed: string;
+		flaggedRequestDeleted: string;
+		flaggedStatuses: {
+			pending: string;
+			reviewed: string;
+			dismissed: string;
+			action_taken: string;
+		};
+		severities: {
+			low: string;
+			medium: string;
+			high: string;
+			critical: string;
+		};
+		metrics: {
+			totalUsers: string;
+			activeUsers: string;
+			blockedUsers: string;
+			newUsersThisMonth: string;
+			mau: string;
+			dau: string;
+			totalTenants: string;
+			totalSubscriptions: string;
+			activeSubscriptions: string;
+			trialSubscriptions: string;
+			canceledThisMonth: string;
+			newThisMonth: string;
+			mrr: string;
+			averageCheck: string;
+			planDistribution: string;
+			usersSection: string;
+			subscriptionsSection: string;
+			revenueSection: string;
+		};
+		push: {
+			title: string;
+			description: string;
+			create: string;
+			createDescription: string;
+			edit: string;
+			editDescription: string;
+			noPushNotifications: string;
+			noPushNotificationsDescription: string;
+			titleLabel: string;
+			titlePlaceholder: string;
+			messageLabel: string;
+			messagePlaceholder: string;
+			targetType: string;
+			targetTypeAll: string;
+			targetTypeTenant: string;
+			targetTypeUsers: string;
+			selectTenant: string;
+			selectTenantPlaceholder: string;
+			selectUsers: string;
+			selectedCount: string;
+			buttons: string;
+			addButton: string;
+			buttonLabel: string;
+			buttonLabelPlaceholder: string;
+			buttonUrl: string;
+			buttonUrlPlaceholder: string;
+			removeButton: string;
+			schedule: string;
+			scheduledAt: string;
+			sendNow: string;
+			sendImmediately: string;
+			created: string;
+			updated: string;
+			deleted: string;
+			sent: string;
+			cancelled: string;
+			confirmDelete: string;
+			confirmSend: string;
+			confirmCancel: string;
+			statuses: {
+				draft: string;
+				scheduled: string;
+				sent: string;
+				cancelled: string;
+			};
+			columns: {
+				title: string;
+				targetType: string;
+				status: string;
+				createdAt: string;
+				scheduledAt: string;
+			};
+		};
 	};
 	tenantAdmin: {
 		roles: string;
@@ -740,6 +954,34 @@ export interface Translations {
 			monthly: string;
 			yearly: string;
 		};
+		tabs: {
+			plans: string;
+			usage: string;
+		};
+		usage: {
+			title: string;
+			subtitle: string;
+			tokens: string;
+			tokensUsed: string;
+			tokensRemaining: string;
+			resetsOn: string;
+			inputTokens: string;
+			outputTokens: string;
+			usageHistory: string;
+			noUsageLogs: string;
+			action: string;
+			description: string;
+			date: string;
+			storage: string;
+			storageUsed: string;
+			templates: string;
+			templatesCreated: string;
+			conversations: string;
+			conversationsUsed: string;
+			resetDate: string;
+			unlimited: string;
+			of: string;
+		};
 	};
 	branding: {
 		title: string;
@@ -765,6 +1007,7 @@ export interface Translations {
 		colorUpdateFailed: string;
 		colorDeleteFailed: string;
 		noColors: string;
+		noColorsDescription: string;
 		fonts: string;
 		fontsDescription: string;
 		addFont: string;
@@ -782,6 +1025,7 @@ export interface Translations {
 		fontUpdateFailed: string;
 		fontDeleteFailed: string;
 		noFonts: string;
+		noFontsDescription: string;
 		spacings: string;
 		spacingsDescription: string;
 		addSpacing: string;
@@ -798,6 +1042,7 @@ export interface Translations {
 		spacingUpdateFailed: string;
 		spacingDeleteFailed: string;
 		noSpacings: string;
+		noSpacingsDescription: string;
 		radii: string;
 		radiiDescription: string;
 		addRadius: string;
@@ -814,6 +1059,7 @@ export interface Translations {
 		radiusUpdateFailed: string;
 		radiusDeleteFailed: string;
 		noRadii: string;
+		noRadiiDescription: string;
 		logos: string;
 		logosDescription: string;
 		addLogo: string;
@@ -837,6 +1083,7 @@ export interface Translations {
 		logoUpdateFailed: string;
 		logoDeleteFailed: string;
 		noLogos: string;
+		noLogosDescription: string;
 		uploadLogo: string;
 		dropLogoHere: string;
 		selectLogoType: string;
@@ -875,6 +1122,25 @@ export interface Translations {
 		serif: string;
 		monospace: string;
 		display: string;
+		parsingStarted: string;
+		parsingFailed: string;
+		parsingInProgress: string;
+		parsingRejected: string;
+		brandingApplied: string;
+		approveFailed: string;
+		rejectFailed: string;
+		autoFill: string;
+		autoFillDescription: string;
+		parse: string;
+		tryAgain: string;
+		parsedResults: string;
+		applyBranding: string;
+		reject: string;
+		batchDeleteSuccess: string;
+		batchDeleteFailed: string;
+		batchDeleteConfirm: string;
+		deleteSelected: string;
+		selectItems: string;
 	};
 	support: {
 		reportIssue: string;
@@ -945,10 +1211,44 @@ export interface Translations {
 		deleteSuccess: string;
 		deleteFailed: string;
 		noFiles: string;
+		noFilesDescription: string;
+		dropToUpload: string;
+		releaseToUpload: string;
+		batchUploadSuccess: string;
+		batchUploadPartial: string;
 		usage: string;
 		files: string;
 		usedOf: string;
 		copyLinkFailed: string;
+		batchDeleteSuccess: string;
+		batchDeletePartial: string;
+		batchDeleteFailed: string;
+		deleteSelected: string;
+		selectFiles: string;
+	};
+	status: {
+		title: string;
+		subtitle: string;
+		allOperational: string;
+		someIssues: string;
+		majorOutage: string;
+		operational: string;
+		degraded: string;
+		down: string;
+		responseTime: string;
+		lastChecked: string;
+		refresh: string;
+		autoRefresh: string;
+		servicesTitle: string;
+		services: {
+			identity: string;
+			storage: string;
+			notifications: string;
+			subscriptions: string;
+			branding: string;
+			support: string;
+			agent: string;
+		};
 	};
 }
 
@@ -977,12 +1277,14 @@ export const en: Translations = {
 		previous: "Previous",
 		next: "Next",
 		page: "Page",
-		items: "items",
+		items: "item(-s)",
 		copyLink: "Copy link",
 		linkCopied: "Link copied to clipboard",
 		sending: "Sending...",
 		all: "All",
 		filters: "Filters",
+		selectAll: "Select all",
+		deselectAll: "Deselect all",
 	},
 	nav: {
 		chat: "Chat",
@@ -1016,6 +1318,18 @@ export const en: Translations = {
 		emailGenerated: 'Email "{subject}" generated successfully!',
 		emailResponse: "Email",
 		conversationResponse: "Message",
+		conversations: "Conversations",
+		newConversation: "New conversation",
+		deleteConversation: "Delete conversation",
+		deleteConversationConfirm: "Are you sure you want to delete this conversation?",
+		noConversations: "No conversations yet",
+		untitledConversation: "Untitled conversation",
+		conversationDeleted: "Conversation deleted",
+		loadMore: "Load more",
+		showConversations: "Show conversations",
+		hideConversations: "Hide conversations",
+		showMore: "Show more",
+		showLess: "Show less",
 	},
 	templates: {
 		title: "Templates",
@@ -1088,6 +1402,23 @@ export const en: Translations = {
 		updateFailed: "Failed to update",
 		noActiveSubscription: "You need an active subscription to generate content.",
 		noActiveSubscriptionLink: "Go to Subscription",
+	},
+	validation: {
+		required: "This field is required",
+		email: "Invalid email format",
+		min: "Value is too short",
+		max: "Value is too long",
+		uuid: "Invalid UUID format",
+		password: "Password must be at least 8 characters with uppercase, lowercase and number",
+		username:
+			"Username must be 3-30 characters and contain only letters, numbers, underscores and hyphens",
+		tenantRole: "Invalid role. Must be one of: owner, admin, member, viewer",
+		oneof: "Value must be one of the allowed options",
+		gte: "Value must be greater than or equal to minimum",
+		lte: "Value must be less than or equal to maximum",
+		alphanum: "Value must contain only alphanumeric characters",
+		url: "Invalid URL format",
+		invalid: "Invalid value",
 	},
 	blocks: {
 		addBlock: "Add Block",
@@ -1238,6 +1569,28 @@ export const en: Translations = {
 			firstName: "Your first name as it will appear in your profile",
 			lastName: "Your last name as it will appear in your profile",
 		},
+		accountBlocked: {
+			title: "Account Blocked",
+			description:
+				"Your account has been blocked by an administrator. You can no longer access this application.",
+			reason: "Reason",
+			signOut: "Sign Out",
+			contactSupport: "If you believe this is a mistake, please contact support.",
+		},
+		emailVerification: {
+			title: "Verify your email",
+			description: "We've sent a 6-digit verification code to your email. Enter it below to verify your account.",
+			successTitle: "Email Verified!",
+			success: "Your email has been verified successfully.",
+			redirecting: "Redirecting to your workspaces...",
+			invalidCode: "Invalid verification code. Please try again.",
+			expired: "Verification code has expired. Please request a new one.",
+			resend: "Resend code",
+			resendIn: "Resend in",
+			codeSent: "A new verification code has been sent to your email.",
+			resendFailed: "Failed to resend verification code. Please try again.",
+			useAnotherAccount: "Use a different account",
+		},
 	},
 	landing: {
 		badge: "AI-Powered Email Templates",
@@ -1249,6 +1602,8 @@ export const en: Translations = {
 		signIn: "Sign In",
 		features: "Features",
 		featuresSubtitle: "Everything you need to create stunning email templates",
+		navFeatures: "Features",
+		navHowItWorks: "How It Works",
 		feature1Title: "AI Generation",
 		feature1Description:
 			"Describe your email and watch AI create a complete template with proper structure and styling.",
@@ -1269,6 +1624,64 @@ export const en: Translations = {
 		ctaButton: "Start Creating for Free",
 		footer: "Creafly AI",
 		footerTagline: "AI-powered email template generation",
+		footerProduct: "Product",
+		footerResources: "Resources",
+		footerLegal: "Legal",
+		footerStatus: "System Status",
+		howItWorks: "How It Works",
+		howItWorksSubtitle: "From idea to inbox in four simple steps",
+		step1Title: "Describe Your Email",
+		step1Description:
+			"Tell our AI what kind of email you need using natural language. Be as specific or general as you like.",
+		step2Title: "AI Generates Template",
+		step2Description:
+			"Our advanced AI creates a professional, responsive email template based on your description.",
+		step3Title: "Customize & Refine",
+		step3Description:
+			"Use our visual editor or AI refinement to perfect every detail of your template.",
+		step4Title: "Export & Send",
+		step4Description:
+			"Download your template as HTML or integrate directly with your email service provider.",
+		howItWorksStep1Title: "Auto-Fill Branding",
+		howItWorksStep1Description:
+			"Enter your website URL and we'll automatically extract your brand colors, fonts, and logos.",
+		howItWorksStep2Title: "Upload Assets",
+		howItWorksStep2Description:
+			"Drag and drop your brand guidelines, logos, and product images for the AI to use.",
+		howItWorksStep3Title: "Chat with AI",
+		howItWorksStep3Description:
+			"Describe the email you want in plain language. Our AI understands context and creates professional templates.",
+		howItWorksStep4Title: "Visual Editor",
+		howItWorksStep4Description:
+			"Fine-tune every detail with our intuitive drag-and-drop editor. Rearrange blocks, edit content, and style with ease.",
+		statsTemplates: "Templates Created",
+		statsUsers: "Active Users",
+		statsUptime: "Uptime",
+		testimonials: "What Our Users Say",
+		testimonialsSubtitle: "Join thousands of satisfied customers",
+		testimonial1Text:
+			"Creafly has completely transformed how we create email campaigns. What used to take hours now takes minutes.",
+		testimonial1Author: "Sarah Chen",
+		testimonial1Role: "Marketing Director at TechCorp",
+		testimonial2Text:
+			"The AI understands exactly what I need. The templates are professional and the editing tools are intuitive.",
+		testimonial2Author: "Michael Rodriguez",
+		testimonial2Role: "Freelance Designer",
+		testimonial3Text:
+			"We've increased our email engagement by 40% since switching to Creafly. The responsive designs work flawlessly.",
+		testimonial3Author: "Emma Thompson",
+		testimonial3Role: "E-commerce Manager",
+		demo: {
+			userMessage: "Create a welcome email for new users",
+			aiSummary:
+				"I've created a welcome email with a friendly greeting, key features overview, and a call-to-action button.",
+			emailSubject: "Welcome to Creafly!",
+			generating: "Generating response...",
+			inputPlaceholder: "Describe the email you want to create...",
+			saveButton: "Save & Edit",
+			emptyStateTitle: "What can I help you with?",
+			emptyStateDescription: "Describe the email you want to create",
+		},
 	},
 	legal: {
 		termsTitle: "Terms of Service",
@@ -1556,9 +1969,13 @@ export const en: Translations = {
 		roles: "Roles",
 		claims: "Claims",
 		users: "Users",
+		tenants: "Tenants",
+		dashboard: "Dashboard",
+		dashboardDescription: "Overview of platform metrics and analytics",
 		rolesDescription: "Manage global roles and their permissions",
 		claimsDescription: "Manage global claims and permissions",
 		usersDescription: "Manage all users in the system",
+		tenantsDescription: "Manage all tenants and their blocking status",
 		createRole: "Create Role",
 		createClaim: "Create Claim",
 		roleName: "Role Name",
@@ -1600,6 +2017,11 @@ export const en: Translations = {
 		confirmBlock: "Are you sure you want to block this user? They will not be able to log in.",
 		confirmUnblock:
 			"Are you sure you want to unblock this user? They will be able to log in again.",
+		blockTenant: "Block Tenant",
+		unblockTenant: "Unblock Tenant",
+		tenantBlocked: "Tenant blocked successfully",
+		tenantUnblocked: "Tenant unblocked successfully",
+		noTenants: "No tenants found",
 		systemRole: "System Role",
 		noClaimsAssigned: "No claims assigned",
 		manageClaimsFor: "Manage claims for",
@@ -1642,6 +2064,112 @@ export const en: Translations = {
 		deleteSelected: "Delete Selected",
 		selectedCount: "{count} selected",
 		errorReportsDeleted: "Error reports deleted successfully",
+		flaggedRequests: "Flagged Requests",
+		flaggedRequestsDescription: "Review AI-flagged user requests for potential policy violations",
+		noFlaggedRequests: "No flagged requests",
+		noFlaggedRequestsDescription: "There are no flagged requests to review.",
+		messageContent: "Message",
+		reason: "Reason",
+		severity: "Severity",
+		filterBySeverity: "Filter by Severity",
+		pending: "Pending",
+		reviewed: "Reviewed",
+		dismissed: "Dismissed",
+		actionTaken: "Action Taken",
+		review: "Review",
+		reviewFlaggedRequest: "Review Flagged Request",
+		reviewFlaggedRequestDescription: "Review this flagged request and take appropriate action.",
+		reviewNotes: "Review Notes",
+		reviewNotesPlaceholder: "Add notes about your review...",
+		submitReview: "Submit Review",
+		flaggedRequestReviewed: "Flagged request reviewed successfully",
+		flaggedRequestDeleted: "Flagged request deleted successfully",
+		flaggedStatuses: {
+			pending: "Pending",
+			reviewed: "Reviewed",
+			dismissed: "Dismissed",
+			action_taken: "Action Taken",
+		},
+		severities: {
+			low: "Low",
+			medium: "Medium",
+			high: "High",
+			critical: "Critical",
+		},
+		metrics: {
+			totalUsers: "Total Users",
+			activeUsers: "Active Users",
+			blockedUsers: "Blocked Users",
+			newUsersThisMonth: "New Users This Month",
+			mau: "Monthly Active Users",
+			dau: "Daily Active Users",
+			totalTenants: "Total Workspaces",
+			totalSubscriptions: "Total Subscriptions",
+			activeSubscriptions: "Active Subscriptions",
+			trialSubscriptions: "Trial Subscriptions",
+			canceledThisMonth: "Canceled This Month",
+			newThisMonth: "New This Month",
+			mrr: "Monthly Recurring Revenue",
+			averageCheck: "Average Check",
+			planDistribution: "Plan Distribution",
+			usersSection: "Users",
+			subscriptionsSection: "Subscriptions",
+			revenueSection: "Revenue",
+		},
+		push: {
+			title: "Push Notifications",
+			description: "Create and manage push notifications for users",
+			create: "Create Push Notification",
+			createDescription: "Create a new push notification to send to users",
+			edit: "Edit Push Notification",
+			editDescription: "Update push notification details",
+			noPushNotifications: "No push notifications",
+			noPushNotificationsDescription: "Create your first push notification to notify users",
+			titleLabel: "Title",
+			titlePlaceholder: "Enter notification title",
+			messageLabel: "Message",
+			messagePlaceholder: "Enter notification message",
+			targetType: "Target Audience",
+			targetTypeAll: "All Users",
+			targetTypeTenant: "Workspace Users",
+			targetTypeUsers: "Specific Users",
+			selectTenant: "Select Workspace",
+			selectTenantPlaceholder: "Choose a workspace...",
+			selectUsers: "Select Users",
+			selectedCount: "Selected",
+			buttons: "Action Buttons",
+			addButton: "Add Button",
+			buttonLabel: "Button Label",
+			buttonLabelPlaceholder: "e.g., Learn More",
+			buttonUrl: "Button URL",
+			buttonUrlPlaceholder: "https://example.com",
+			removeButton: "Remove",
+			schedule: "Schedule",
+			scheduledAt: "Scheduled At",
+			sendNow: "Send Now",
+			sendImmediately: "Send Immediately",
+			created: "Push notification created",
+			updated: "Push notification updated",
+			deleted: "Push notification deleted",
+			sent: "Push notification sent",
+			cancelled: "Push notification cancelled",
+			confirmDelete: "Are you sure you want to delete this push notification?",
+			confirmSend: "Are you sure you want to send this push notification now?",
+			confirmCancel: "Are you sure you want to cancel this scheduled push notification?",
+			statuses: {
+				draft: "Draft",
+				scheduled: "Scheduled",
+				sent: "Sent",
+				cancelled: "Cancelled",
+			},
+			columns: {
+				title: "Title",
+				targetType: "Target",
+				status: "Status",
+				createdAt: "Created",
+				scheduledAt: "Scheduled",
+			},
+		},
 	},
 	tenantAdmin: {
 		roles: "Workspace Roles",
@@ -1725,6 +2253,34 @@ export const en: Translations = {
 			monthly: "Monthly",
 			yearly: "Yearly",
 		},
+		tabs: {
+			plans: "Plans",
+			usage: "Usage",
+		},
+		usage: {
+			title: "Usage Overview",
+			subtitle: "Monitor your resource consumption",
+			tokens: "Tokens",
+			tokensUsed: "Tokens used this period",
+			tokensRemaining: "Tokens remaining",
+			resetsOn: "Resets on {date}",
+			inputTokens: "Input",
+			outputTokens: "Output",
+			usageHistory: "Usage History",
+			noUsageLogs: "No usage history yet",
+			action: "Action",
+			description: "Description",
+			date: "Date",
+			storage: "Storage",
+			storageUsed: "Storage used",
+			templates: "Templates",
+			templatesCreated: "Templates created",
+			conversations: "Conversations",
+			conversationsUsed: "Conversations this period",
+			resetDate: "Resets on",
+			unlimited: "Unlimited",
+			of: "of",
+		},
 	},
 	branding: {
 		title: "Branding",
@@ -1751,6 +2307,7 @@ export const en: Translations = {
 		colorUpdateFailed: "Failed to update color",
 		colorDeleteFailed: "Failed to delete color",
 		noColors: "No colors defined yet",
+		noColorsDescription: "Add colors to define your brand palette for consistent email styling",
 		fonts: "Fonts",
 		fontsDescription: "Define your brand typography",
 		addFont: "Add Font",
@@ -1768,6 +2325,7 @@ export const en: Translations = {
 		fontUpdateFailed: "Failed to update font",
 		fontDeleteFailed: "Failed to delete font",
 		noFonts: "No fonts defined yet",
+		noFontsDescription: "Add fonts to define your brand typography for consistent email styling",
 		spacings: "Spacings",
 		spacingsDescription: "Define spacing values in pixels",
 		addSpacing: "Add Spacing",
@@ -1784,6 +2342,7 @@ export const en: Translations = {
 		spacingUpdateFailed: "Failed to update spacing",
 		spacingDeleteFailed: "Failed to delete spacing",
 		noSpacings: "No spacings defined yet",
+		noSpacingsDescription: "Add spacing values to maintain consistent padding and margins",
 		radii: "Border Radii",
 		radiiDescription: "Define border radius values in pixels",
 		addRadius: "Add Radius",
@@ -1800,6 +2359,7 @@ export const en: Translations = {
 		radiusUpdateFailed: "Failed to update radius",
 		radiusDeleteFailed: "Failed to delete radius",
 		noRadii: "No radii defined yet",
+		noRadiiDescription: "Add border radius values to define rounded corners for your brand",
 		logos: "Logos",
 		logosDescription: "Upload and manage your brand logos",
 		addLogo: "Add Logo",
@@ -1823,6 +2383,7 @@ export const en: Translations = {
 		logoUpdateFailed: "Failed to update logo",
 		logoDeleteFailed: "Failed to delete logo",
 		noLogos: "No logos uploaded yet",
+		noLogosDescription: "Upload logos to include your brand identity in email templates",
 		uploadLogo: "Upload Logo",
 		dropLogoHere: "Drop your logo here or click to browse",
 		selectLogoType: "Select logo type",
@@ -1861,6 +2422,26 @@ export const en: Translations = {
 		serif: "Serif",
 		monospace: "Monospace",
 		display: "Display",
+		parsingStarted: "Parsing website...",
+		parsingFailed: "Failed to parse website",
+		parsingInProgress: "Parsing in progress...",
+		parsingRejected: "Parsing rejected",
+		brandingApplied: "Branding applied successfully",
+		approveFailed: "Failed to apply branding",
+		rejectFailed: "Failed to reject parsing",
+		autoFill: "Auto-fill from URL",
+		autoFillDescription:
+			"Enter a website URL to automatically extract brand colors, fonts, and other styling",
+		parse: "Parse",
+		tryAgain: "Try Again",
+		parsedResults: "Parsed Results",
+		applyBranding: "Apply Branding",
+		reject: "Reject",
+		batchDeleteSuccess: "{count} items deleted successfully",
+		batchDeleteFailed: "Failed to delete items",
+		batchDeleteConfirm: "Are you sure you want to delete {count} selected items?",
+		deleteSelected: "Delete Selected",
+		selectItems: "Select items to delete",
 	},
 	support: {
 		reportIssue: "Report Issue",
@@ -1917,7 +2498,8 @@ export const en: Translations = {
 			closed: "Closed",
 		},
 		serverError: "Server Error",
-		serverErrorDescription: "We encountered an internal server error. Would you like to create a support ticket?",
+		serverErrorDescription:
+			"We encountered an internal server error. Would you like to create a support ticket?",
 		createTicketFromError: "Create Support Ticket",
 	},
 	storage: {
@@ -1931,9 +2513,43 @@ export const en: Translations = {
 		deleteSuccess: "File deleted",
 		deleteFailed: "Failed to delete file",
 		noFiles: "No files uploaded yet",
+		noFilesDescription: "Drag and drop files here or click the button to upload",
+		dropToUpload: "Drop files to upload",
+		releaseToUpload: "Release to start uploading",
+		batchUploadSuccess: "{count} files uploaded successfully",
+		batchUploadPartial: "{success} of {total} files uploaded",
 		usage: "Storage Usage",
 		files: "files",
 		usedOf: "{used} of {total}",
 		copyLinkFailed: "Failed to copy link",
+		batchDeleteSuccess: "{count} files deleted successfully",
+		batchDeletePartial: "{deleted} of {total} files deleted",
+		batchDeleteFailed: "Failed to delete files",
+		deleteSelected: "Delete Selected",
+		selectFiles: "Select files to delete",
+	},
+	status: {
+		title: "System Status",
+		subtitle: "Current status of all Creafly services",
+		allOperational: "All systems operational",
+		someIssues: "Some systems are experiencing issues",
+		majorOutage: "Major system outage",
+		operational: "Operational",
+		degraded: "Degraded",
+		down: "Down",
+		responseTime: "Response time",
+		lastChecked: "Last checked",
+		refresh: "Refresh",
+		autoRefresh: "Status updates automatically every 30 seconds",
+		servicesTitle: "Services",
+		services: {
+			identity: "Authentication",
+			storage: "File Storage",
+			notifications: "Notifications",
+			subscriptions: "Subscriptions",
+			branding: "Branding",
+			support: "Support",
+			agent: "AI Agent",
+		},
 	},
 };

@@ -1,10 +1,13 @@
-import type { StorageFile, ListFilesParams } from "@/types/storage";
+import type { StorageFile, ListFilesParams, FileList } from "@/types/storage";
+import { createServiceFetch, ApiError, type FetchOptions } from "./fetch-with-retry";
 
 const STORAGE_API_URL = process.env.NEXT_PUBLIC_STORAGE_URL || "http://localhost:8083";
 
-class StorageApiError extends Error {
-	constructor(public status: number, message: string, public code?: string) {
-		super(message);
+const serviceFetch = createServiceFetch(STORAGE_API_URL);
+
+class StorageApiError extends ApiError {
+	constructor(status: number, message: string, code?: string) {
+		super(status, message, code);
 		this.name = "StorageApiError";
 	}
 }
@@ -13,27 +16,13 @@ async function fetchStorageApi<T>(
 	endpoint: string,
 	accessToken: string,
 	tenantId: string,
-	options?: RequestInit
+	options?: FetchOptions
 ): Promise<T> {
-	const url = `${STORAGE_API_URL}${endpoint}`;
-
-	const headers: HeadersInit = {
-		...(options?.headers || {}),
-		Authorization: `Bearer ${accessToken}`,
-		"X-Tenant-ID": tenantId,
-	};
-
-	const response = await fetch(url, {
+	return serviceFetch<T>(endpoint, {
 		...options,
-		headers,
+		accessToken,
+		tenantId,
 	});
-
-	if (!response.ok) {
-		const error = await response.json().catch(() => ({ error: "Unknown error" }));
-		throw new StorageApiError(response.status, error.error || "Request failed", error.code);
-	}
-
-	return response.json();
 }
 
 export const storageApi = {
@@ -41,11 +30,11 @@ export const storageApi = {
 		accessToken: string,
 		tenantId: string,
 		params?: ListFilesParams
-	): Promise<{ files: StorageFile[] }> {
+	): Promise<FileList> {
 		const searchParams = new URLSearchParams();
 		if (params?.type) searchParams.set("type", params.type);
 		if (params?.limit) searchParams.set("limit", params.limit.toString());
-		if (params?.offset) searchParams.set("offset", params.offset.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
 
 		const queryString = searchParams.toString();
 		const endpoint = `/api/v1/files${queryString ? `?${queryString}` : ""}`;
@@ -113,4 +102,20 @@ export const storageApi = {
 			method: "GET",
 		});
 	},
+
+	async batchDelete(
+		accessToken: string,
+		tenantId: string,
+		fileIds: string[]
+	): Promise<{ deleted: string[]; failed: string[]; message: string }> {
+		return fetchStorageApi(`/api/v1/files/batch`, accessToken, tenantId, {
+			method: "DELETE",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ ids: fileIds }),
+		});
+	},
 };
+
+export { StorageApiError };

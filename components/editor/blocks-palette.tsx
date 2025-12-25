@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBlocks } from "@/hooks/use-api";
 import { useTranslations } from "@/providers/i18n-provider";
+import { TypographyH4 } from "@/components/typography";
 import { BLOCK_ICONS, BLOCK_CATEGORIES } from "@/lib/constants/blocks";
 import type { BlockType, BlockDefinition } from "@/types";
 import { cn } from "@/lib/utils";
@@ -80,16 +81,16 @@ export function BlocksPalette() {
 	return (
 		<Card className="rounded-none h-full" ref={setPaletteRef}>
 			<CardHeader className="pb-3">
-				<CardTitle className="text-sm font-medium">{t.blocks.palette || "Blocks"}</CardTitle>
+				<CardTitle className="text-sm font-medium">{t.blocks.palette}</CardTitle>
 			</CardHeader>
 			<CardContent className="p-0">
 				<ScrollArea className="h-full px-4 pb-4">
 					<div className="space-y-4">
 						{BLOCK_CATEGORIES.map((group) => (
 							<div key={group.category} className="space-y-2">
-								<h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+								<TypographyH4 size="2xs" className="text-muted-foreground uppercase tracking-wide">
 									{t.blocks.categories[group.category as keyof typeof t.blocks.categories]}
-								</h4>
+								</TypographyH4>
 								<div className="space-y-1.5">
 									{group.types.map((type) => (
 										<DraggableBlockItem key={type} type={type} label={getBlockLabel(type)} />

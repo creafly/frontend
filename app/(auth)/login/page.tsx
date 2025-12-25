@@ -1,13 +1,15 @@
-"use client";
+import type { Metadata } from "next";
+import { LoginPageClient } from "./login-page-client";
 
-import { LoginForm } from "@/components/auth/login-form";
+export const metadata: Metadata = {
+	title: "Sign In",
+	description: "Sign in to your Creafly account to create AI-powered email templates.",
+	openGraph: {
+		title: "Sign In | Creafly",
+		description: "Sign in to your Creafly account to create AI-powered email templates.",
+	},
+};
 
 export default function LoginPage() {
-	return (
-		<div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-			<div className="w-full max-w-sm">
-				<LoginForm />
-			</div>
-		</div>
-	);
+	return <LoginPageClient />;
 }

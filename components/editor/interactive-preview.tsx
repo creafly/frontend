@@ -1,13 +1,25 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { IconGripVertical } from "@tabler/icons-react";
+import { TypographyMuted } from "@/components/typography";
 import type { Block, BlockStyle, CalloutVariant, BadgeVariant } from "@/types";
 import { cn } from "@/lib/utils";
 import { BlockEditPopover } from "./block-edit-popover";
 import { useEditorDnd } from "./editor-dnd-provider";
+
+const GOOGLE_FONTS = [
+	"Open Sans",
+	"Roboto",
+	"Lato",
+	"Montserrat",
+	"Poppins",
+	"Inter",
+	"Playfair Display",
+	"Merriweather",
+];
 
 interface InteractivePreviewProps {
 	blocks: Block[];
@@ -24,10 +36,42 @@ const FONT_WEIGHT_MAP: Record<NonNullable<BlockStyle["fontWeight"]>, number> = {
 	bold: 700,
 };
 
-function buildStyles(style?: BlockStyle): React.CSSProperties {
-	if (!style) return {};
+const FONT_WEIGHT_NUMBER_TO_NAME: Record<number, NonNullable<BlockStyle["fontWeight"]>> = {
+	400: "normal",
+	500: "medium",
+	600: "semibold",
+	700: "bold",
+};
 
-	return {
+interface RawBlockStyle {
+	paddingTop?: number;
+	paddingBottom?: number;
+	paddingLeft?: number;
+	paddingRight?: number;
+	marginTop?: number;
+	marginBottom?: number;
+	marginLeft?: number;
+	marginRight?: number;
+	backgroundColor?: string;
+	textColor?: string;
+	color?: string;
+	fontSize?: number;
+	fontWeight?: BlockStyle["fontWeight"] | number;
+	fontFamily?: string;
+	textAlign?: "left" | "center" | "right";
+	borderRadius?: number;
+	borderWidth?: number;
+	borderColor?: string;
+	buttonColor?: string;
+	buttonTextColor?: string;
+	lineHeight?: number;
+	padding?: string | number;
+}
+
+function normalizeStyle(style?: RawBlockStyle): BlockStyle | undefined {
+	if (!style) return undefined;
+
+	const normalized: BlockStyle = {
 		paddingTop: style.paddingTop,
 		paddingBottom: style.paddingBottom,
 		paddingLeft: style.paddingLeft,
@@ -37,15 +81,79 @@ function buildStyles(style?: BlockStyle): React.CSSProperties {
 		marginLeft: style.marginLeft,
 		marginRight: style.marginRight,
 		backgroundColor: style.backgroundColor,
-		color: style.textColor,
-		fontFamily: style.fontFamily,
+		textColor: style.textColor || style.color,
 		fontSize: style.fontSize,
-		fontWeight: style.fontWeight ? FONT_WEIGHT_MAP[style.fontWeight] : undefined,
+		fontFamily: style.fontFamily,
 		textAlign: style.textAlign,
 		borderRadius: style.borderRadius,
 		borderWidth: style.borderWidth,
-		borderStyle: style.borderWidth ? "solid" : undefined,
 		borderColor: style.borderColor,
+		buttonColor: style.buttonColor,
+		buttonTextColor: style.buttonTextColor,
+	};
+
+	if (typeof style.fontWeight === "number") {
+		normalized.fontWeight = FONT_WEIGHT_NUMBER_TO_NAME[style.fontWeight] || "normal";
+	} else {
+		normalized.fontWeight = style.fontWeight;
+	}
+
+	return normalized;
+}
+
+function collectFontsFromBlocks(blocks: Block[]): Set<string> {
+	const usedFonts = new Set<string>();
+
+	function collectFromBlock(block: Block) {
+		if ("style" in block) {
+			const rawStyle = block.style as RawBlockStyle | undefined;
+			if (rawStyle?.fontFamily) {
+				for (const gFont of GOOGLE_FONTS) {
+					if (rawStyle.fontFamily.includes(gFont)) {
+						usedFonts.add(gFont);
+						break;
+					}
+				}
+			}
+		}
+		if ("blocks" in block && Array.isArray(block.blocks)) {
+			block.blocks.forEach(collectFromBlock);
+		}
+		if ("children" in block && Array.isArray(block.children)) {
+			block.children.forEach(collectFromBlock);
+		}
+	}
+
+	blocks.forEach(collectFromBlock);
+	return usedFonts;
+}
+
+function buildStyles(style?: RawBlockStyle): React.CSSProperties {
+	if (!style) return {};
+
+	const normalized = normalizeStyle(style);
+	if (!normalized) return {};
+
+	return {
+		paddingTop: normalized.paddingTop,
+		paddingBottom: normalized.paddingBottom,
+		paddingLeft: normalized.paddingLeft,
+		paddingRight: normalized.paddingRight,
+		marginTop: normalized.marginTop,
+		marginBottom: normalized.marginBottom,
+		marginLeft: normalized.marginLeft,
+		marginRight: normalized.marginRight,
+		backgroundColor: normalized.backgroundColor,
+		color: normalized.textColor,
+		fontFamily: normalized.fontFamily,
+		fontSize: normalized.fontSize,
+		fontWeight: normalized.fontWeight ? FONT_WEIGHT_MAP[normalized.fontWeight] : undefined,
+		textAlign: normalized.textAlign,
+		borderRadius: normalized.borderRadius,
+		borderWidth: normalized.borderWidth,
+		borderStyle: normalized.borderWidth ? "solid" : undefined,
+		borderColor: normalized.borderColor,
+		lineHeight: style.lineHeight,
 	};
 }
 
@@ -56,6 +164,30 @@ export function InteractivePreview({
 	onBlockUpdate,
 	onBlockDelete,
 }: InteractivePreviewProps) {
+	const usedFonts = useMemo(() => collectFontsFromBlocks(blocks), [blocks]);
+
+	useEffect(() => {
+		if (usedFonts.size === 0) return;
+
+		const fontFamilies = Array.from(usedFonts)
+			.map((font) => `family=${font.replace(/ /g, "+")}:wght@400;500;600;700`)
+			.join("&");
+
+		const linkId = "interactive-preview-google-fonts";
+		let link = document.getElementById(linkId) as HTMLLinkElement | null;
+
+		if (!link) {
+			link = document.createElement("link");
+			link.id = linkId;
+			link.rel = "stylesheet";
+			document.head.appendChild(link);
+		}
+
+		link.href = `https://fonts.googleapis.com/css2?${fontFamilies}&display=swap`;
+
+		return () => {};
+	}, [usedFonts]);
+
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent) => {
 			if ((e.key === "Delete" || e.key === "Backspace") && selectedBlockPath !== null) {
@@ -154,7 +286,7 @@ function EmptyDropZone() {
 				isOver ? "border-primary bg-primary/5" : "border-muted-foreground/25"
 			)}
 		>
-			<p className="text-muted-foreground">Drag blocks here to start building</p>
+			<TypographyMuted>Drag blocks here to start building</TypographyMuted>
 		</div>
 	);
 }
@@ -369,7 +501,7 @@ function BlockRenderer({
 	onBlockUpdate,
 	onBlockDelete,
 }: BlockRendererProps) {
-	const customStyles = buildStyles("style" in block ? block.style : undefined);
+	const customStyles = buildStyles("style" in block ? (block.style as RawBlockStyle) : undefined);
 
 	switch (block.type) {
 		case "text":
@@ -524,38 +656,6 @@ function BlockRenderer({
 			);
 		}
 
-		case "social": {
-			const linkColor = block.style?.textColor || "#666";
-			return (
-				<div
-					style={{
-						textAlign: "center",
-						marginTop: 24,
-						marginBottom: 24,
-						...customStyles,
-					}}
-				>
-					{block.links.map((link, i) => (
-						<a
-							key={i}
-							href={link.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							onClick={(e) => e.preventDefault()}
-							style={{
-								display: "inline-block",
-								marginLeft: 8,
-								marginRight: 8,
-								color: linkColor,
-							}}
-						>
-							{link.platform}
-						</a>
-					))}
-				</div>
-			);
-		}
-
 		case "header": {
 			const titleColor = block.style?.textColor;
 			return (
@@ -693,82 +793,6 @@ function BlockRenderer({
 					)}
 				</div>
 			);
-
-		case "card": {
-			const borderRadius = block.style?.borderRadius ?? 8;
-			const borderColor = block.style?.borderColor || "#e5e5e5";
-			const bgColor = block.style?.backgroundColor || "transparent";
-
-			return (
-				<div
-					style={{
-						borderWidth: 1,
-						borderStyle: "solid",
-						borderColor,
-						borderRadius,
-						overflow: "hidden",
-						marginTop: 16,
-						marginBottom: 16,
-						backgroundColor: bgColor,
-					}}
-				>
-					{block.imageUrl && (
-						<img
-							src={block.imageUrl}
-							alt={block.imageAlt || ""}
-							style={{ width: "100%", height: "auto", display: "block" }}
-						/>
-					)}
-					<div style={{ padding: 16 }}>
-						<h3
-							style={{
-								marginTop: 0,
-								marginBottom: 8,
-								marginLeft: 0,
-								marginRight: 0,
-								fontSize: 18,
-								fontWeight: "bold",
-								color: block.style?.textColor,
-							}}
-						>
-							{block.title}
-						</h3>
-						{block.description && (
-							<p
-								style={{
-									marginTop: 0,
-									marginBottom: 16,
-									marginLeft: 0,
-									marginRight: 0,
-									color: "#666",
-								}}
-							>
-								{block.description}
-							</p>
-						)}
-						{block.ctaText && block.ctaUrl && (
-							<a
-								href={block.ctaUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								onClick={(e) => e.preventDefault()}
-								style={{
-									display: "inline-block",
-									padding: "8px 16px",
-									backgroundColor: "#0066cc",
-									color: "#ffffff",
-									textDecoration: "none",
-									borderRadius: 4,
-									fontSize: 14,
-								}}
-							>
-								{block.ctaText}
-							</a>
-						)}
-					</div>
-				</div>
-			);
-		}
 
 		case "grid_wrapper": {
 			const columns = block.columns || 2;

@@ -2,26 +2,37 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Mail, ShieldCheck } from "lucide-react";
-
+import { IconShieldCheck } from "@tabler/icons-react";
+import { Icon, TypographyH1 } from "@/components/typography";
 import { useAuth } from "@/providers/auth-provider";
 import { useTranslations } from "@/providers/i18n-provider";
 import { useCookieConsent } from "@/providers/cookie-consent-provider";
-import { IdentityApiError } from "@/lib/api/identity";
+import { useFieldErrors } from "@/hooks/use-field-errors";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { Field, FieldDescription, FieldGroup, FieldLabelWithTooltip } from "@/components/ui/field";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldGroup,
+	FieldLabelWithTooltip,
+} from "@/components/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+
+type LoginFormFields = "email" | "password" | "code";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
 	const t = useTranslations();
 	const router = useRouter();
 	const { login, loginVerifyTOTP } = useAuth();
 	const { hasConsent } = useCookieConsent();
+	const { fieldErrors, handleError, clearFieldError, clearAllErrors } =
+		useFieldErrors<LoginFormFields>();
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -33,6 +44,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		clearAllErrors();
 
 		if (!hasConsent) {
 			toast.error(t.auth.cookieConsentRequired);
@@ -56,11 +68,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 				router.replace("/workspaces");
 			}
 		} catch (error) {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error(t.auth.loginError);
-			}
+			handleError(error, t.auth.loginError);
 		} finally {
 			setIsLoading(false);
 		}
@@ -68,9 +76,10 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
 	const handleTOTPSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		clearAllErrors();
 
 		if (totpCode.length !== 6) {
-			toast.error(t.auth.totpCodeRequired || "Please enter the 6-digit code");
+			toast.error(t.auth.totpCodeRequired);
 			return;
 		}
 
@@ -81,11 +90,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 			toast.success(t.auth.loginSuccess);
 			router.replace("/workspaces");
 		} catch (error) {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error(t.auth.totpVerificationError || "Invalid verification code");
-			}
+			handleError(error, t.auth.totpVerificationError);
 			setTotpCode("");
 		} finally {
 			setIsLoading(false);
@@ -96,6 +101,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 		setShowTOTP(false);
 		setTempToken("");
 		setTotpCode("");
+		clearAllErrors();
 	};
 
 	if (showTOTP) {
@@ -105,22 +111,21 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 					<FieldGroup>
 						<div className="flex flex-col items-center gap-2 text-center">
 							<div className="flex size-12 items-center justify-center rounded-md bg-primary text-primary-foreground">
-								<ShieldCheck className="size-6" />
+								<Icon icon={IconShieldCheck} size="lg" />
 							</div>
-							<h1 className="text-xl font-bold">
-								{t.auth.twoFactorAuth || "Two-Factor Authentication"}
-							</h1>
-							<FieldDescription>
-								{t.auth.enterTotpCode || "Enter the 6-digit code from your authenticator app"}
-							</FieldDescription>
+							<TypographyH1 size="xs">{t.auth.twoFactorAuth}</TypographyH1>
+							<FieldDescription>{t.auth.enterTotpCode}</FieldDescription>
 						</div>
 
-						<Field className="flex flex-col items-center">
+						<Field data-invalid={!!fieldErrors.code} className="flex flex-col items-center">
 							<InputOTP
 								className="justify-center"
 								maxLength={6}
 								value={totpCode}
-								onChange={(value) => setTotpCode(value)}
+								onChange={(value) => {
+									setTotpCode(value);
+									clearFieldError("code");
+								}}
 								disabled={isLoading}
 							>
 								<InputOTPGroup>
@@ -132,6 +137,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 									<InputOTPSlot index={5} />
 								</InputOTPGroup>
 							</InputOTP>
+							<FieldError>{fieldErrors.code}</FieldError>
 						</Field>
 
 						<Field>
@@ -140,7 +146,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 								className="w-full"
 								disabled={isLoading || totpCode.length !== 6}
 							>
-								{isLoading ? t.auth.verifying || "Verifying..." : t.auth.verify || "Verify"}
+								{isLoading ? t.auth.verifying : t.auth.verify}
 							</Button>
 						</Field>
 
@@ -152,7 +158,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 								onClick={handleBackToLogin}
 								disabled={isLoading}
 							>
-								{t.auth.backToLogin || "Back to login"}
+								{t.auth.backToLogin}
 							</Button>
 						</Field>
 					</FieldGroup>
@@ -166,19 +172,18 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 			<form onSubmit={handleSubmit}>
 				<FieldGroup>
 					<div className="flex flex-col items-center gap-2 text-center">
-						<Link href="/" className="flex flex-col items-center gap-2 font-medium">
-							<div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-								<Mail className="size-4" />
-							</div>
-							<span className="sr-only">Creafly</span>
+						<Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-70">
+							<Image src="/logo.svg" alt="Creafly" width={32} height={32} />
 						</Link>
-						<h1 className="text-xl font-bold">{t.auth.welcomeTo}</h1>
+						<TypographyH1 size="xs" className="mt-4">
+							{t.auth.welcomeTo}
+						</TypographyH1>
 						<FieldDescription>
 							{t.auth.noAccount} <Link href="/register">{t.auth.register}</Link>
 						</FieldDescription>
 					</div>
 
-					<Field>
+					<Field data-invalid={!!fieldErrors.email}>
 						<FieldLabelWithTooltip htmlFor="email" tooltip={t.auth.tooltips.email}>
 							{t.auth.email}
 						</FieldLabelWithTooltip>
@@ -187,13 +192,17 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 							type="email"
 							placeholder={t.auth.emailPlaceholder}
 							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							onChange={(e) => {
+								setEmail(e.target.value);
+								clearFieldError("email");
+							}}
 							required
 							disabled={isLoading}
 						/>
+						<FieldError>{fieldErrors.email}</FieldError>
 					</Field>
 
-					<Field>
+					<Field data-invalid={!!fieldErrors.password}>
 						<div className="flex items-center justify-between">
 							<FieldLabelWithTooltip htmlFor="password" tooltip={t.auth.tooltips.password}>
 								{t.auth.password}
@@ -209,10 +218,14 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 							id="password"
 							placeholder={t.auth.passwordPlaceholder}
 							value={password}
-							onChange={(e) => setPassword(e.target.value)}
+							onChange={(e) => {
+								setPassword(e.target.value);
+								clearFieldError("password");
+							}}
 							required
 							disabled={isLoading}
 						/>
+						<FieldError>{fieldErrors.password}</FieldError>
 					</Field>
 
 					<Field>

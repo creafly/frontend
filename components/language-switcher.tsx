@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "@/providers/i18n-provider";
 import { IconLanguage } from "@tabler/icons-react";
+import { Icon } from "@/components/typography";
 
 const languages = [
 	{ code: "en", label: "English" },
@@ -21,8 +22,8 @@ export function LanguageSwitcher() {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm">
-					<IconLanguage className="size-4" />
+				<Button variant="ghost" size="icon" className="size-9">
+					<Icon icon={IconLanguage} size="sm" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">

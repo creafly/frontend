@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useEffect, useRef } from "react";
+import { useSyncExternalStore, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import {
@@ -8,7 +8,6 @@ import {
 	SidebarContent,
 	SidebarGroup,
 	SidebarGroupContent,
-	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
@@ -16,6 +15,7 @@ import {
 	SidebarProvider,
 	SidebarInset,
 	SidebarFooter,
+	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,6 +33,7 @@ import {
 	IconCloud,
 	IconHeadset,
 } from "@tabler/icons-react";
+import { Icon } from "@/components/typography";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -66,11 +67,9 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 		() => false
 	);
 
-	const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
 	const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
 
-	const prevTenantRef = useRef<{ id: string; name: string; slug: string } | null>(null);
+	const prevTenantIdRef = useRef<string | null>(null);
 
 	const {
 		data: resolvedTenant,
@@ -84,6 +83,18 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 		error: tenantError,
 	} = useTenant(isUUID ? slugOrId : resolvedTenant?.id);
 
+	const workspace: WorkspaceData | null = useMemo(() => {
+		const tenant = tenantData?.tenant;
+		if (!tenant) return null;
+		return {
+			id: tenant.id,
+			name: tenant.name,
+			slug: tenant.slug,
+		};
+	}, [tenantData?.tenant]);
+
+	const isLoading = isResolving || isTenantLoading || !workspace;
+
 	useEffect(() => {
 		if (mounted && (resolveError || tenantError)) {
 			router.replace("/workspaces");
@@ -91,26 +102,12 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 	}, [mounted, resolveError, tenantError, router]);
 
 	useEffect(() => {
-		if (!mounted) return;
-		if (resolveError || tenantError) return;
+		if (!mounted || !workspace) return;
+		if (prevTenantIdRef.current === workspace.id) return;
 
-		const tenant = tenantData?.tenant;
-		if (!tenant) return;
-
-		const prev = prevTenantRef.current;
-		if (prev?.id === tenant.id && prev?.name === tenant.name && prev?.slug === tenant.slug) {
-			return;
-		}
-
-		prevTenantRef.current = { id: tenant.id, name: tenant.name, slug: tenant.slug };
-		setWorkspace({
-			id: tenant.id,
-			name: tenant.name,
-			slug: tenant.slug,
-		});
-		setTenant(tenant.id);
-		setIsLoading(false);
-	}, [mounted, tenantData, resolveError, tenantError, setTenant]);
+		prevTenantIdRef.current = workspace.id;
+		setTenant(workspace.id);
+	}, [mounted, workspace, setTenant]);
 
 	const handleSwitchWorkspace = () => {
 		router.push("/workspaces");
@@ -133,12 +130,12 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 
 	const workspaceNavigation = [
 		{
-			title: t.nav.branding || "Branding",
+			title: t.nav.branding,
 			href: `${basePath}/branding`,
 			icon: IconPalette,
 		},
 		{
-			title: t.nav.storage || "Storage",
+			title: t.nav.storage,
 			href: `${basePath}/storage`,
 			icon: IconCloud,
 		},
@@ -193,7 +190,7 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 													/{workspace?.slug}
 												</span>
 											</div>
-											<IconChevronDown className="ml-auto size-4" />
+											<Icon icon={IconChevronDown} size="sm" className="ml-auto" />
 										</SidebarMenuButton>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent
@@ -213,8 +210,7 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 						</SidebarMenu>
 					</SidebarHeader>
 					<SidebarContent>
-						<SidebarGroup>
-							<SidebarGroupLabel>{t.nav.navigation}</SidebarGroupLabel>
+						<SidebarGroup className="pb-0">
 							<SidebarGroupContent>
 								<SidebarMenu className="gap-2">
 									{navigation.map((item) => (
@@ -224,7 +220,7 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 													isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
 													tooltip={item.title}
 												>
-													<item.icon className="size-4" />
+													<Icon icon={item.icon} size="sm" />
 													<span>{item.title}</span>
 												</SidebarMenuButton>
 											</Link>
@@ -234,7 +230,6 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 							</SidebarGroupContent>
 						</SidebarGroup>
 						<SidebarGroup>
-							<SidebarGroupLabel>{t.nav.workspace}</SidebarGroupLabel>
 							<SidebarGroupContent>
 								<SidebarMenu className="gap-2">
 									{workspaceNavigation.map((item) => (
@@ -244,27 +239,29 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 													isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
 													tooltip={item.title}
 												>
-													<item.icon className="size-4" />
+													<Icon icon={item.icon} size="sm" />
 													<span>{item.title}</span>
 												</SidebarMenuButton>
 											</Link>
 										</SidebarMenuItem>
 									))}
-									<SidebarMenuItem>
-										<ThemeToggle />
-									</SidebarMenuItem>
-									<SidebarMenuItem>
-										<LanguageSwitcher />
-									</SidebarMenuItem>
 								</SidebarMenu>
 							</SidebarGroupContent>
 						</SidebarGroup>
 					</SidebarContent>
 					<SidebarFooter>
-						<SidebarMenu>
-							<SidebarMenuItem className="flex justify-center">
-								<NotificationsDropdown />
-							</SidebarMenuItem>
+						<SidebarMenu className="gap-2">
+							<div className="hidden md:block">
+								<SidebarMenuItem>
+									<ThemeToggle />
+								</SidebarMenuItem>
+								<SidebarMenuItem>
+									<LanguageSwitcher />
+								</SidebarMenuItem>
+								<SidebarMenuItem className="flex justify-center">
+									<NotificationsDropdown />
+								</SidebarMenuItem>
+							</div>
 							<SidebarMenuItem>
 								<UserMenu
 									trigger={
@@ -286,7 +283,17 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 					</SidebarFooter>
 				</Sidebar>
 				<SidebarInset>
-					<main className="flex-1 w-full">{children}</main>
+					<header className="flex md:hidden h-14 items-center gap-2 border-b bg-background px-4">
+						<SidebarTrigger />
+						<div className="flex-1 flex items-center gap-2">
+							<TenantAvatar tenant={workspace ? { name: workspace.name } : null} size="sm" />
+							<span className="font-semibold text-sm truncate">{workspace?.name}</span>
+						</div>
+						<ThemeToggle />
+						<LanguageSwitcher />
+						<NotificationsDropdown />
+					</header>
+					<main className="flex-1 w-full h-full overflow-auto">{children}</main>
 				</SidebarInset>
 			</SidebarProvider>
 		</ProtectedRoute>

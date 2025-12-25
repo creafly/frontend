@@ -11,22 +11,24 @@ import type {
 	EmailGenerateResponse,
 	EmailPreviewResponse,
 	EmailJsonResponse,
-	EmailRefineRequest,
-	EmailRefineResponse,
+	ConversationListResponse,
+	ConversationSingleResponse,
+	CreateConversationRequest,
+	AddMessageRequest,
+	MessageSingleResponse,
 } from "@/types";
 import { useAuth } from "@/providers/auth-provider";
 import { getTenantId } from "@/lib/tenant";
+import { createServiceFetch, ApiError, type FetchOptions } from "./fetch-with-retry";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const serviceFetch = createServiceFetch(API_BASE_URL);
 
-class ApiError extends Error {
-	constructor(
-		public status: number,
-		message: string,
-		public code?: string,
-		public subscriptionStatus?: string
-	) {
-		super(message);
+const AUTH_STORAGE_KEY = "creafly_auth";
+
+class ClientApiError extends ApiError {
+	constructor(status: number, message: string, code?: string, public subscriptionStatus?: string) {
+		super(status, message, code);
 		this.name = "ApiError";
 	}
 }
@@ -34,54 +36,29 @@ class ApiError extends Error {
 async function fetchApiWithAuth<T>(
 	endpoint: string,
 	accessToken: string | null,
-	options?: RequestInit & { skipContentType?: boolean }
+	options?: FetchOptions
 ): Promise<T> {
 	if (!accessToken) {
-		throw new ApiError(401, "Not authenticated");
+		throw new ClientApiError(401, "Not authenticated");
 	}
 
-	const url = `${API_BASE_URL}${endpoint}`;
-	const { skipContentType, ...fetchOptions } = options || {};
-
-	const headers: HeadersInit = {
-		...fetchOptions?.headers,
-		Authorization: `Bearer ${accessToken}`,
-	};
-
-	if (!skipContentType && fetchOptions?.body) {
-		(headers as Record<string, string>)["Content-Type"] = "application/json";
+	try {
+		return await serviceFetch<T>(endpoint, {
+			...options,
+			accessToken,
+		});
+	} catch (error) {
+		if (error instanceof ApiError) {
+			const data = error.data as { subscriptionStatus?: string } | undefined;
+			throw new ClientApiError(error.status, error.message, error.code, data?.subscriptionStatus);
+		}
+		throw error;
 	}
-
-	const response = await fetch(url, {
-		...fetchOptions,
-		headers,
-	});
-
-	const data = await response.json();
-
-	if (!response.ok) {
-		throw new ApiError(
-			response.status,
-			data.error || "An error occurred",
-			data.code,
-			data.subscriptionStatus
-		);
-	}
-
-	return data;
 }
 
-function createApiClient(accessToken: string | null) {
-	const authFetch = <T>(
-		endpoint: string,
-		options?: RequestInit & { skipContentType?: boolean }
-	) => {
-		if (!accessToken) {
-			throw new ApiError(401, "Not authenticated");
-		}
-		return fetchApiWithAuth<T>(endpoint, accessToken, options);
-	};
-
+function createApiClient(
+	authFetch: <T>(endpoint: string, options?: FetchOptions) => Promise<T>
+) {
 	return {
 		templatesApi: {
 			list: async (options?: {
@@ -101,7 +78,7 @@ function createApiClient(accessToken: string | null) {
 				if (options?.limit !== undefined) params.set("limit", String(options.limit));
 
 				const query = params.toString() ? `?${params.toString()}` : "";
-				return authFetch<TemplateListResponse>(`/v1/templates/${tenantId}${query}`);
+				return authFetch<TemplateListResponse>(`/api/v1/templates/${tenantId}${query}`);
 			},
 
 			get: async (id: string) => {
@@ -109,7 +86,7 @@ function createApiClient(accessToken: string | null) {
 				if (!tenantId) {
 					throw new Error("No tenant selected");
 				}
-				return authFetch<TemplateSingleResponse>(`/v1/templates/${tenantId}/${id}`);
+				return authFetch<TemplateSingleResponse>(`/api/v1/templates/${tenantId}/${id}`);
 			},
 
 			create: async (input: CreateTemplateInput) => {
@@ -117,7 +94,7 @@ function createApiClient(accessToken: string | null) {
 				if (!tenantId) {
 					throw new Error("No tenant selected");
 				}
-				return authFetch<TemplateSingleResponse>("/v1/templates", {
+				return authFetch<TemplateSingleResponse>("/api/v1/templates", {
 					method: "POST",
 					body: JSON.stringify(input),
 				});
@@ -128,7 +105,7 @@ function createApiClient(accessToken: string | null) {
 				if (!tenantId) {
 					throw new Error("No tenant selected");
 				}
-				return authFetch<TemplateSingleResponse>(`/v1/templates/${tenantId}/${id}`, {
+				return authFetch<TemplateSingleResponse>(`/api/v1/templates/${tenantId}/${id}`, {
 					method: "PUT",
 					body: JSON.stringify(input),
 				});
@@ -139,7 +116,7 @@ function createApiClient(accessToken: string | null) {
 				if (!tenantId) {
 					throw new Error("No tenant selected");
 				}
-				return authFetch<{ ok: boolean }>(`/v1/templates/${tenantId}/${id}`, {
+				return authFetch<{ ok: boolean }>(`/api/v1/templates/${tenantId}/${id}`, {
 					method: "DELETE",
 					skipContentType: true,
 				});
@@ -150,7 +127,7 @@ function createApiClient(accessToken: string | null) {
 				if (!tenantId) {
 					throw new Error("No tenant selected");
 				}
-				return authFetch<TemplateSingleResponse>(`/v1/templates/${tenantId}/${id}/duplicate`, {
+				return authFetch<TemplateSingleResponse>(`/api/v1/templates/${tenantId}/${id}/duplicate`, {
 					method: "POST",
 					body: JSON.stringify({ newName }),
 				});
@@ -159,70 +136,33 @@ function createApiClient(accessToken: string | null) {
 
 		blocksApi: {
 			list: async () => {
-				return authFetch<BlockListResponse>("/v1/blocks");
+				return authFetch<BlockListResponse>("/api/v1/blocks");
 			},
 		},
 
 		fontsApi: {
 			list: async () => {
-				return authFetch<FontsListResponse>("/v1/fonts");
+				return authFetch<FontsListResponse>("/api/v1/fonts");
 			},
 		},
 
 		contentAgentApi: {
 			generate: async (request: EmailGenerateRequest) => {
-				return authFetch<EmailGenerateResponse>("/v1/agents/content-agent/generate", {
+				return authFetch<EmailGenerateResponse>("/api/v1/agents/content-agent/generate", {
 					method: "POST",
 					body: JSON.stringify(request),
 				});
 			},
 
 			preview: async (request: EmailGenerateRequest) => {
-				return authFetch<EmailPreviewResponse>("/v1/agents/content-agent/preview", {
+				return authFetch<EmailPreviewResponse>("/api/v1/agents/content-agent/preview", {
 					method: "POST",
 					body: JSON.stringify(request),
 				});
 			},
 
 			invoke: async (request: EmailGenerateRequest) => {
-				return authFetch<EmailJsonResponse>("/v1/agents/content-agent/invoke", {
-					method: "POST",
-					body: JSON.stringify(request),
-				});
-			},
-
-			refine: async (request: EmailRefineRequest) => {
-				return authFetch<EmailRefineResponse>("/v1/agents/content-agent/refine", {
-					method: "POST",
-					body: JSON.stringify(request),
-				});
-			},
-		},
-
-		emailApi: {
-			generate: async (request: EmailGenerateRequest) => {
-				return authFetch<EmailGenerateResponse>("/v1/email/generate", {
-					method: "POST",
-					body: JSON.stringify(request),
-				});
-			},
-
-			preview: async (request: EmailGenerateRequest) => {
-				return authFetch<EmailPreviewResponse>("/v1/email/preview", {
-					method: "POST",
-					body: JSON.stringify(request),
-				});
-			},
-
-			json: async (request: EmailGenerateRequest) => {
-				return authFetch<EmailJsonResponse>("/v1/email/json", {
-					method: "POST",
-					body: JSON.stringify(request),
-				});
-			},
-
-			refine: async (request: EmailRefineRequest) => {
-				return authFetch<EmailRefineResponse>("/v1/email/refine", {
+				return authFetch<EmailJsonResponse>("/api/v1/agents/content-agent/invoke", {
 					method: "POST",
 					body: JSON.stringify(request),
 				});
@@ -231,22 +171,117 @@ function createApiClient(accessToken: string | null) {
 
 		templateTypesApi: {
 			list: async () => {
-				return authFetch<TemplateTypeListResponse>("/v1/template-types");
+				return authFetch<TemplateTypeListResponse>("/api/v1/template-types");
 			},
 
 			getSampleBlocks: async (type: string, subject?: string) => {
 				const params = new URLSearchParams();
 				if (subject) params.set("subject", subject);
 				const query = params.toString() ? `?${params.toString()}` : "";
-				return authFetch<SampleBlocksResponse>(`/v1/template-types/${type}/sample-blocks${query}`);
+				return authFetch<SampleBlocksResponse>(
+					`/api/v1/template-types/${type}/sample-blocks${query}`
+				);
+			},
+		},
+
+		conversationsApi: {
+			list: async (tenantId: string, options?: { offset?: number; limit?: number }) => {
+				const params = new URLSearchParams();
+				if (options?.offset !== undefined) params.set("offset", String(options.offset));
+				if (options?.limit !== undefined) params.set("limit", String(options.limit));
+				const query = params.toString() ? `?${params.toString()}` : "";
+				return authFetch<ConversationListResponse>(`/api/v1/conversations/${tenantId}${query}`);
+			},
+
+			get: async (tenantId: string, id: string) => {
+				return authFetch<ConversationSingleResponse>(`/api/v1/conversations/${tenantId}/${id}`);
+			},
+
+			create: async (input: CreateConversationRequest) => {
+				return authFetch<{
+					conversation: {
+						id: string;
+						tenantId: string;
+						userId: string;
+						title: string | null;
+						createdAt: string;
+						updatedAt: string;
+					};
+				}>("/api/v1/conversations", {
+					method: "POST",
+					body: JSON.stringify(input),
+				});
+			},
+
+			update: async (tenantId: string, id: string, title: string) => {
+				return authFetch<{
+					conversation: {
+						id: string;
+						tenantId: string;
+						userId: string;
+						title: string | null;
+						createdAt: string;
+						updatedAt: string;
+					};
+				}>(`/api/v1/conversations/${tenantId}/${id}`, {
+					method: "PUT",
+					body: JSON.stringify({ title }),
+				});
+			},
+
+			delete: async (tenantId: string, id: string) => {
+				return authFetch<{ message: string }>(`/api/v1/conversations/${tenantId}/${id}`, {
+					method: "DELETE",
+					skipContentType: true,
+				});
+			},
+
+			addMessage: async (tenantId: string, conversationId: string, message: AddMessageRequest) => {
+				return authFetch<MessageSingleResponse>(
+					`/api/v1/conversations/${tenantId}/${conversationId}/messages`,
+					{
+						method: "POST",
+						body: JSON.stringify(message),
+					}
+				);
 			},
 		},
 	};
 }
 
 export function useApiClient() {
-	const { tokens } = useAuth();
-	return createApiClient(tokens?.accessToken || null);
+	const { tokens, refreshTokens, logout } = useAuth();
+	const accessToken = tokens?.accessToken || null;
+
+	const authFetch = async <T>(
+		endpoint: string,
+		options?: FetchOptions
+	): Promise<T> => {
+		if (!accessToken) {
+			throw new ClientApiError(401, "Not authenticated");
+		}
+
+		try {
+			return await fetchApiWithAuth<T>(endpoint, accessToken, options);
+		} catch (error) {
+			if (error instanceof ApiError && error.status === 401) {
+				const refreshed = await refreshTokens();
+				if (refreshed) {
+					const stored = typeof window !== "undefined" 
+						? JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || "null") 
+						: null;
+					const newToken = stored?.tokens?.accessToken;
+					if (newToken) {
+						return await fetchApiWithAuth<T>(endpoint, newToken, options);
+					}
+				}
+				logout();
+			}
+			throw error;
+		}
+	};
+
+	return createApiClient(authFetch);
 }
 
-export { ApiError };
+export { ClientApiError as ApiError };

@@ -179,3 +179,109 @@ export interface BatchUpdateRadiusRequest {
 export interface BatchDeleteRequest {
 	ids: string[];
 }
+
+export interface BrandLogoList {
+	logos: BrandLogo[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export interface BrandColorList {
+	colors: BrandColor[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export interface BrandFontList {
+	fonts: BrandFont[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export interface BrandSpacingList {
+	spacings: BrandSpacing[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export interface BrandRadiusList {
+	radii: BrandRadius[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export type ParsingStatus =
+	| "pending"
+	| "processing"
+	| "completed"
+	| "failed"
+	| "approved"
+	| "rejected";
+
+export interface ParsedLogo {
+	url: string;
+	type: string;
+	width?: number;
+	height?: number;
+}
+
+export interface ParsedColor {
+	name: string;
+	value: string;
+}
+
+export interface ParsedFont {
+	name: string;
+	fontFamily: string;
+	fontWeight: string;
+}
+
+export interface ParsedSpacing {
+	name: string;
+	value: number;
+}
+
+export interface ParsedRadius {
+	name: string;
+	value: number;
+}
+
+export interface BrandParsingRequest {
+	id: string;
+	tenantId: string;
+	websiteUrl: string;
+	status: ParsingStatus;
+	parsedLogos?: ParsedLogo[];
+	parsedColors?: ParsedColor[];
+	parsedFonts?: ParsedFont[];
+	parsedSpacings?: ParsedSpacing[];
+	parsedRadii?: ParsedRadius[];
+	parsedCompanyName?: string;
+	parsedTagline?: string;
+	errorMessage?: string;
+	requestedBy: string;
+	processedAt?: string;
+	approvedAt?: string;
+	rejectedAt?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface CreateParsingRequest {
+	websiteUrl: string;
+}
+
+export interface ApproveParsingRequest {
+	logos?: ParsedLogo[];
+	colors?: ParsedColor[];
+	fonts?: ParsedFont[];
+	spacings?: ParsedSpacing[];
+	radii?: ParsedRadius[];
+	companyName?: string;
+	tagline?: string;
+}

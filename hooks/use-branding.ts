@@ -15,7 +15,70 @@ import type {
 	CreateBrandRadiusRequest,
 	UpdateBrandRadiusRequest,
 	ReorderRequest,
+	CreateParsingRequest,
+	ApproveParsingRequest,
+	BatchDeleteRequest,
 } from "@/types/branding";
+
+interface PaginationParams {
+	limit?: number;
+	offset?: number;
+}
+
+export function useLogos(tenantId: string, params?: PaginationParams) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["branding", tenantId, "logos", params],
+		queryFn: () => brandingApi.getLogos(tokens!.accessToken, tenantId, params),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		retry: false,
+	});
+}
+
+export function useColors(tenantId: string, params?: PaginationParams) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["branding", tenantId, "colors", params],
+		queryFn: () => brandingApi.getColors(tokens!.accessToken, tenantId, params),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		retry: false,
+	});
+}
+
+export function useFonts(tenantId: string, params?: PaginationParams) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["branding", tenantId, "fonts", params],
+		queryFn: () => brandingApi.getFonts(tokens!.accessToken, tenantId, params),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		retry: false,
+	});
+}
+
+export function useSpacings(tenantId: string, params?: PaginationParams) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["branding", tenantId, "spacings", params],
+		queryFn: () => brandingApi.getSpacings(tokens!.accessToken, tenantId, params),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		retry: false,
+	});
+}
+
+export function useRadii(tenantId: string, params?: PaginationParams) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["branding", tenantId, "radii", params],
+		queryFn: () => brandingApi.getRadii(tokens!.accessToken, tenantId, params),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		retry: false,
+	});
+}
 
 export function useBranding(tenantId: string) {
 	const { tokens } = useAuth();
@@ -33,13 +96,8 @@ export function useCreateLogo() {
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: CreateBrandLogoRequest;
-		}) => brandingApi.createLogo(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateBrandLogoRequest }) =>
+			brandingApi.createLogo(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -85,18 +143,28 @@ export function useDeleteLogo() {
 	});
 }
 
+export function useDeleteLogosBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchDeleteRequest }) =>
+			brandingApi.deleteLogosBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useReorderLogos() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: ReorderRequest;
-		}) => brandingApi.reorderLogos(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
+			brandingApi.reorderLogos(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -110,13 +178,8 @@ export function useCreateColor() {
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: CreateBrandColorRequest;
-		}) => brandingApi.createColor(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateBrandColorRequest }) =>
+			brandingApi.createColor(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -162,18 +225,28 @@ export function useDeleteColor() {
 	});
 }
 
+export function useDeleteColorsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchDeleteRequest }) =>
+			brandingApi.deleteColorsBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useReorderColors() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: ReorderRequest;
-		}) => brandingApi.reorderColors(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
+			brandingApi.reorderColors(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -187,13 +260,8 @@ export function useCreateFont() {
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: CreateBrandFontRequest;
-		}) => brandingApi.createFont(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateBrandFontRequest }) =>
+			brandingApi.createFont(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -239,18 +307,28 @@ export function useDeleteFont() {
 	});
 }
 
+export function useDeleteFontsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchDeleteRequest }) =>
+			brandingApi.deleteFontsBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useReorderFonts() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: ReorderRequest;
-		}) => brandingApi.reorderFonts(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
+			brandingApi.reorderFonts(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -264,13 +342,8 @@ export function useCreateSpacing() {
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: CreateBrandSpacingRequest;
-		}) => brandingApi.createSpacing(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateBrandSpacingRequest }) =>
+			brandingApi.createSpacing(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -316,18 +389,28 @@ export function useDeleteSpacing() {
 	});
 }
 
+export function useDeleteSpacingsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchDeleteRequest }) =>
+			brandingApi.deleteSpacingsBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useReorderSpacings() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: ReorderRequest;
-		}) => brandingApi.reorderSpacings(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
+			brandingApi.reorderSpacings(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -341,13 +424,8 @@ export function useCreateRadius() {
 	const { tokens } = useAuth();
 
 	return useMutation({
-		mutationFn: ({
-			tenantId,
-			request,
-		}: {
-			tenantId: string;
-			request: CreateBrandRadiusRequest;
-		}) => brandingApi.createRadius(tokens!.accessToken, tenantId, request),
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateBrandRadiusRequest }) =>
+			brandingApi.createRadius(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -393,21 +471,150 @@ export function useDeleteRadius() {
 	});
 }
 
+export function useDeleteRadiiBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchDeleteRequest }) =>
+			brandingApi.deleteRadiiBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useReorderRadii() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
+			brandingApi.reorderRadii(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useLatestParsingRequest(tenantId: string) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["parsing", "latest", tenantId],
+		queryFn: () => brandingApi.getLatestParsingRequest(tokens!.accessToken, tenantId),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		refetchInterval: (query) => {
+			const data = query.state.data;
+			if (data && "status" in data) {
+				const status = data.status;
+				if (status === "pending" || status === "processing") {
+					return 3000;
+				}
+			}
+			return false;
+		},
+	});
+}
+
+export function useParsingRequest(tenantId: string, requestId: string) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["parsing", requestId],
+		queryFn: () => brandingApi.getParsingRequest(tokens!.accessToken, tenantId, requestId),
+		enabled: !!tokens?.accessToken && !!tenantId && !!requestId,
+		refetchInterval: (query) => {
+			const data = query.state.data;
+			if (data) {
+				const status = data.status;
+				if (status === "pending" || status === "processing") {
+					return 3000;
+				}
+			}
+			return false;
+		},
+	});
+}
+
+export function useCreateParsingRequest() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateParsingRequest }) =>
+			brandingApi.createParsingRequest(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["parsing", "latest", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useApproveParsingRequest() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
 
 	return useMutation({
 		mutationFn: ({
 			tenantId,
+			requestId,
 			request,
 		}: {
 			tenantId: string;
-			request: ReorderRequest;
-		}) => brandingApi.reorderRadii(tokens!.accessToken, tenantId, request),
+			requestId: string;
+			request?: ApproveParsingRequest;
+		}) => brandingApi.approveParsingRequest(tokens!.accessToken, tenantId, requestId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
+				queryKey: ["parsing", "latest", variables.tenantId],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["parsing", variables.requestId],
+			});
+			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRejectParsingRequest() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, requestId }: { tenantId: string; requestId: string }) =>
+			brandingApi.rejectParsingRequest(tokens!.accessToken, tenantId, requestId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["parsing", "latest", variables.tenantId],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["parsing", variables.requestId],
+			});
+		},
+	});
+}
+
+export function useDeleteParsingRequest() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, requestId }: { tenantId: string; requestId: string }) =>
+			brandingApi.deleteParsingRequest(tokens!.accessToken, tenantId, requestId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["parsing", "latest", variables.tenantId],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["parsing", variables.requestId],
 			});
 		},
 	});

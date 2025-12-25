@@ -1,22 +1,20 @@
-* @creafly/frontend-team
+- @creafly/frontend-team
 
 /app/ @creafly/frontend-team
 /components/ @creafly/frontend-team
 
-*.css @creafly/frontend-team
-tailwind.config.* @creafly/frontend-team
+_.css @creafly/frontend-team
+tailwind.config._ @creafly/frontend-team
 
-*.ts @creafly/frontend-team
-*.tsx @creafly/frontend-team
+_.ts @creafly/frontend-team
+_.tsx @creafly/frontend-team
 
-*.yml @creafly/devops-team
-*.yaml @creafly/devops-team
+_.yml @creafly/devops-team
+_.yaml @creafly/devops-team
 Dockerfile @creafly/devops-team
-next.config.* @creafly/frontend-team
+next.config.\* @creafly/frontend-team
 
 .github/ @creafly/devops-team
 
 package.json @creafly/frontend-team
 pnpm-lock.yaml @creafly/frontend-team
-
-*.md @creafly/docs-team

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, use, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useTabsWithUrl } from "@/hooks/use-tabs-with-url";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -21,7 +22,8 @@ import {
 import { useTranslations } from "@/providers/i18n-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { useTenantPermissions, TENANT_PERMISSIONS } from "@/providers/tenant-permissions-provider";
-import { identityApi, IdentityApiError } from "@/lib/api/identity";
+import { useFieldErrors } from "@/hooks/use-field-errors";
+import { identityApi } from "@/lib/api/identity";
 import {
 	useTenantRoles,
 	useCreateTenantRole,
@@ -63,9 +65,20 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Field, FieldGroup, FieldLabelWithTooltip } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabelWithTooltip } from "@/components/ui/field";
 import { UserAvatar } from "@/components/shared";
 import type { Role, User } from "@/types";
+import Container from "@/components/container";
+import {
+	Icon,
+	TypographyH1,
+	TypographyH2,
+	TypographyH3,
+	TypographyH4,
+	TypographyMuted,
+	TypographyP,
+	TypographyLabel,
+} from "@/components/typography";
 
 function SubscriptionTabContent({
 	tenantId,
@@ -113,7 +126,7 @@ function SubscriptionTabContent({
 		return (
 			<TabsContent value="subscription" className="space-y-6">
 				<div className="flex justify-center py-8">
-					<IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+					<Icon icon={IconLoader2} size="lg" className="animate-spin text-muted-foreground" />
 				</div>
 			</TabsContent>
 		);
@@ -123,8 +136,8 @@ function SubscriptionTabContent({
 		<TabsContent value="subscription" className="space-y-6">
 			<div className="space-y-4">
 				<div>
-					<h3 className="text-lg font-medium">{t.subscription.title}</h3>
-					<p className="text-sm text-muted-foreground">{t.subscription.subtitle}</p>
+					<TypographyH3 size="xs">{t.subscription.title}</TypographyH3>
+					<TypographyMuted>{t.subscription.subtitle}</TypographyMuted>
 				</div>
 
 				{subscription ? (
@@ -132,8 +145,10 @@ function SubscriptionTabContent({
 						<div className="p-4 rounded-lg border bg-card">
 							<div className="flex items-center justify-between">
 								<div>
-									<p className="font-medium">{currentPlan?.name || t.subscription.currentPlan}</p>
-									<p className="text-sm text-muted-foreground">
+									<TypographyP className="font-medium mt-0">
+										{currentPlan?.name || t.subscription.currentPlan}
+									</TypographyP>
+									<TypographyMuted>
 										{t.subscription.status}:{" "}
 										<Badge
 											variant={
@@ -146,19 +161,19 @@ function SubscriptionTabContent({
 										>
 											{getStatusTranslation(subscription.status)}
 										</Badge>
-									</p>
-									<p className="text-sm text-muted-foreground mt-1">
+									</TypographyMuted>
+									<TypographyMuted className="mt-1">
 										{t.subscription.billing}:{" "}
 										{getBillingCycleTranslation(subscription.billingCycle)}
-									</p>
-									<p className="text-sm text-muted-foreground">
+									</TypographyMuted>
+									<TypographyMuted>
 										{t.subscription.currentPeriod}: {formatDate(subscription.currentPeriodStart)} -{" "}
 										{formatDate(subscription.currentPeriodEnd)}
-									</p>
+									</TypographyMuted>
 									{subscription.status === "trialing" && subscription.trialEnd && (
-										<p className="text-sm text-muted-foreground">
+										<TypographyMuted>
 											{t.subscription.trialEnds}: {formatDate(subscription.trialEnd)}
-										</p>
+										</TypographyMuted>
 									)}
 								</div>
 								{subscription.cancelAtPeriodEnd && (
@@ -169,15 +184,17 @@ function SubscriptionTabContent({
 
 						<Link href={`/workspaces/${workspaceSlug}/subscription`}>
 							<Button variant="outline">
-								<IconCreditCard className="mr-2 h-4 w-4" />
+								<Icon icon={IconCreditCard} size="sm" className="mr-2" />
 								{t.subscription.changePlan}
 							</Button>
 						</Link>
 					</div>
 				) : (
 					<div className="text-center py-8 border rounded-lg">
-						<IconCreditCard className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-						<p className="text-muted-foreground mb-4">{t.subscription.noActiveSubscription}</p>
+						<Icon icon={IconCreditCard} size="xl" className="mx-auto mb-4 text-muted-foreground" />
+						<TypographyMuted className="mb-4">
+							{t.subscription.noActiveSubscription}
+						</TypographyMuted>
 						<Link href={`/workspaces/${workspaceSlug}/subscription`}>
 							<Button>{t.subscription.choosePlan}</Button>
 						</Link>
@@ -192,11 +209,9 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 	const { id } = use(params);
 	const t = useTranslations();
 	const router = useRouter();
-	const searchParams = useSearchParams();
+	const { tabsProps } = useTabsWithUrl({ defaultTab: "general" });
 	const queryClient = useQueryClient();
 	const { user, tokens } = useAuth();
-
-	const defaultTab = searchParams.get("tab") || "general";
 
 	const {
 		setTenant,
@@ -294,6 +309,27 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 	const [selectedClaimIds, setSelectedClaimIds] = useState<Set<string>>(new Set());
 	const [initialClaimIds, setInitialClaimIds] = useState<Set<string>>(new Set());
 
+	const {
+		fieldErrors: generalFieldErrors,
+		handleError: handleGeneralError,
+		clearFieldError: clearGeneralFieldError,
+		clearAllErrors: clearGeneralErrors,
+	} = useFieldErrors<"name" | "displayName">();
+
+	const {
+		fieldErrors: memberFieldErrors,
+		handleError: handleMemberError,
+		clearFieldError: clearMemberFieldError,
+		clearAllErrors: clearMemberErrors,
+	} = useFieldErrors<"memberIdentifier">();
+
+	const {
+		fieldErrors: roleFieldErrors,
+		handleError: handleRoleError,
+		clearFieldError: clearRoleFieldError,
+		clearAllErrors: clearRoleErrors,
+	} = useFieldErrors<"name" | "description">();
+
 	const { data: claimsData } = useTenantAvailableClaims(resolvedTenantId || "", claimsDialogOpen);
 
 	const { data: roleClaimsData, isLoading: roleClaimsLoading } = useTenantRoleClaims(
@@ -332,11 +368,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 			queryClient.invalidateQueries({ queryKey: ["my-tenants"] });
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error(t.workspaces.updateWorkspaceFailed);
-			}
+			handleGeneralError(error, t.workspaces.updateWorkspaceFailed);
 		},
 	});
 
@@ -352,11 +384,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 			router.push("/workspaces");
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error(t.workspaces.deleteWorkspaceFailed);
-			}
+			handleGeneralError(error, t.workspaces.deleteWorkspaceFailed);
 		},
 	});
 
@@ -378,13 +406,10 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 			});
 			setIsAddMemberOpen(false);
 			setMemberIdentifier("");
+			clearMemberErrors();
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error(t.workspaces.addMemberFailed);
-			}
+			handleMemberError(error, t.workspaces.addMemberFailed);
 		},
 	});
 
@@ -401,16 +426,13 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 			});
 		},
 		onError: (error) => {
-			if (error instanceof IdentityApiError) {
-				toast.error(error.message);
-			} else {
-				toast.error(t.workspaces.removeMemberFailed);
-			}
+			handleMemberError(error, t.workspaces.removeMemberFailed);
 		},
 	});
 
 	const handleUpdate = (e: React.FormEvent) => {
 		e.preventDefault();
+		clearGeneralErrors();
 		if (!name.trim()) return;
 		updateMutation.mutate({
 			name: name.trim(),
@@ -420,6 +442,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 
 	const handleAddMember = (e: React.FormEvent) => {
 		e.preventDefault();
+		clearMemberErrors();
 		if (!memberIdentifier.trim()) return;
 		addMemberMutation.mutate(memberIdentifier.trim());
 	};
@@ -464,6 +487,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 
 	const handleCreateRole = async (e: React.FormEvent) => {
 		e.preventDefault();
+		clearRoleErrors();
 		if (!roleName.trim() || !resolvedTenantId) return;
 
 		try {
@@ -480,12 +504,13 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 			setRoleName("");
 			setRoleDescription("");
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : t.errors.createFailed);
+			handleRoleError(err, t.errors.createFailed);
 		}
 	};
 
 	const handleEditRole = async (e: React.FormEvent) => {
 		e.preventDefault();
+		clearRoleErrors();
 		if (!roleName.trim() || !selectedRole || !resolvedTenantId) return;
 
 		try {
@@ -504,7 +529,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 			setRoleName("");
 			setRoleDescription("");
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : t.errors.updateFailed);
+			handleRoleError(err, t.errors.updateFailed);
 		}
 	};
 
@@ -519,7 +544,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 
 			toast.success(t.tenantAdmin.roleDeleted);
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : t.errors.deleteFailed);
+			handleRoleError(err, t.errors.deleteFailed);
 		}
 	};
 
@@ -569,7 +594,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 	if (isTenantLoading || isResolving || !isPermissionsReady) {
 		return (
 			<div className="flex items-center justify-center h-full min-h-96">
-				<IconLoader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+				<Icon icon={IconLoader2} size="xl" className="animate-spin text-muted-foreground" />
 			</div>
 		);
 	}
@@ -577,10 +602,10 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 	if (!tenant) {
 		return (
 			<div className="flex flex-col items-center justify-center h-full min-h-96">
-				<p className="text-muted-foreground mb-4">Workspace not found</p>
+				<TypographyMuted className="mb-4">Workspace not found</TypographyMuted>
 				<Link href="/workspaces">
 					<Button variant="outline">
-						<IconArrowLeft className="mr-2 h-4 w-4" />
+						<Icon icon={IconArrowLeft} size="sm" className="mr-2" />
 						{t.workspaces.backToWorkspaces}
 					</Button>
 				</Link>
@@ -594,21 +619,23 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 		return (
 			<div className="flex flex-col items-center justify-center h-full min-h-96">
 				<div className="rounded-full bg-muted p-6 mb-6">
-					<IconLock className="h-12 w-12 text-muted-foreground" />
+					<Icon icon={IconLock} size="2xl" className="text-muted-foreground" />
 				</div>
-				<h2 className="text-xl font-semibold mb-2">{t.common.accessDenied || "Access Denied"}</h2>
-				<p className="text-muted-foreground mb-6">{t.common.noPermission}</p>
+				<TypographyH2 size="xs" className="mb-2">
+					{t.common.accessDenied}
+				</TypographyH2>
+				<TypographyMuted className="mb-6">{t.common.noPermission}</TypographyMuted>
 			</div>
 		);
 	}
 
 	return (
-		<div className="w-full py-8 px-4">
+		<Container className="max-w-full">
 			<div className="flex items-center justify-between mb-8">
 				<div className="flex items-center gap-4">
 					<div>
-						<h1 className="text-2xl font-bold">{tenant.name}</h1>
-						<p className="text-muted-foreground">/{tenant.slug}</p>
+						<TypographyH1 size="sm">{tenant.name}</TypographyH1>
+						<TypographyMuted>/{tenant.slug}</TypographyMuted>
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
@@ -620,7 +647,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 									size="icon"
 									className="text-destructive hover:text-destructive hover:bg-destructive/10"
 								>
-									<IconTrash className="h-4 w-4" />
+									<Icon icon={IconTrash} size="sm" />
 								</Button>
 							</AlertDialogTrigger>
 							<AlertDialogContent>
@@ -635,7 +662,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 										className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 									>
 										{deleteMutation.isPending ? (
-											<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+											<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 										) : null}
 										{t.common.delete}
 									</AlertDialogAction>
@@ -646,35 +673,29 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 				</div>
 			</div>
 
-			<Tabs
-				defaultValue={defaultTab}
-				className="space-y-6"
-				onValueChange={(value) => {
-					router.push(`/workspaces/${id}/settings?tab=${value}`, { scroll: false });
-				}}
-			>
+			<Tabs {...tabsProps} className="space-y-6">
 				<TabsList>
 					{canViewTenant && (
 						<TabsTrigger value="general" className="gap-2">
-							<IconSettings className="h-4 w-4" />
+							<Icon icon={IconSettings} size="sm" />
 							{t.workspaces.generalSettings}
 						</TabsTrigger>
 					)}
 					{canViewMembers && (
 						<TabsTrigger value="members" className="gap-2">
-							<IconUsers className="h-4 w-4" />
+							<Icon icon={IconUsers} size="sm" />
 							{t.workspaces.membersSettings}
 						</TabsTrigger>
 					)}
 					{canViewRoles && (
 						<TabsTrigger value="roles" className="gap-2">
-							<IconShield className="h-4 w-4" />
+							<Icon icon={IconShield} size="sm" />
 							{t.tenantAdmin.roles}
 						</TabsTrigger>
 					)}
 					{canViewTenant && (
 						<TabsTrigger value="subscription" className="gap-2">
-							<IconCreditCard className="h-4 w-4" />
+							<Icon icon={IconCreditCard} size="sm" />
 							{t.subscription.title}
 						</TabsTrigger>
 					)}
@@ -685,50 +706,56 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 						<form onSubmit={handleUpdate} className="space-y-6">
 							<div className="space-y-4">
 								<div>
-									<h3 className="text-lg font-medium">{t.workspaces.generalSettings}</h3>
-									<p className="text-sm text-muted-foreground">
-										{t.workspaces.generalSettingsDescription}
-									</p>
+									<TypographyH3 size="xs">{t.workspaces.generalSettings}</TypographyH3>
+									<TypographyMuted>{t.workspaces.generalSettingsDescription}</TypographyMuted>
 								</div>
 								<FieldGroup>
-									<Field>
+									<Field data-invalid={!!generalFieldErrors.name}>
 										<FieldLabelWithTooltip
 											htmlFor="name"
-											tooltip={t.workspaces.tooltips?.workspaceName}
+											tooltip={t.workspaces.tooltips.workspaceName}
 										>
 											{t.workspaces.workspaceName}
 										</FieldLabelWithTooltip>
 										<Input
 											id="name"
 											value={name}
-											onChange={(e) => setName(e.target.value)}
+											onChange={(e) => {
+												setName(e.target.value);
+												clearGeneralFieldError("name");
+											}}
 											placeholder={t.workspaces.workspaceNamePlaceholder}
 											required
 											disabled={!canUpdateTenant}
 										/>
+										<FieldError>{generalFieldErrors.name}</FieldError>
 									</Field>
-									<Field>
+									<Field data-invalid={!!generalFieldErrors.displayName}>
 										<FieldLabelWithTooltip
 											htmlFor="displayName"
-											tooltip={t.workspaces.tooltips?.displayName}
+											tooltip={t.workspaces.tooltips.displayName}
 										>
 											{t.workspaces.displayName}
 										</FieldLabelWithTooltip>
 										<Input
 											id="displayName"
 											value={displayName}
-											onChange={(e) => setDisplayName(e.target.value)}
+											onChange={(e) => {
+												setDisplayName(e.target.value);
+												clearGeneralFieldError("displayName");
+											}}
 											placeholder={t.workspaces.displayNamePlaceholder}
 											disabled={!canUpdateTenant}
 										/>
-										<p className="text-xs text-muted-foreground mt-1">
+										<FieldError>{generalFieldErrors.displayName}</FieldError>
+										<TypographyMuted className="text-xs mt-1">
 											{t.workspaces.displayNameHelpText}
-										</p>
+										</TypographyMuted>
 									</Field>
 									<Field>
 										<FieldLabelWithTooltip
 											htmlFor="slug"
-											tooltip={t.workspaces.tooltips?.workspaceSlug}
+											tooltip={t.workspaces.tooltips.workspaceSlug}
 										>
 											{t.workspaces.workspaceSlug}
 										</FieldLabelWithTooltip>
@@ -739,15 +766,15 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 											className="bg-muted cursor-not-allowed"
 											placeholder={t.workspaces.workspaceSlugPlaceholder}
 										/>
-										<p className="text-xs text-muted-foreground mt-1">
+										<TypographyMuted className="text-xs mt-1">
 											{t.workspaces.slugHelpText}
-										</p>
+										</TypographyMuted>
 									</Field>
 								</FieldGroup>
 								{canUpdateTenant && (
 									<Button type="submit" disabled={updateMutation.isPending}>
 										{updateMutation.isPending ? (
-											<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+											<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 										) : null}
 										{t.common.save}
 									</Button>
@@ -761,16 +788,14 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 					<TabsContent value="members" className="space-y-6">
 						<div className="flex items-center justify-between">
 							<div>
-								<h3 className="text-lg font-medium">{t.workspaces.members}</h3>
-								<p className="text-sm text-muted-foreground">
-									{t.workspaces.membersSettingsDescription}
-								</p>
+								<TypographyH3 size="xs">{t.workspaces.members}</TypographyH3>
+								<TypographyMuted>{t.workspaces.membersSettingsDescription}</TypographyMuted>
 							</div>
 							{canAddMembers && (
 								<Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
 									<DialogTrigger asChild>
 										<Button>
-											<IconUserPlus className="mr-2 h-4 w-4" />
+											<Icon icon={IconUserPlus} size="sm" className="mr-2" />
 											{t.workspaces.addMember}
 										</Button>
 									</DialogTrigger>
@@ -781,20 +806,24 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 												<DialogDescription>{t.workspaces.addMemberDescription}</DialogDescription>
 											</DialogHeader>
 											<div className="py-4">
-												<Field>
+												<Field data-invalid={!!memberFieldErrors.memberIdentifier}>
 													<FieldLabelWithTooltip
 														htmlFor="memberIdentifier"
-														tooltip={t.workspaces.tooltips?.memberIdentifier}
+														tooltip={t.workspaces.tooltips.memberIdentifier}
 													>
 														{t.workspaces.memberIdentifier}
 													</FieldLabelWithTooltip>
 													<Input
 														id="memberIdentifier"
 														value={memberIdentifier}
-														onChange={(e) => setMemberIdentifier(e.target.value)}
+														onChange={(e) => {
+															setMemberIdentifier(e.target.value);
+															clearMemberFieldError("memberIdentifier");
+														}}
 														placeholder={t.workspaces.memberIdentifierPlaceholder}
 														required
 													/>
+													<FieldError>{memberFieldErrors.memberIdentifier}</FieldError>
 												</Field>
 											</div>
 											<DialogFooter>
@@ -807,7 +836,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 												</Button>
 												<Button type="submit" disabled={addMemberMutation.isPending}>
 													{addMemberMutation.isPending ? (
-														<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+														<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 													) : null}
 													{t.workspaces.addMember}
 												</Button>
@@ -820,11 +849,11 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 
 						{isMembersLoading ? (
 							<div className="flex justify-center py-8">
-								<IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+								<Icon icon={IconLoader2} size="lg" className="animate-spin text-muted-foreground" />
 							</div>
 						) : members.length === 0 ? (
 							<div className="text-center py-8 text-muted-foreground">
-								<IconUsers className="h-8 w-8 mx-auto mb-4" />
+								<Icon icon={IconUsers} size="xl" className="mx-auto mb-4" />
 								<p>{t.workspaces.noMembers}</p>
 							</div>
 						) : (
@@ -837,10 +866,10 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 										<div className="flex items-center gap-3">
 											<UserAvatar user={member} size="default" />
 											<div>
-												<p className="font-medium text-sm">
+												<TypographyLabel>
 													{member.firstName} {member.lastName}
-												</p>
-												<p className="text-xs text-muted-foreground">{member.email}</p>
+												</TypographyLabel>
+												<TypographyMuted className="text-xs">{member.email}</TypographyMuted>
 											</div>
 										</div>
 										<div className="flex items-center gap-2">
@@ -850,7 +879,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 													size="sm"
 													onClick={() => openMemberRolesDialog(member)}
 												>
-													<IconEdit className="h-3 w-3 mr-1" />
+													<Icon icon={IconEdit} size="xs" className="mr-1" />
 													{t.admin.assignRole}
 												</Button>
 											)}
@@ -862,7 +891,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 															size="sm"
 															className="text-destructive hover:text-destructive"
 														>
-															<IconTrash className="h-3 w-3" />
+															<Icon icon={IconTrash} size="xs" />
 														</Button>
 													</AlertDialogTrigger>
 													<AlertDialogContent>
@@ -897,8 +926,8 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 					<TabsContent value="roles" className="space-y-6">
 						<div className="flex items-center justify-between">
 							<div>
-								<h3 className="text-lg font-medium">{t.tenantAdmin.roles}</h3>
-								<p className="text-sm text-muted-foreground">{t.tenantAdmin.membersDescription}</p>
+								<TypographyH3 size="xs">{t.tenantAdmin.roles}</TypographyH3>
+								<TypographyMuted>{t.tenantAdmin.membersDescription}</TypographyMuted>
 							</div>
 							{canCreateRoles && (
 								<Dialog
@@ -908,12 +937,13 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 										if (!open) {
 											setRoleName("");
 											setRoleDescription("");
+											clearRoleErrors();
 										}
 									}}
 								>
 									<DialogTrigger asChild>
 										<Button>
-											<IconUserPlus className="mr-2 h-4 w-4" />
+											<Icon icon={IconUserPlus} size="sm" className="mr-2" />
 											{t.tenantAdmin.createRole}
 										</Button>
 									</DialogTrigger>
@@ -924,34 +954,42 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 												<DialogDescription>{t.tenantAdmin.createRoleDescription}</DialogDescription>
 											</DialogHeader>
 											<div className="py-4 space-y-4">
-												<Field>
+												<Field data-invalid={!!roleFieldErrors.name}>
 													<FieldLabelWithTooltip
 														htmlFor="roleName"
-														tooltip={t.workspaces.tooltips?.roleName}
+														tooltip={t.workspaces.tooltips.roleName}
 													>
 														{t.tenantAdmin.roleName}
 													</FieldLabelWithTooltip>
 													<Input
 														id="roleName"
 														value={roleName}
-														onChange={(e) => setRoleName(e.target.value)}
+														onChange={(e) => {
+															setRoleName(e.target.value);
+															clearRoleFieldError("name");
+														}}
 														placeholder={t.tenantAdmin.roleNamePlaceholder}
 														required
 													/>
+													<FieldError>{roleFieldErrors.name}</FieldError>
 												</Field>
-												<Field>
+												<Field data-invalid={!!roleFieldErrors.description}>
 													<FieldLabelWithTooltip
 														htmlFor="roleDescription"
-														tooltip={t.workspaces.tooltips?.roleDescription}
+														tooltip={t.workspaces.tooltips.roleDescription}
 													>
 														{t.tenantAdmin.roleDescription}
 													</FieldLabelWithTooltip>
 													<Input
 														id="roleDescription"
 														value={roleDescription}
-														onChange={(e) => setRoleDescription(e.target.value)}
+														onChange={(e) => {
+															setRoleDescription(e.target.value);
+															clearRoleFieldError("description");
+														}}
 														placeholder={t.tenantAdmin.roleDescriptionPlaceholder}
 													/>
+													<FieldError>{roleFieldErrors.description}</FieldError>
 												</Field>
 											</div>
 											<DialogFooter>
@@ -967,7 +1005,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 													disabled={createTenantRole.isPending || !roleName.trim()}
 												>
 													{createTenantRole.isPending ? (
-														<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+														<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 													) : null}
 													{t.tenantAdmin.createRole}
 												</Button>
@@ -987,6 +1025,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 										setSelectedRole(null);
 										setRoleName("");
 										setRoleDescription("");
+										clearRoleErrors();
 									}
 								}}
 							>
@@ -997,34 +1036,42 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 											<DialogDescription>{t.tenantAdmin.editRoleDescription}</DialogDescription>
 										</DialogHeader>
 										<div className="py-4 space-y-4">
-											<Field>
+											<Field data-invalid={!!roleFieldErrors.name}>
 												<FieldLabelWithTooltip
 													htmlFor="editRoleName"
-													tooltip={t.workspaces.tooltips?.roleName}
+													tooltip={t.workspaces.tooltips.roleName}
 												>
 													{t.tenantAdmin.roleName}
 												</FieldLabelWithTooltip>
 												<Input
 													id="editRoleName"
 													value={roleName}
-													onChange={(e) => setRoleName(e.target.value)}
+													onChange={(e) => {
+														setRoleName(e.target.value);
+														clearRoleFieldError("name");
+													}}
 													placeholder={t.tenantAdmin.roleNamePlaceholder}
 													required
 												/>
+												<FieldError>{roleFieldErrors.name}</FieldError>
 											</Field>
-											<Field>
+											<Field data-invalid={!!roleFieldErrors.description}>
 												<FieldLabelWithTooltip
 													htmlFor="editRoleDescription"
-													tooltip={t.workspaces.tooltips?.roleDescription}
+													tooltip={t.workspaces.tooltips.roleDescription}
 												>
 													{t.tenantAdmin.roleDescription}
 												</FieldLabelWithTooltip>
 												<Input
 													id="editRoleDescription"
 													value={roleDescription}
-													onChange={(e) => setRoleDescription(e.target.value)}
+													onChange={(e) => {
+														setRoleDescription(e.target.value);
+														clearRoleFieldError("description");
+													}}
 													placeholder={t.tenantAdmin.roleDescriptionPlaceholder}
 												/>
+												<FieldError>{roleFieldErrors.description}</FieldError>
 											</Field>
 										</div>
 										<DialogFooter>
@@ -1040,7 +1087,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 												disabled={updateTenantRole.isPending || !roleName.trim()}
 											>
 												{updateTenantRole.isPending ? (
-													<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+													<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
 												) : null}
 												{t.common.save}
 											</Button>
@@ -1051,20 +1098,24 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 						)}
 
 						<div className="space-y-2">
-							<h4 className="text-sm font-medium text-muted-foreground">
+							<TypographyH4 size="xs" className="text-muted-foreground">
 								{t.tenantAdmin.availableRoles}
-							</h4>
+							</TypographyH4>
 							{rolesLoading ? (
 								<div className="flex justify-center py-8">
-									<IconLoader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+									<Icon
+										icon={IconLoader2}
+										size="lg"
+										className="animate-spin text-muted-foreground"
+									/>
 								</div>
 							) : rolesError ? (
 								<div className="text-center py-8 text-destructive border border-destructive/20 rounded-md bg-destructive/5">
-									<IconShield className="h-8 w-8 mx-auto mb-4 text-destructive/60" />
-									<p className="text-sm font-medium mb-2">Failed to load roles</p>
-									<p className="text-xs text-muted-foreground">
+									<Icon icon={IconShield} size="xl" className="mx-auto mb-4 text-destructive/60" />
+									<TypographyLabel className="mb-2">Failed to load roles</TypographyLabel>
+									<TypographyMuted className="text-xs">
 										The backend service may not be running
-									</p>
+									</TypographyMuted>
 								</div>
 							) : rolesData && rolesData.length > 0 ? (
 								<div className="space-y-2">
@@ -1074,11 +1125,11 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 											className="flex items-center justify-between p-3 rounded-lg border bg-card"
 										>
 											<div className="flex items-center gap-3">
-												<IconShield className="h-4 w-4 text-primary" />
+												<Icon icon={IconShield} size="sm" className="text-primary" />
 												<div>
-													<p className="font-medium">{role.name}</p>
+													<TypographyP className="font-medium mt-0">{role.name}</TypographyP>
 													{role.description && (
-														<p className="text-sm text-muted-foreground">{role.description}</p>
+														<TypographyMuted>{role.description}</TypographyMuted>
 													)}
 													{role.isDefault && (
 														<Badge variant="secondary" className="text-xs mt-1">
@@ -1090,7 +1141,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 											<div className="flex items-center gap-2">
 												{canUpdateRoles && !role.isDefault && (
 													<Button variant="ghost" size="sm" onClick={() => openClaimsDialog(role)}>
-														<IconLock className="h-3 w-3" />
+														<Icon icon={IconLock} size="xs" />
 													</Button>
 												)}
 												{canUpdateRoles && !role.isDefault && (
@@ -1099,7 +1150,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 														size="sm"
 														onClick={() => openEditRoleDialog(role)}
 													>
-														<IconEdit className="h-3 w-3" />
+														<Icon icon={IconEdit} size="xs" />
 													</Button>
 												)}
 												{canDeleteRoles && !role.isDefault && (
@@ -1110,7 +1161,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 																size="sm"
 																className="text-destructive hover:text-destructive"
 															>
-																<IconTrash className="h-3 w-3" />
+																<Icon icon={IconTrash} size="xs" />
 															</Button>
 														</AlertDialogTrigger>
 														<AlertDialogContent>
@@ -1127,7 +1178,11 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 																	className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 																>
 																	{deleteTenantRole.isPending ? (
-																		<IconLoader2 className="mr-2 h-4 w-4 animate-spin" />
+																		<Icon
+																			icon={IconLoader2}
+																			size="sm"
+																			className="mr-2 animate-spin"
+																		/>
 																	) : null}
 																	{t.common.delete}
 																</AlertDialogAction>
@@ -1140,7 +1195,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 									))}
 								</div>
 							) : (
-								<p className="text-muted-foreground text-sm">{t.admin.noRoles}</p>
+								<TypographyMuted>{t.admin.noRoles}</TypographyMuted>
 							)}
 						</div>
 					</TabsContent>
@@ -1175,18 +1230,18 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 					<div className="py-4">
 						{memberRolesLoading ? (
 							<div className="flex items-center justify-center py-8">
-								<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+								<Icon icon={IconLoader2} size="md" className="animate-spin text-muted-foreground" />
 								<span className="ml-2 text-sm text-muted-foreground">{t.admin.loadingClaims}</span>
 							</div>
 						) : rolesLoading ? (
 							<div className="flex items-center justify-center py-8">
-								<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+								<Icon icon={IconLoader2} size="md" className="animate-spin text-muted-foreground" />
 								<span className="ml-2 text-sm text-muted-foreground">Loading roles...</span>
 							</div>
 						) : rolesError ? (
 							<div className="text-center py-8 text-destructive border border-destructive/20 rounded-md bg-destructive/5">
-								<IconShield className="h-6 w-6 mx-auto mb-2 text-destructive/60" />
-								<p className="text-sm font-medium">Failed to load roles</p>
+								<Icon icon={IconShield} size="lg" className="mx-auto mb-2 text-destructive/60" />
+								<TypographyLabel>Failed to load roles</TypographyLabel>
 							</div>
 						) : rolesData && rolesData.length > 0 ? (
 							<ScrollArea className="h-62.5 border rounded-md p-4">
@@ -1206,11 +1261,13 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 													className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
 												>
 													<div className="flex items-center gap-2">
-														<IconShield className="h-3 w-3 text-primary" />
+														<Icon icon={IconShield} size="xs" className="text-primary" />
 														<span>{role.name}</span>
 													</div>
 													{role.description && (
-														<p className="text-xs text-muted-foreground mt-1">{role.description}</p>
+														<TypographyMuted className="text-xs mt-1">
+															{role.description}
+														</TypographyMuted>
 													)}
 												</label>
 											</div>
@@ -1267,13 +1324,13 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 					<div className="py-4">
 						{roleClaimsLoading ? (
 							<div className="flex items-center justify-center py-8">
-								<IconLoader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+								<Icon icon={IconLoader2} size="md" className="animate-spin text-muted-foreground" />
 								<span className="ml-2 text-sm text-muted-foreground">{t.admin.loadingClaims}</span>
 							</div>
-					) : claimsData && claimsData.length > 0 ? (
-						<ScrollArea className="h-62.5 border rounded-md p-4">
-							<div className="space-y-3">
-								{claimsData.map((claim) => {
+						) : claimsData && claimsData.length > 0 ? (
+							<ScrollArea className="h-62.5 border rounded-md p-4">
+								<div className="space-y-3">
+									{claimsData.map((claim) => {
 										const isAssigned = selectedClaimIds.has(claim.id);
 										return (
 											<div key={claim.id} className="flex items-center space-x-3">
@@ -1300,7 +1357,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 													className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
 												>
 													<div className="flex items-center gap-2">
-														<IconLock className="h-3 w-3 text-primary" />
+														<Icon icon={IconLock} size="xs" className="text-primary" />
 														<span>{claim.value}</span>
 													</div>
 												</label>
@@ -1323,6 +1380,6 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-		</div>
+		</Container>
 	);
 }

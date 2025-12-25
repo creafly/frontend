@@ -33,6 +33,7 @@ import {
 	IconLayoutSidebarRight,
 	IconSparkles,
 } from "@tabler/icons-react";
+import { Icon, TypographyH1, TypographyH2, TypographyError, TypographyMuted } from "@/components/typography";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import type { Block } from "@/types";
@@ -210,7 +211,7 @@ export default function TemplateEditPage({
 	if (error) {
 		return (
 			<div className="flex items-center justify-center h-full">
-				<p className="text-destructive">Error: {error.message}</p>
+				<TypographyError>Error: {error.message}</TypographyError>
 			</div>
 		);
 	}
@@ -242,7 +243,7 @@ export default function TemplateEditPage({
 	if (!template) {
 		return (
 			<div className="flex items-center justify-center h-full">
-				<p className="text-muted-foreground">Template not found</p>
+				<TypographyMuted>Template not found</TypographyMuted>
 			</div>
 		);
 	}
@@ -258,11 +259,11 @@ export default function TemplateEditPage({
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center">
-					<h2 className="text-lg font-semibold">{t.common.accessDenied}</h2>
-					<p className="text-muted-foreground mt-2">{t.common.noPermission}</p>
+					<TypographyH2 size="xs">{t.common.accessDenied}</TypographyH2>
+					<TypographyMuted className="mt-2">{t.common.noPermission}</TypographyMuted>
 					<Button asChild className="mt-4">
 						<Link href={`/workspaces/${resolvedParams?.id}/templates/${template.id}`}>
-							<IconArrowLeft className="size-4 mr-2" />
+							<Icon icon={IconArrowLeft} size="sm" className="mr-2" />
 							{t.nav.templates}
 						</Link>
 					</Button>
@@ -338,7 +339,7 @@ export default function TemplateEditPage({
 							<pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-50">
 								{JSON.stringify(template.props, null, 2)}
 							</pre>
-							<p className="text-sm text-muted-foreground mt-2">{t.templateForm.noBlockEditing}</p>
+							<TypographyMuted className="mt-2">{t.templateForm.noBlockEditing}</TypographyMuted>
 						</CardContent>
 					</Card>
 				)}
@@ -379,13 +380,13 @@ export default function TemplateEditPage({
 						<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 							<Button variant="ghost" size="icon" asChild>
 								<Link href={`/workspaces/${resolvedParams?.id}/templates/${template.id}`}>
-									<IconArrowLeft className="size-4" />
+									<Icon icon={IconArrowLeft} size="sm" />
 								</Link>
 							</Button>
 						</motion.div>
 						<div className="mr-4">
-							<h1 className="text-lg font-semibold">{t.templateForm.editTitle}</h1>
-							<p className="text-sm text-muted-foreground">{template.name}</p>
+							<TypographyH1 size="xs" className="font-semibold">{t.templateForm.editTitle}</TypographyH1>
+							<TypographyMuted>{template.name}</TypographyMuted>
 						</div>
 					</div>
 
@@ -399,7 +400,7 @@ export default function TemplateEditPage({
 									title={t.refinement.title}
 									className={cn("transition-colors", chatOpen && "bg-primary/10 text-primary")}
 								>
-									<IconSparkles className="size-4" />
+									<Icon icon={IconSparkles} size="sm" />
 								</Button>
 							</motion.div>
 						)}
@@ -407,11 +408,11 @@ export default function TemplateEditPage({
 							<Tabs value={activeTab} onValueChange={(v) => v && setActiveTab(v)}>
 								<TabsList>
 									<TabsTrigger value="overview">
-										<IconLayoutList className="size-4 mr-1.5" />
+										<Icon icon={IconLayoutList} size="sm" className="mr-1.5" />
 										{t.templateForm.overviewTab}
 									</TabsTrigger>
 									<TabsTrigger value="visual-editor">
-										<IconPencil className="size-4 mr-1.5" />
+										<Icon icon={IconPencil} size="sm" className="mr-1.5" />
 										{t.templateForm.visualEditorTab}
 									</TabsTrigger>
 								</TabsList>
@@ -426,7 +427,7 @@ export default function TemplateEditPage({
 								disabled={updateTemplate.isPending || !hasChanges}
 								className={cn("transition-all", hasChanges && "shadow-lg shadow-primary/20")}
 							>
-								<IconDeviceFloppy className="size-4 mr-2" />
+								<Icon icon={IconDeviceFloppy} size="sm" className="mr-2" />
 								{updateTemplate.isPending ? t.common.saving : t.common.save}
 							</Button>
 						</motion.div>
@@ -437,7 +438,7 @@ export default function TemplateEditPage({
 								onClick={() => setSidebarOpen(!sidebarOpen)}
 								title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
 							>
-								<IconLayoutSidebarRight className="size-4" />
+								<Icon icon={IconLayoutSidebarRight} size="sm" />
 							</Button>
 						</motion.div>
 					</div>
@@ -446,7 +447,7 @@ export default function TemplateEditPage({
 
 			<div className="flex-1 flex overflow-hidden">
 				<motion.div
-					className="flex-1 overflow-auto"
+					className="py-4 flex-1 overflow-auto"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ duration: 0.3, delay: 0.1 }}

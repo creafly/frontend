@@ -20,8 +20,15 @@ export const PERMISSIONS = {
 	CLAIMS_MANAGE: "claims:manage",
 	USERS_VIEW: "users:view",
 	USERS_MANAGE: "users:manage",
+	TENANTS_VIEW: "tenants:view",
+	TENANTS_MANAGE: "tenants:manage",
 	SUPPORT_VIEW: "support:view",
 	SUPPORT_MANAGE: "support:manage",
+	PUSH_VIEW: "push:view",
+	PUSH_CREATE: "push:create",
+	PUSH_UPDATE: "push:update",
+	PUSH_DELETE: "push:delete",
+	PUSH_MANAGE: "push:manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -49,17 +56,16 @@ interface PermissionsContextValue extends PermissionsState {
 
 const PermissionsContext = createContext<PermissionsContextValue | null>(null);
 
-const getInitialState = (): PermissionsState => ({
-	claims: [],
-	permissions: [],
-	isLoading: false,
-	error: null,
-});
-
 export function PermissionsProvider({ children }: { children: ReactNode }) {
-	const { tokens, isAuthenticated } = useAuth();
-	const [state, setState] = useState<PermissionsState>(getInitialState);
+	const { tokens, isAuthenticated, isLoading: authLoading } = useAuth();
+	const [state, setState] = useState<PermissionsState>(() => ({
+		claims: [],
+		permissions: [],
+		isLoading: true,
+		error: null,
+	}));
 	const wasAuthenticatedRef = useRef(isAuthenticated);
+	const initialLoadDoneRef = useRef(false);
 
 	const fetchPermissions = useCallback(async () => {
 		const accessToken = tokens?.accessToken;
@@ -113,25 +119,47 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 	);
 
 	useEffect(() => {
+		if (authLoading) {
+			return;
+		}
+
 		const wasAuthenticated = wasAuthenticatedRef.current;
 		wasAuthenticatedRef.current = isAuthenticated;
 
 		if (!isAuthenticated && wasAuthenticated) {
-			setState(getInitialState());
+			setState({
+				claims: [],
+				permissions: [],
+				isLoading: false,
+				error: null,
+			});
+			return;
+		}
+
+		if (!isAuthenticated && !wasAuthenticated) {
+			setState((prev) => ({ ...prev, isLoading: false }));
 			return;
 		}
 
 		if (isAuthenticated && !wasAuthenticated) {
 			fetchPermissions();
 		}
-	}, [isAuthenticated, fetchPermissions]);
+	}, [authLoading, isAuthenticated, fetchPermissions]);
 
 	useEffect(() => {
-		if (isAuthenticated && state.claims.length === 0 && !state.isLoading) {
+		if (authLoading) {
+			return;
+		}
+
+		if (isAuthenticated && !initialLoadDoneRef.current && state.claims.length === 0) {
+			initialLoadDoneRef.current = true;
 			fetchPermissions();
+		} else if (!isAuthenticated && !initialLoadDoneRef.current) {
+			initialLoadDoneRef.current = true;
+			setState((prev) => ({ ...prev, isLoading: false }));
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [authLoading, isAuthenticated]);
 
 	const value = useMemo<PermissionsContextValue>(
 		() => ({

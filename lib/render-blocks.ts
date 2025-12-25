@@ -16,7 +16,72 @@ const FONT_WEIGHT_MAP: Record<NonNullable<BlockStyle["fontWeight"]>, string> = {
 	bold: "700",
 };
 
-function buildStyleString(style?: BlockStyle): string {
+const FONT_WEIGHT_NUMBER_TO_NAME: Record<number, NonNullable<BlockStyle["fontWeight"]>> = {
+	400: "normal",
+	500: "medium",
+	600: "semibold",
+	700: "bold",
+};
+
+interface RawBlockStyle {
+	paddingTop?: number;
+	paddingBottom?: number;
+	paddingLeft?: number;
+	paddingRight?: number;
+	marginTop?: number;
+	marginBottom?: number;
+	marginLeft?: number;
+	marginRight?: number;
+	backgroundColor?: string;
+	textColor?: string;
+	color?: string;
+	fontSize?: number;
+	fontWeight?: BlockStyle["fontWeight"] | number;
+	fontFamily?: string;
+	textAlign?: "left" | "center" | "right";
+	borderRadius?: number;
+	borderWidth?: number;
+	borderColor?: string;
+	buttonColor?: string;
+	buttonTextColor?: string;
+	lineHeight?: number;
+}
+
+function normalizeStyle(style?: RawBlockStyle): BlockStyle | undefined {
+	if (!style) return undefined;
+
+	const normalized: BlockStyle = {
+		paddingTop: style.paddingTop,
+		paddingBottom: style.paddingBottom,
+		paddingLeft: style.paddingLeft,
+		paddingRight: style.paddingRight,
+		marginTop: style.marginTop,
+		marginBottom: style.marginBottom,
+		marginLeft: style.marginLeft,
+		marginRight: style.marginRight,
+		backgroundColor: style.backgroundColor,
+		textColor: style.textColor || style.color,
+		fontSize: style.fontSize,
+		fontFamily: style.fontFamily,
+		textAlign: style.textAlign,
+		borderRadius: style.borderRadius,
+		borderWidth: style.borderWidth,
+		borderColor: style.borderColor,
+		buttonColor: style.buttonColor,
+		buttonTextColor: style.buttonTextColor,
+	};
+
+	if (typeof style.fontWeight === "number") {
+		normalized.fontWeight = FONT_WEIGHT_NUMBER_TO_NAME[style.fontWeight] || "normal";
+	} else {
+		normalized.fontWeight = style.fontWeight;
+	}
+
+	return normalized;
+}
+
+function buildStyleString(rawStyle?: RawBlockStyle): string {
+	const style = normalizeStyle(rawStyle);
 	if (!style) return "";
 
 	const parts: string[] = [];
@@ -137,23 +202,6 @@ function renderBlock(block: Block): string {
 			return `<${tag} style="${finalStyle}">${items}</${tag}>`;
 		}
 
-		case "social": {
-			const baseStyle = "text-align: center; margin: 24px 0";
-			const finalStyle = mergeStyles(baseStyle, block.style);
-			const linkColor = block.style?.textColor || "#666";
-			const links = block.links
-				.map(
-					(link) =>
-						`<a href="${escapeHtml(
-							link.url
-						)}" target="_blank" style="display: inline-block; margin: 0 8px; color: ${linkColor};">${escapeHtml(
-							link.platform
-						)}</a>`
-				)
-				.join("");
-			return `<div style="${finalStyle}">${links}</div>`;
-		}
-
 		case "header": {
 			const baseStyle =
 				"text-align: center; padding: 24px 0; border-bottom: 1px solid #e5e5e5; margin-bottom: 24px";
@@ -219,46 +267,6 @@ function renderBlock(block: Block): string {
 				)}" style="color: #999;">${escapeHtml(block.unsubscribeText || "Unsubscribe")}</a></p>`;
 			}
 			html += "</div>";
-			return html;
-		}
-
-		case "card": {
-			const borderRadius =
-				block.style?.borderRadius !== undefined ? `${block.style.borderRadius}px` : "8px";
-			const borderColor = block.style?.borderColor || "#e5e5e5";
-			const bgColor = block.style?.backgroundColor || "transparent";
-
-			let html = `<div style="border: 1px solid ${borderColor}; border-radius: ${borderRadius}; overflow: hidden; margin: 16px 0; background-color: ${bgColor};">`;
-			if (block.imageUrl) {
-				html += `<img src="${escapeHtml(block.imageUrl)}" alt="${escapeHtml(
-					block.imageAlt || ""
-				)}" style="width: 100%; height: auto; display: block;" />`;
-			}
-
-			const contentPadding =
-				block.style?.paddingTop !== undefined || block.style?.paddingBottom !== undefined
-					? `padding: ${block.style?.paddingTop ?? 16}px ${block.style?.paddingRight ?? 16}px ${
-							block.style?.paddingBottom ?? 16
-					  }px ${block.style?.paddingLeft ?? 16}px`
-					: "padding: 16px";
-
-			html += `<div style="${contentPadding};">`;
-
-			const titleColor = block.style?.textColor ? `color: ${block.style.textColor};` : "";
-			html += `<h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: bold; ${titleColor}">${escapeHtml(
-				block.title
-			)}</h3>`;
-			if (block.description) {
-				html += `<p style="margin: 0 0 16px 0; color: #666;">${escapeHtml(block.description)}</p>`;
-			}
-			if (block.ctaText && block.ctaUrl) {
-				html += `<a href="${escapeHtml(
-					block.ctaUrl
-				)}" target="_blank" style="display: inline-block; padding: 8px 16px; background-color: #0066cc; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 14px;">${escapeHtml(
-					block.ctaText
-				)}</a>`;
-			}
-			html += "</div></div>";
 			return html;
 		}
 

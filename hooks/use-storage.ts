@@ -68,6 +68,24 @@ export function useDeleteFile() {
 	});
 }
 
+export function useBatchDeleteFiles() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, fileIds }: { tenantId: string; fileIds: string[] }) =>
+			storageApi.batchDelete(tokens!.accessToken, tenantId, fileIds),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["files", variables.tenantId],
+			});
+			queryClient.invalidateQueries({
+				queryKey: ["storage-usage", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function usePresignedUrl(tenantId: string, fileId: string, expiryMinutes?: number) {
 	const { tokens } = useAuth();
 

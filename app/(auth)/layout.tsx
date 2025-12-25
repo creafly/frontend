@@ -1,30 +1,13 @@
-"use client";
+import type { Metadata } from "next";
+import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/providers/auth-provider";
+export const metadata: Metadata = {
+	robots: {
+		index: false,
+		follow: false,
+	},
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-	const { isAuthenticated, isLoading } = useAuth();
-	const router = useRouter();
-
-	useEffect(() => {
-		if (!isLoading && isAuthenticated) {
-			router.replace("/workspaces");
-		}
-	}, [isAuthenticated, isLoading, router]);
-
-	if (isLoading) {
-		return (
-			<div className="flex min-h-screen items-center justify-center">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-			</div>
-		);
-	}
-
-	if (isAuthenticated) {
-		return null;
-	}
-
-	return <>{children}</>;
+	return <AuthLayoutWrapper>{children}</AuthLayoutWrapper>;
 }

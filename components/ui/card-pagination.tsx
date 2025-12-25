@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Icon, TypographyMuted } from "@/components/typography";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
@@ -102,7 +103,7 @@ export function CardPagination({
 			className={cn("flex flex-col sm:flex-row items-center justify-between gap-4 pt-4", className)}
 		>
 			{showInfo && (
-				<p className="text-sm text-muted-foreground">
+				<TypographyMuted>
 					{totalItems !== undefined ? (
 						<>
 							{showing} {startItem}-{endItem} {of} {totalItems} {items}
@@ -116,7 +117,7 @@ export function CardPagination({
 							{page} {currentPage}
 						</>
 					)}
-				</p>
+				</TypographyMuted>
 			)}
 
 			<div className="flex items-center gap-1">
@@ -127,7 +128,7 @@ export function CardPagination({
 					disabled={currentPage <= 1}
 					className="gap-1"
 				>
-					<IconChevronLeft className="h-4 w-4" />
+					<Icon icon={IconChevronLeft} />
 					<span className="hidden sm:inline">{previous}</span>
 				</Button>
 
@@ -161,7 +162,7 @@ export function CardPagination({
 					className="gap-1"
 				>
 					<span className="hidden sm:inline">{next}</span>
-					<IconChevronRight className="h-4 w-4" />
+					<Icon icon={IconChevronRight} />
 				</Button>
 			</div>
 		</div>

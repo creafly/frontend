@@ -34,10 +34,21 @@ export interface Invitation {
 	createdAt: string;
 }
 
+export interface PushNotificationMessage {
+	id: string;
+	pushNotificationId: string;
+	title: string;
+	message: string;
+	buttons?: { label: string; url: string }[];
+	deliveredAt: string;
+	readAt?: string;
+}
+
 type WebSocketMessage =
 	| { type: "notification"; payload: Notification }
 	| { type: "invitation"; payload: Invitation }
 	| { type: "invitation_update"; payload: Invitation }
+	| { type: "push_notification"; payload: PushNotificationMessage }
 	| { type: "ping" };
 
 interface UseWebSocketOptions {
@@ -52,10 +63,12 @@ interface UseWebSocketReturn {
 	isLoading: boolean;
 	notifications: Notification[];
 	invitations: Invitation[];
+	pushNotifications: PushNotificationMessage[];
 	connect: () => void;
 	disconnect: () => void;
 	clearNotifications: () => void;
 	markAsRead: (id: string) => void;
+	dismissPushNotification: (id: string) => void;
 }
 
 function loadNotificationsFromStorage(): Notification[] {
@@ -102,6 +115,7 @@ export function useNotificationsWebSocket(options: UseWebSocketOptions = {}): Us
 		loadNotificationsFromStorage()
 	);
 	const [invitations, setInvitations] = useState<Invitation[]>([]);
+	const [pushNotifications, setPushNotifications] = useState<PushNotificationMessage[]>([]);
 
 	useEffect(() => {
 		saveNotificationsToStorage(notifications);
@@ -129,13 +143,14 @@ export function useNotificationsWebSocket(options: UseWebSocketOptions = {}): Us
 			let fetchedInvitations: Invitation[] = [];
 
 			try {
-				fetchedNotifications = await notificationsApi.getUnreadNotifications(tokens.accessToken) || [];
+				fetchedNotifications =
+					(await notificationsApi.getUnreadNotifications(tokens.accessToken)) || [];
 			} catch (error) {
 				console.warn("Failed to fetch notifications:", error);
 			}
 
 			try {
-				const invitations = await notificationsApi.getInvitations(tokens.accessToken) || [];
+				const invitations = (await notificationsApi.getInvitations(tokens.accessToken)) || [];
 				fetchedInvitations = invitations.filter((i) => i.status === "pending");
 			} catch (error) {
 				console.warn("Failed to fetch invitations:", error);
@@ -174,6 +189,10 @@ export function useNotificationsWebSocket(options: UseWebSocketOptions = {}): Us
 		);
 	}, []);
 
+	const dismissPushNotification = useCallback((id: string) => {
+		setPushNotifications((prev) => prev.filter((p) => p.id !== id));
+	}, []);
+
 	const handleMessage = useCallback((event: MessageEvent) => {
 		try {
 			const message = JSON.parse(event.data) as WebSocketMessage;
@@ -185,6 +204,37 @@ export function useNotificationsWebSocket(options: UseWebSocketOptions = {}): Us
 						if (exists) return prev;
 						return [message.payload, ...prev];
 					});
+					if (message.payload.type === "push") {
+						const notification = message.payload;
+						let buttons: { label: string; url: string }[] | undefined;
+
+						if (notification.data) {
+							try {
+								const dataObj =
+									typeof notification.data === "string"
+										? JSON.parse(notification.data)
+										: notification.data;
+								if (dataObj.buttons && Array.isArray(dataObj.buttons)) {
+									buttons = dataObj.buttons;
+								}
+							} catch {}
+						}
+
+						const pushMessage: PushNotificationMessage = {
+							id: notification.id,
+							pushNotificationId: notification.id,
+							title: notification.title,
+							message: notification.message,
+							buttons,
+							deliveredAt: notification.createdAt,
+						};
+
+						setPushNotifications((prev) => {
+							const exists = prev.some((p) => p.id === pushMessage.id);
+							if (exists) return prev;
+							return [pushMessage, ...prev];
+						});
+					}
 					break;
 				case "invitation":
 					setInvitations((prev) => {
@@ -197,6 +247,13 @@ export function useNotificationsWebSocket(options: UseWebSocketOptions = {}): Us
 					setInvitations((prev) =>
 						prev.map((i) => (i.id === message.payload.id ? message.payload : i))
 					);
+					break;
+				case "push_notification":
+					setPushNotifications((prev) => {
+						const exists = prev.some((p) => p.id === message.payload.id);
+						if (exists) return prev;
+						return [message.payload, ...prev];
+					});
 					break;
 				case "ping":
 					wsRef.current?.send(JSON.stringify({ type: "pong" }));
@@ -299,9 +356,11 @@ export function useNotificationsWebSocket(options: UseWebSocketOptions = {}): Us
 		isLoading,
 		notifications,
 		invitations,
+		pushNotifications,
 		connect,
 		disconnect,
 		clearNotifications,
 		markAsRead,
+		dismissPushNotification,
 	};
 }
