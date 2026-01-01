@@ -5,7 +5,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { notificationsApi } from "@/lib/api/notifications";
 
 const WS_BASE_URL = process.env.NEXT_PUBLIC_NOTIFICATIONS_WS_URL;
-const NOTIFICATIONS_STORAGE_KEY = "hexaend_notifications";
+const NOTIFICATIONS_STORAGE_KEY = "creafly_notifications";
 
 export interface Notification {
 	id: string;

@@ -75,8 +75,8 @@ export default function TermsPage() {
 					<TypographyH2>{t.legal.termsContactTitle}</TypographyH2>
 					<TypographyP>
 						{t.legal.termsContactText}{" "}
-						<TypographyLink href="mailto:legal@hexaend.ai" external>
-							legal@hexaend.ai
+						<TypographyLink href="mailto:legal@creafly.ai" external>
+							legal@creafly.ai
 						</TypographyLink>
 					</TypographyP>
 				</TypographyArticle>

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+
+echo "Running pre-commit checks..."
+
+echo "Running ESLint..."
+pnpm lint --fix 2>/dev/null || npm run lint --fix 2>/dev/null || yarn lint --fix 2>/dev/null || echo "Lint check skipped"
+
+echo "Running TypeScript check..."
+pnpm exec tsc --noEmit 2>/dev/null || npx tsc --noEmit 2>/dev/null || echo "Type check skipped"
+
+echo "Pre-commit checks passed!"

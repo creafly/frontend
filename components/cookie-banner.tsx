@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslations } from "@/providers/i18n-provider";
@@ -30,11 +30,21 @@ export function CookieBanner() {
 		preferences,
 	} = useCookieConsent();
 
+	const [isMounted, setIsMounted] = useState(false);
 	const [localPreferences, setLocalPreferences] = useState<CookiePreferences>(preferences);
+
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
 
 	const handleSavePreferences = () => {
 		savePreferences(localPreferences);
 	};
+
+	// Prevent hydration mismatch by not rendering until mounted
+	if (!isMounted) {
+		return null;
+	}
 
 	if (!showBanner && !isSettingsOpen) {
 		return null;

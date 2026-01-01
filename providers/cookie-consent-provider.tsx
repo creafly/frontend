@@ -20,8 +20,8 @@ interface CookieConsentContextType {
 	isSettingsOpen: boolean;
 }
 
-const COOKIE_CONSENT_KEY = "hexaend_cookie_consent";
-const COOKIE_PREFERENCES_KEY = "hexaend_cookie_preferences";
+const COOKIE_CONSENT_KEY = "creafly_cookie_consent";
+const COOKIE_PREFERENCES_KEY = "creafly_cookie_preferences";
 
 const defaultPreferences: CookiePreferences = {
 	necessary: true,

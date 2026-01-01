@@ -1,0 +1,22 @@
+* @creafly/frontend-team
+
+/app/ @creafly/frontend-team
+/components/ @creafly/frontend-team
+
+*.css @creafly/frontend-team
+tailwind.config.* @creafly/frontend-team
+
+*.ts @creafly/frontend-team
+*.tsx @creafly/frontend-team
+
+*.yml @creafly/devops-team
+*.yaml @creafly/devops-team
+Dockerfile @creafly/devops-team
+next.config.* @creafly/frontend-team
+
+.github/ @creafly/devops-team
+
+package.json @creafly/frontend-team
+pnpm-lock.yaml @creafly/frontend-team
+
+*.md @creafly/docs-team

@@ -1,4 +1,4 @@
-.PHONY: add-ui-components
+.PHONY: add-ui-components setup-hooks
 
 add-ui-components:
 	pnpm dlx shadcn@latest add alert-dialog \
@@ -28,3 +28,7 @@ add-ui-components:
 		tabs \
 		textarea \
 		tooltip
+
+setup-hooks:
+	git config core.hooksPath .githooks
+	@echo "Git hooks configured to use .githooks directory"

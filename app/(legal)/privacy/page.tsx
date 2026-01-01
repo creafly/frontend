@@ -105,8 +105,8 @@ export default function PrivacyPage() {
 					<TypographyH2>{t.legal.privacyContactTitle}</TypographyH2>
 					<TypographyP>
 						{t.legal.privacyContactText}{" "}
-						<TypographyLink href="mailto:privacy@hexaend.ai" external>
-							privacy@hexaend.ai
+						<TypographyLink href="mailto:privacy@creafly.ai" external>
+							privacy@creafly.ai
 						</TypographyLink>
 					</TypographyP>
 

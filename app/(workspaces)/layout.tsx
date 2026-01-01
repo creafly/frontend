@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -36,9 +37,16 @@ export default function WorkspacesLayout({ children }: { children: React.ReactNo
 					<div className="flex h-14 items-center justify-between px-6">
 						<Link
 							href="/workspaces"
-							className="font-semibold text-lg hover:text-primary transition-colors"
+							className="flex items-center gap-2 hover:opacity-80 transition-opacity"
 						>
-							Hexaend
+							<Image
+								src="/logo.svg"
+								alt="Creafly"
+								width={28}
+								height={28}
+								className="dark:invert"
+							/>
+							<span className="font-semibold text-lg">Creafly</span>
 						</Link>
 						<div className="flex items-center gap-2">
 							{hasAdminAccess && (

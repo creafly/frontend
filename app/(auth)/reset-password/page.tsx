@@ -109,7 +109,7 @@ function ResetPasswordForm() {
 							<div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
 								<Mail className="size-4" />
 							</div>
-							<span className="sr-only">Hexaend</span>
+							<span className="sr-only">Creafly</span>
 						</Link>
 						<h1 className="text-xl font-bold">{t.auth.resetPasswordTitle}</h1>
 						<FieldDescription>{t.auth.resetPasswordSubtitle}</FieldDescription>

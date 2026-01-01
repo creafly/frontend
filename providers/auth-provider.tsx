@@ -12,7 +12,7 @@ import {
 import { identityApi, IdentityApiError } from "@/lib/api/identity";
 import type { User, AuthTokens, LoginRequest, RegisterRequest } from "@/types";
 
-const AUTH_STORAGE_KEY = "hexaend_auth";
+const AUTH_STORAGE_KEY = "creafly_auth";
 const TOKEN_REFRESH_MARGIN = 60 * 1000;
 
 interface AuthState {

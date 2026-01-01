@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useTranslations } from "@/providers/i18n-provider";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { TextAnimate } from "@/components/ui/text-animate";
@@ -25,6 +27,12 @@ import { RetroGrid } from "./ui/retro-grid";
 
 export function LandingPage() {
 	const t = useTranslations();
+	const [currentYear, setCurrentYear] = useState<number | null>(null);
+
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setCurrentYear(new Date().getFullYear());
+	}, []);
 
 	const features = [
 		{
@@ -65,7 +73,7 @@ export function LandingPage() {
 				<Container className="py-0">
 					<div className="flex h-14 items-center justify-between">
 						<Link href="/" className="flex items-center space-x-2">
-							<span className="font-bold text-xl">{t.landing.footer}</span>
+							<Image src="/logo.svg" alt="Creafly" width={28} height={28} />
 						</Link>
 						<div className="flex items-center gap-2">
 							<ThemeToggle />
@@ -226,7 +234,7 @@ export function LandingPage() {
 					<BlurFade delay={0.3} inView>
 						<Link href="/register">
 							<ShimmerButton className="shadow-2xl">
-								<span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-background from-foreground to-background/10 lg:text-lg">
+								<span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-background dark:text-foreground from-background to-foreground/90 lg:text-lg">
 									{t.landing.ctaButton}
 								</span>
 							</ShimmerButton>
@@ -241,7 +249,7 @@ export function LandingPage() {
 						<p className="text-sm text-muted-foreground">
 							{t.landing.footer} - {t.landing.footerTagline}
 						</p>
-						<p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()}</p>
+						<p className="text-sm text-muted-foreground">&copy; {currentYear}</p>
 					</div>
 				</Container>
 			</footer>
