@@ -345,6 +345,7 @@ const TextAnimateBase = ({
 	return (
 		<AnimatePresence mode="popLayout">
 			<motion.span
+				key={children}
 				variants={finalVariants.container as Variants}
 				initial="hidden"
 				whileInView={startOnView ? "show" : undefined}

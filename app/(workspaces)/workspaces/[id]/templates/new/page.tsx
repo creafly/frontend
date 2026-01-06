@@ -285,7 +285,7 @@ export default function NewTemplatePage() {
 					</BlurFade>
 
 					<BlurFade delay={0.3}>
-						<div className="h-full lg:sticky lg:top-6">
+						<div className="min-h-[60vh] h-full lg:sticky lg:top-6">
 							<EmailPreview html={previewHtml} height="100%" />
 						</div>
 					</BlurFade>

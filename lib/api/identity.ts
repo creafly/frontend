@@ -37,10 +37,7 @@ class IdentityApiError extends ApiError {
 	}
 }
 
-async function fetchIdentityApi<T>(
-	endpoint: string,
-	options?: FetchOptions
-): Promise<T> {
+async function fetchIdentityApi<T>(endpoint: string, options?: FetchOptions): Promise<T> {
 	return serviceFetch<T>(endpoint, options);
 }
 
@@ -89,14 +86,10 @@ export const identityApi = {
 	},
 
 	logout: async (accessToken: string, refreshToken?: string) => {
-		return fetchWithAuth<{ message?: string; error?: string }>(
-			"/api/v1/auth/logout",
-			accessToken,
-			{
-				method: "POST",
-				body: JSON.stringify({ refreshToken }),
-			}
-		);
+		return fetchWithAuth<{ message?: string; error?: string }>("/api/v1/logout", accessToken, {
+			method: "POST",
+			body: JSON.stringify({ refreshToken }),
+		});
 	},
 
 	me: async (accessToken: string) => {

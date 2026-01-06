@@ -5,6 +5,7 @@ export interface TenantBranding {
 	fonts: BrandFont[];
 	spacings: BrandSpacing[];
 	radii: BrandRadius[];
+	documents: BrandDocument[];
 }
 
 export interface BrandLogo {
@@ -57,6 +58,21 @@ export interface BrandRadius {
 	tenantId: string;
 	name: string;
 	value: number;
+	order: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export type DocumentType = "brand_guide" | "style_guide" | "tone_of_voice" | "presentation" | "other";
+
+export interface BrandDocument {
+	id: string;
+	tenantId: string;
+	name: string;
+	type: DocumentType;
+	fileId: string;
+	fileUrl: string;
+	description?: string;
 	order: number;
 	createdAt: string;
 	updatedAt: string;
@@ -132,6 +148,24 @@ export interface UpdateBrandRadiusRequest {
 	order?: number;
 }
 
+export interface CreateBrandDocumentRequest {
+	name: string;
+	type: DocumentType;
+	fileId?: string;
+	fileUrl?: string;
+	description?: string;
+	order?: number;
+}
+
+export interface UpdateBrandDocumentRequest {
+	name?: string;
+	type?: DocumentType;
+	fileId?: string;
+	fileUrl?: string;
+	description?: string;
+	order?: number;
+}
+
 export interface ReorderRequest {
 	items: Array<{ id: string; order: number }>;
 }
@@ -176,6 +210,14 @@ export interface BatchUpdateRadiusRequest {
 	items: Array<{ id: string } & UpdateBrandRadiusRequest>;
 }
 
+export interface BatchCreateDocumentRequest {
+	items: CreateBrandDocumentRequest[];
+}
+
+export interface BatchUpdateDocumentRequest {
+	items: Array<{ id: string } & UpdateBrandDocumentRequest>;
+}
+
 export interface BatchDeleteRequest {
 	ids: string[];
 }
@@ -210,6 +252,13 @@ export interface BrandSpacingList {
 
 export interface BrandRadiusList {
 	radii: BrandRadius[];
+	total: number;
+	limit: number;
+	offset: number;
+}
+
+export interface BrandDocumentList {
+	documents: BrandDocument[];
 	total: number;
 	limit: number;
 	offset: number;

@@ -10,6 +10,8 @@ import type {
 	BrandSpacingList,
 	BrandRadius,
 	BrandRadiusList,
+	BrandDocument,
+	BrandDocumentList,
 	CreateBrandLogoRequest,
 	UpdateBrandLogoRequest,
 	CreateBrandColorRequest,
@@ -20,6 +22,8 @@ import type {
 	UpdateBrandSpacingRequest,
 	CreateBrandRadiusRequest,
 	UpdateBrandRadiusRequest,
+	CreateBrandDocumentRequest,
+	UpdateBrandDocumentRequest,
 	ReorderRequest,
 	BatchCreateLogoRequest,
 	BatchUpdateLogoRequest,
@@ -31,6 +35,8 @@ import type {
 	BatchUpdateSpacingRequest,
 	BatchCreateRadiusRequest,
 	BatchUpdateRadiusRequest,
+	BatchCreateDocumentRequest,
+	BatchUpdateDocumentRequest,
 	BatchDeleteRequest,
 	BrandParsingRequest,
 	CreateParsingRequest,
@@ -503,6 +509,76 @@ export const brandingApi = {
 				skipContentType: true,
 			}
 		);
+	},
+
+	getDocuments: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
+		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		const queryString = searchParams.toString();
+		return fetchBrandingApi<BrandDocumentList>(`/api/v1/documents${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
+	},
+
+	createDocument: async (accessToken: string, tenantId: string, request: CreateBrandDocumentRequest) => {
+		return fetchBrandingApi<BrandDocument>("/api/v1/documents", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	createDocumentsBatch: async (
+		accessToken: string,
+		tenantId: string,
+		request: BatchCreateDocumentRequest
+	) => {
+		return fetchBrandingApi<BrandDocument[]>("/api/v1/documents/batch", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	updateDocument: async (
+		accessToken: string,
+		tenantId: string,
+		documentId: string,
+		request: UpdateBrandDocumentRequest
+	) => {
+		return fetchBrandingApi<BrandDocument>(`/api/v1/documents/${documentId}`, accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
+	},
+
+	updateDocumentsBatch: async (
+		accessToken: string,
+		tenantId: string,
+		request: BatchUpdateDocumentRequest
+	) => {
+		return fetchBrandingApi<void>("/api/v1/documents/batch", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
+	},
+
+	deleteDocument: async (accessToken: string, tenantId: string, documentId: string) => {
+		return fetchBrandingApi<void>(`/api/v1/documents/${documentId}`, accessToken, tenantId, {
+			method: "DELETE",
+			skipContentType: true,
+		});
+	},
+
+	deleteDocumentsBatch: async (accessToken: string, tenantId: string, request: BatchDeleteRequest) => {
+		return fetchBrandingApi<void>("/api/v1/documents/batch", accessToken, tenantId, {
+			method: "DELETE",
+			body: JSON.stringify(request),
+		});
+	},
+
+	reorderDocuments: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
+		return fetchBrandingApi<void>("/api/v1/documents/reorder", accessToken, tenantId, {
+			method: "PUT",
+			body: JSON.stringify(request),
+		});
 	},
 };
 

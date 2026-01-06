@@ -5,29 +5,29 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { InlineEmailPreview } from "@/components/email-preview";
+import { ChatInput } from "@/components/chat/chat-input";
+import { ChatSuggestions } from "@/components/chat/chat-suggestions";
 import {
 	useCreateTemplate,
 	useConversation,
 	useCreateConversation,
 	useAddMessageToConversation,
 } from "@/hooks/use-api";
-import { useGenerationJob, useActiveJobs } from "@/hooks/use-jobs";
+import { useUploadFromUrl } from "@/hooks/use-storage";
+import { useUploadFile, useGetPresignedUrl } from "@/hooks/use-storage";
+import { useGenerationJob, useActiveJobs, JobsApiError } from "@/hooks/use-jobs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useTranslations, useI18n } from "@/providers/i18n-provider";
 import { renderBlocksToHtml } from "@/lib/render-blocks";
 import { getTenantId } from "@/lib/tenant";
 import {
-	IconSend,
 	IconBookmark,
 	IconCreditCard,
 	IconLayoutSidebarLeftCollapse,
 	IconLayoutSidebarLeftExpand,
-	IconMail,
-	IconLock,
-	IconNews,
-	IconShoppingCart,
+	IconPhoto,
+	IconVideo,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -39,7 +39,14 @@ import type {
 	ConversationMessage,
 	GenerationResult,
 	JobTokenUsage,
+	ContentType,
+	ImageContent,
+	VideoContent,
+	ImageJobSettings,
+	VideoJobSettings,
+	Attachment,
 } from "@/types";
+import type { StorageFile } from "@/types/storage";
 import { TypographyH1, TypographyP, TypographyMuted, Icon } from "@/components/typography";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { ConversationList } from "@/components/chat/conversation-list";
@@ -49,7 +56,7 @@ interface Message {
 	id: string;
 	role: "user" | "assistant";
 	content: string;
-	type?: "email" | "conversation" | "subscription_error";
+	type?: "email" | "conversation" | "subscription_error" | "image" | "video";
 	html?: string;
 	template?: string;
 	subject?: string;
@@ -57,6 +64,17 @@ interface Message {
 	props?: Record<string, unknown>;
 	blocks?: Block[];
 	tokenUsage?: TokenUsage;
+	imageContent?: ImageContent;
+	videoContent?: VideoContent;
+	attachments?: Attachment[];
+}
+
+interface AttachedFile {
+	id: string;
+	file: File;
+	preview?: string;
+	fromStorage?: boolean;
+	storageFile?: StorageFile;
 }
 
 export default function ChatPage() {
@@ -69,28 +87,22 @@ export default function ChatPage() {
 
 	const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage("chat-sidebar-collapsed", false);
 
-	const [localMessagesState, setLocalMessagesState] = useState<{
-		conversationId: string | null;
-		messages: Message[];
-	}>({ conversationId: null, messages: [] });
-
 	const [input, setInput] = useState("");
+	const [contentType, setContentType] = useState<ContentType>("template");
 	const [currentTemplate, setCurrentTemplate] = useState<CurrentTemplate | null>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
-	const messageIdCounter = useRef(0);
 	const pendingConversationIdRef = useRef<string | null>(null);
-	const pendingUserInputRef = useRef<string | null>(null);
 
 	const createTemplate = useCreateTemplate();
 	const createConversation = useCreateConversation();
 	const addMessage = useAddMessageToConversation();
+	const uploadFromUrl = useUploadFromUrl();
+	const uploadFile = useUploadFile();
+	const getPresignedUrl = useGetPresignedUrl();
 	const t = useTranslations();
 	const { locale } = useI18n();
 	const tenantId = getTenantId() || "";
 
-	const setLocalMessagesRef = useRef<
-		(updater: Message[] | ((prev: Message[]) => Message[])) => void
-	>(() => {});
 	const addMessageRef = useRef<typeof addMessage>(addMessage);
 	const tRef = useRef(t);
 
@@ -107,129 +119,176 @@ export default function ChatPage() {
 				  }
 				: undefined;
 
-			if (result.type === "conversation" && result.content) {
-				const assistantMessage: Message = {
-					id: (++messageIdCounter.current).toString(),
-					role: "assistant",
-					content: result.content,
-					type: "conversation",
-					tokenUsage: convertedTokenUsage,
-				};
-				setLocalMessagesRef.current((prev) => [...prev, assistantMessage]);
-
-				if (conversationId) {
-					try {
-						await addMessageRef.current.mutateAsync({
-							tenantId: currentTenantId,
-							conversationId,
-							message: {
-								role: "assistant",
-								content: result.content,
-								type: "conversation",
-								tokenUsage: convertedTokenUsage,
-							},
-						});
-					} catch (error) {
-						console.error("Failed to save assistant message:", error);
-					}
+		if (result.type === "conversation" && result.content) {
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: result.content,
+							type: "conversation",
+							tokenUsage: convertedTokenUsage,
+						},
+					});
+				} catch (error) {
+					console.error("Failed to save assistant message:", error);
 				}
-			} else if (result.template) {
-				let finalHtml = html || result.html;
-				let blocks: Block[] = [];
-
-				if (result.template === "media_digest" && result.blocks && Array.isArray(result.blocks)) {
-					blocks = result.blocks as unknown as Block[];
-				}
-
-				if (!finalHtml && blocks.length > 0) {
-					finalHtml = renderBlocksToHtml(blocks);
-				}
-
-				if (!finalHtml) {
-					finalHtml = `<html><body><h1>${result.subject}</h1><p>Template type: ${result.template}</p></body></html>`;
-				}
-
-				const summary =
-					result.summary ||
-					tRef.current.chat.emailGenerated.replace("{subject}", result.subject || "");
-
-				setCurrentTemplate({
-					template: result.template,
-					subject: result.subject || "",
-					props: result.props || {},
-					blocks,
-				});
-
-				const assistantMessage: Message = {
-					id: (++messageIdCounter.current).toString(),
-					role: "assistant",
-					content: summary,
-					type: "email",
-					html: finalHtml,
-					template: result.template,
-					subject: result.subject,
-					summary: result.summary,
-					props: result.props,
-					blocks,
-					tokenUsage: convertedTokenUsage,
-				};
-
-				setLocalMessagesRef.current((prev) => [...prev, assistantMessage]);
-
-				if (conversationId) {
-					try {
-						await addMessageRef.current.mutateAsync({
-							tenantId: currentTenantId,
-							conversationId,
-							message: {
-								role: "assistant",
-								content: summary,
-								type: "email",
-								html: finalHtml,
-								template: result.template,
-								subject: result.subject,
-								summary: result.summary,
-								props: result.props,
-								blocks,
-								tokenUsage: convertedTokenUsage,
-							},
-						});
-					} catch (error) {
-						console.error("Failed to save email message:", error);
-					}
-				}
-			} else {
-				const errorMessage: Message = {
-					id: (++messageIdCounter.current).toString(),
-					role: "assistant",
-					content: "An unexpected response format was received",
-					type: "conversation",
-				};
-				setLocalMessagesRef.current((prev) => [...prev, errorMessage]);
 			}
+		} else if (result.type === "image") {
+			const imageContent = result.imageContent;
+			const summary = imageContent?.summary || tRef.current.chat.media.imageGenerated;
+
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: summary,
+							type: "image",
+							imageContent,
+							tokenUsage: convertedTokenUsage,
+						},
+					});
+				} catch (error) {
+					console.error("Failed to save image message:", error);
+				}
+			}
+		} else if (result.type === "video") {
+			const videoContent = result.videoContent;
+			const summary = videoContent?.summary || tRef.current.chat.media.videoGenerated;
+
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: summary,
+							type: "video",
+							videoContent,
+							tokenUsage: convertedTokenUsage,
+						},
+					});
+				} catch (error) {
+					console.error("Failed to save video message:", error);
+				}
+			}
+		} else if (result.template) {
+			let finalHtml = html || result.html;
+			let blocks: Block[] = [];
+
+			if (result.template === "media_digest" && result.blocks && Array.isArray(result.blocks)) {
+				blocks = result.blocks as unknown as Block[];
+			}
+
+			if (!finalHtml && blocks.length > 0) {
+				finalHtml = renderBlocksToHtml(blocks);
+			}
+
+			if (!finalHtml) {
+				finalHtml = `<html><body><h1>${result.subject}</h1><p>Template type: ${result.template}</p></body></html>`;
+			}
+
+			const summary =
+				result.summary ||
+				tRef.current.chat.emailGenerated.replace("{subject}", result.subject || "");
+
+			setCurrentTemplate({
+				template: result.template,
+				subject: result.subject || "",
+				props: result.props || {},
+				blocks,
+			});
+
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: summary,
+							type: "email",
+							html: finalHtml,
+							template: result.template,
+							subject: result.subject,
+							summary: result.summary,
+							props: result.props,
+							blocks,
+							tokenUsage: convertedTokenUsage,
+						},
+					});
+				} catch (error) {
+					console.error("Failed to save email message:", error);
+				}
+			}
+		} else {
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: "An unexpected response format was received",
+							type: "conversation",
+						},
+					});
+				} catch (error) {
+					console.error("Failed to save error message:", error);
+				}
+			}
+		}
 		},
 		[tenantId]
 	);
 
-	const handleJobError = useCallback((error: string, errorCode: string | null) => {
+	const handleJobError = useCallback(
+		async (error: string, errorCode: string | null) => {
+			const conversationId = pendingConversationIdRef.current;
+			const currentTenantId = tenantId;
+
 		if (errorCode === "INSUFFICIENT_TOKENS" || errorCode === "NO_ACTIVE_SUBSCRIPTION") {
-			const errorMessage: Message = {
-				id: (++messageIdCounter.current).toString(),
-				role: "assistant",
-				content: tRef.current.errors.noActiveSubscription,
-				type: "subscription_error",
-			};
-			setLocalMessagesRef.current((prev) => [...prev, errorMessage]);
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: tRef.current.errors.noActiveSubscription,
+							type: "subscription_error",
+						},
+					});
+				} catch (saveError) {
+					console.error("Failed to save error message:", saveError);
+				}
+			}
 		} else {
-			const errorMessage: Message = {
-				id: (++messageIdCounter.current).toString(),
-				role: "assistant",
-				content: error,
-				type: "conversation",
-			};
-			setLocalMessagesRef.current((prev) => [...prev, errorMessage]);
+			if (conversationId) {
+				try {
+					await addMessageRef.current.mutateAsync({
+						tenantId: currentTenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: error,
+							type: "conversation",
+						},
+					});
+				} catch (saveError) {
+					console.error("Failed to save error message:", saveError);
+				}
+			}
 		}
-	}, []);
+		},
+		[tenantId]
+	);
 
 	const generationJob = useGenerationJob({
 		onComplete: handleJobComplete,
@@ -267,36 +326,6 @@ export default function ChatPage() {
 		hasReconnected.current = false;
 	}, [selectedConversationId]);
 
-	const localMessages = useMemo(
-		() =>
-			localMessagesState.conversationId === selectedConversationId
-				? localMessagesState.messages
-				: [],
-		[localMessagesState, selectedConversationId]
-	);
-
-	const localMessagesRef = useRef<Message[]>(localMessages);
-	useEffect(() => {
-		localMessagesRef.current = localMessages;
-	}, [localMessages]);
-
-	const setLocalMessages = useCallback(
-		(updater: Message[] | ((prev: Message[]) => Message[])) => {
-			setLocalMessagesState((prev) => ({
-				conversationId: selectedConversationId,
-				messages:
-					typeof updater === "function"
-						? updater(prev.conversationId === selectedConversationId ? prev.messages : [])
-						: updater,
-			}));
-		},
-		[selectedConversationId]
-	);
-
-	useEffect(() => {
-		setLocalMessagesRef.current = setLocalMessages;
-	}, [setLocalMessages]);
-
 	useEffect(() => {
 		addMessageRef.current = addMessage;
 	}, [addMessage]);
@@ -324,7 +353,13 @@ export default function ChatPage() {
 			id: msg.id,
 			role: msg.role as "user" | "assistant",
 			content: msg.content,
-			type: msg.type as "email" | "conversation" | "subscription_error" | undefined,
+			type: msg.type as
+				| "email"
+				| "conversation"
+				| "subscription_error"
+				| "image"
+				| "video"
+				| undefined,
 			html: msg.html || undefined,
 			template: msg.template || undefined,
 			subject: msg.subject || undefined,
@@ -332,24 +367,15 @@ export default function ChatPage() {
 			props: msg.props as Record<string, unknown> | undefined,
 			blocks: msg.blocks as Block[] | undefined,
 			tokenUsage: msg.tokenUsage as TokenUsage | undefined,
-		}));
-	}, [conversationData]);
+			imageContent: msg.imageContent as ImageContent | undefined,
+			videoContent: msg.videoContent as VideoContent | undefined,
+		attachments: msg.attachments as Attachment[] | undefined,
+	}));
+}, [conversationData]);
 
-	const messages = useMemo(() => {
-		if (localMessages.length === 0) {
-			return loadedMessages;
-		}
+const messages = loadedMessages;
 
-		const loadedContents = new Set(loadedMessages.map((m) => `${m.role}:${m.content}`));
-
-		const newLocalMessages = localMessages.filter(
-			(m) => !loadedContents.has(`${m.role}:${m.content}`)
-		);
-
-		return [...loadedMessages, ...newLocalMessages];
-	}, [loadedMessages, localMessages]);
-
-	const isGeneratingInCurrentConversation = useMemo(() => {
+const isGeneratingInCurrentConversation = useMemo(() => {
 		if (!generationJob.isRunning) return false;
 
 		const { activeConversationId } = generationJob;
@@ -358,133 +384,16 @@ export default function ChatPage() {
 			return activeConversationId === selectedConversationId;
 		}
 
-		return !selectedConversationId;
-	}, [generationJob, selectedConversationId]);
+	return !selectedConversationId;
+}, [generationJob, selectedConversationId]);
 
-	const prevLoadedMessagesLengthRef = useRef(0);
-	const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+useEffect(() => {
+	if (scrollContainerRef.current) {
+		scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+	}
+}, [messages]);
 
-	useEffect(() => {
-		const currentLocalMessages = localMessagesRef.current;
-
-		if (
-			loadedMessages.length > prevLoadedMessagesLengthRef.current &&
-			currentLocalMessages.length > 0
-		) {
-			const loadedContents = new Set(loadedMessages.map((m) => `${m.role}:${m.content}`));
-
-			const hasLocalInLoaded = currentLocalMessages.some((m) =>
-				loadedContents.has(`${m.role}:${m.content}`)
-			);
-
-			if (hasLocalInLoaded) {
-				if (cleanupTimeoutRef.current) {
-					clearTimeout(cleanupTimeoutRef.current);
-				}
-
-				cleanupTimeoutRef.current = setTimeout(() => {
-					const latestLocalMessages = localMessagesRef.current;
-					const remaining = latestLocalMessages.filter(
-						(m) => !loadedContents.has(`${m.role}:${m.content}`)
-					);
-					if (remaining.length !== latestLocalMessages.length) {
-						setLocalMessages(remaining);
-					}
-				}, 100);
-			}
-		}
-		prevLoadedMessagesLengthRef.current = loadedMessages.length;
-
-		return () => {
-			if (cleanupTimeoutRef.current) {
-				clearTimeout(cleanupTimeoutRef.current);
-			}
-		};
-	}, [loadedMessages, setLocalMessages]);
-
-	useEffect(() => {
-		if (scrollContainerRef.current) {
-			scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-		}
-	}, [messages]);
-
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!input.trim() || isGeneratingInCurrentConversation) return;
-
-		if (!tenantId) {
-			toast.error("No tenant selected");
-			return;
-		}
-
-		let conversationId = selectedConversationId;
-		if (!conversationId) {
-			try {
-				const newConversation = await createConversation.mutateAsync({
-					tenantId,
-				});
-				conversationId = newConversation.conversation.id;
-				handleSelectConversation(conversationId);
-			} catch (error) {
-				toast.error(error instanceof Error ? error.message : "Failed to create conversation");
-				return;
-			}
-		}
-
-		const userMessage: Message = {
-			id: (++messageIdCounter.current).toString(),
-			role: "user",
-			content: input,
-		};
-
-		setLocalMessages((prev) => [...prev, userMessage]);
-		const userInput = input;
-		setInput("");
-
-		pendingConversationIdRef.current = conversationId;
-		pendingUserInputRef.current = userInput;
-
-		try {
-			await addMessage.mutateAsync({
-				tenantId,
-				conversationId,
-				message: { role: "user", content: userInput },
-			});
-		} catch (error) {
-			console.error("Failed to save user message:", error);
-		}
-
-		try {
-			if (currentTemplate) {
-				await generationJob.startRefine({
-					tenantId,
-					task: userInput,
-					existingTemplate: currentTemplate.template,
-					existingProps: currentTemplate.props || {},
-					existingBlocks: currentTemplate.blocks as Record<string, unknown>[] | undefined,
-					conversationId,
-					language: locale === "ru" ? "ru-RU" : "en-US",
-				});
-			} else {
-				await generationJob.startGenerate({
-					tenantId,
-					task: userInput,
-					language: locale === "ru" ? "ru-RU" : "en-US",
-					conversationId,
-				});
-			}
-		} catch (error) {
-			const errorMessage: Message = {
-				id: (++messageIdCounter.current).toString(),
-				role: "assistant",
-				content: error instanceof Error ? error.message : "Failed to start generation",
-				type: "conversation",
-			};
-			setLocalMessages((prev) => [...prev, errorMessage]);
-		}
-	};
-
-	const handleSaveTemplate = async (message: Message) => {
+const handleSaveTemplate = async (message: Message) => {
 		if (!message.template || !message.subject) return;
 
 		if (!tenantId) {
@@ -506,6 +415,195 @@ export default function ChatPage() {
 			router.push(`/workspaces/${workspaceSlug}/templates/${result.template.id}`);
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : "An error occurred");
+		}
+	};
+
+	const handleSaveMediaToStorage = async (
+		mediaUrl: string,
+		prompt: string,
+		mediaType: "image" | "video"
+	) => {
+		if (!tenantId) {
+			toast.error("No tenant selected");
+			return;
+		}
+
+		if (!mediaUrl) {
+			toast.error(t.storage.saveToStorageFailed);
+			return;
+		}
+
+		const sanitizedPrompt = prompt
+			.slice(0, 50)
+			.replace(/[^a-zA-Z0-9\s-]/g, "")
+			.replace(/\s+/g, "-")
+			.toLowerCase();
+		const timestamp = Date.now();
+		const extension = mediaType === "image" ? "png" : "mp4";
+		const fileName = `${sanitizedPrompt || mediaType}-${timestamp}.${extension}`;
+
+		try {
+			await uploadFromUrl.mutateAsync({
+				tenantId,
+				url: mediaUrl,
+				fileName,
+				fileType: mediaType,
+			});
+			toast.success(t.storage.savedToStorage);
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : t.storage.saveToStorageFailed);
+		}
+	};
+
+	const handleChatInputSubmit = async (
+		inputText: string,
+		type: ContentType,
+		files: AttachedFile[],
+		imageSettings: ImageJobSettings,
+		videoSettings: VideoJobSettings
+	) => {
+		if (!inputText.trim() || isGeneratingInCurrentConversation) return;
+
+		if (!tenantId) {
+			toast.error("No tenant selected");
+			return;
+		}
+
+		let conversationId = selectedConversationId;
+		if (!conversationId) {
+			try {
+				const newConversation = await createConversation.mutateAsync({
+					tenantId,
+				});
+				conversationId = newConversation.conversation.id;
+				handleSelectConversation(conversationId);
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : "Failed to create conversation");
+				return;
+			}
+		}
+
+		let attachments: Attachment[] = [];
+		if (files.length > 0) {
+			try {
+				attachments = await Promise.all(
+					files.map(async (attachedFile) => {
+						if (attachedFile.fromStorage && attachedFile.storageFile) {
+							const presignedUrlResult = await getPresignedUrl.mutateAsync({
+								tenantId,
+								fileId: attachedFile.storageFile.id,
+								expiryMinutes: 60,
+							});
+							return {
+								type: attachedFile.storageFile.contentType.startsWith("image/")
+									? "image"
+									: "document",
+								url: presignedUrlResult.url,
+								name: attachedFile.storageFile.originalName,
+								contentType: attachedFile.storageFile.contentType,
+							} as Attachment;
+						}
+
+						const fileType = attachedFile.file.type.startsWith("image/")
+							? "image"
+							: attachedFile.file.type.startsWith("video/")
+							? "video"
+							: "document";
+						const uploadResult = await uploadFile.mutateAsync({
+							tenantId,
+							file: attachedFile.file,
+							fileType,
+						});
+						const presignedUrlResult = await getPresignedUrl.mutateAsync({
+							tenantId,
+							fileId: uploadResult.file.id,
+							expiryMinutes: 60,
+						});
+						return {
+							type: uploadResult.file.contentType.startsWith("image/") ? "image" : "document",
+							url: presignedUrlResult.url,
+							name: uploadResult.file.originalName,
+							contentType: uploadResult.file.contentType,
+						} as Attachment;
+					})
+				);
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : "Failed to upload files");
+				return;
+			}
+		}
+
+		pendingConversationIdRef.current = conversationId;
+
+		try {
+			await addMessage.mutateAsync({
+				tenantId,
+				conversationId,
+				message: {
+					role: "user",
+					content: inputText,
+					attachments: attachments.length > 0 ? attachments : undefined,
+				},
+			});
+		} catch (error) {
+			console.error("Failed to save user message:", error);
+			return;
+		}
+
+		try {
+			if (currentTemplate && type === "template") {
+				await generationJob.startRefine({
+					tenantId,
+					task: inputText,
+					existingTemplate: currentTemplate.template,
+					existingProps: currentTemplate.props || {},
+					existingBlocks: currentTemplate.blocks as Record<string, unknown>[] | undefined,
+					conversationId,
+					language: locale === "ru" ? "ru-RU" : "en-US",
+					attachments: attachments.length > 0 ? attachments : undefined,
+				});
+			} else {
+				await generationJob.startGenerate({
+					tenantId,
+					task: inputText,
+					contentType: type,
+					conversationId,
+					language: locale === "ru" ? "ru-RU" : "en-US",
+					imageSettings: type === "image" ? imageSettings : undefined,
+					videoSettings: type === "video" ? videoSettings : undefined,
+					attachments: attachments.length > 0 ? attachments : undefined,
+				});
+			}
+		} catch (error) {
+			if (error instanceof JobsApiError && error.code === "NO_ACTIVE_SUBSCRIPTION") {
+				try {
+					await addMessage.mutateAsync({
+						tenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							type: "subscription_error",
+							content: t.errors.noActiveSubscription,
+						},
+					});
+				} catch (saveError) {
+					console.error("Failed to save error message:", saveError);
+				}
+			} else {
+				try {
+					await addMessage.mutateAsync({
+						tenantId,
+						conversationId,
+						message: {
+							role: "assistant",
+							content: error instanceof Error ? error.message : "An error occurred",
+							type: "conversation",
+						},
+					});
+				} catch (saveError) {
+					console.error("Failed to save error message:", saveError);
+				}
+			}
 		}
 	};
 
@@ -572,46 +670,7 @@ export default function ChatPage() {
 								</BlurFade>
 								<BlurFade delay={0.4}>
 									<TypographyMuted className="mb-4">{t.chat.tryAsking}</TypographyMuted>
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
-										<button
-											onClick={() => setInput(t.chat.examples.welcome)}
-											className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all text-left group"
-										>
-											<div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-												<Icon icon={IconMail} size="md" className="text-primary" />
-											</div>
-											<span className="text-sm font-medium">{t.chat.examples.welcome}</span>
-										</button>
-										<button
-											onClick={() => setInput(t.chat.examples.passwordReset)}
-											className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all text-left group"
-										>
-											<div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-												<Icon icon={IconLock} size="md" className="text-primary" />
-											</div>
-											<span className="text-sm font-medium">{t.chat.examples.passwordReset}</span>
-										</button>
-										<button
-											onClick={() => setInput(t.chat.examples.newsletter)}
-											className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all text-left group"
-										>
-											<div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-												<Icon icon={IconNews} size="md" className="text-primary" />
-											</div>
-											<span className="text-sm font-medium">{t.chat.examples.newsletter}</span>
-										</button>
-										<button
-											onClick={() => setInput(t.chat.examples.orderConfirmation)}
-											className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-primary/30 hover:shadow-md transition-all text-left group"
-										>
-											<div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-												<Icon icon={IconShoppingCart} size="md" className="text-primary" />
-											</div>
-											<span className="text-sm font-medium">
-												{t.chat.examples.orderConfirmation}
-											</span>
-										</button>
-									</div>
+									<ChatSuggestions contentType={contentType} onSelect={setInput} />
 								</BlurFade>
 							</div>
 						) : null}
@@ -638,7 +697,7 @@ export default function ChatPage() {
 										}`}
 									>
 										{message.role === "user" ? (
-											<UserMessage content={message.content} />
+											<UserMessage content={message.content} attachments={message.attachments} />
 										) : message.type === "subscription_error" ? (
 											<motion.div
 												initial={{ opacity: 0 }}
@@ -706,6 +765,177 @@ export default function ChatPage() {
 														/>
 													</motion.div>
 												)}
+
+												{message.imageContent &&
+													(message.imageContent.prompt || message.imageContent.imageUrl) && (
+														<motion.div
+															initial={{ opacity: 0, y: 10 }}
+															animate={{ opacity: 1, y: 0 }}
+															transition={{ duration: 0.3, delay: 0.2 }}
+															className="mt-3"
+														>
+															<div className="bg-card border border-border rounded-xl p-4 space-y-3">
+																<div className="flex items-center justify-between">
+																	<div className="flex items-center gap-2">
+																		<Icon icon={IconPhoto} size="sm" className="text-primary" />
+																		<span className="font-medium text-sm">
+																			{t.chat.contentType.image}
+																		</span>
+																	</div>
+																	<Button
+																		size="sm"
+																		variant="outline"
+																		disabled={uploadFromUrl.isPending || !message.imageContent?.imageUrl}
+																		onClick={() =>
+																			handleSaveMediaToStorage(
+																				message.imageContent!.imageUrl!,
+																				message.imageContent!.prompt,
+																				"image"
+																			)
+																		}
+																	>
+																		<Icon icon={IconBookmark} size="sm" className="mr-1.5" />
+																		{uploadFromUrl.isPending ? t.common.saving : t.chat.media.saveMedia}
+																	</Button>
+																</div>
+
+																<div className="space-y-2">
+																	<div>
+																		<TypographyMuted className="text-xs uppercase tracking-wide mb-1">
+																			{t.chat.media.prompt}
+																		</TypographyMuted>
+																		<TypographyP className="text-sm bg-muted/50 rounded-lg p-3 mt-0">
+																			{message.imageContent.prompt}
+																		</TypographyP>
+																	</div>
+
+																	{message.imageContent.negativePrompt && (
+																		<div>
+																			<TypographyMuted className="text-xs uppercase tracking-wide mb-1">
+																				{t.chat.media.negativePrompt}
+																			</TypographyMuted>
+																			<TypographyP className="text-sm bg-muted/50 rounded-lg p-3 mt-0 text-muted-foreground">
+																				{message.imageContent.negativePrompt}
+																			</TypographyP>
+																		</div>
+																	)}
+
+																	<div className="flex flex-wrap gap-3 text-xs">
+																		{message.imageContent.aspectRatio && (
+																			<div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
+																				<span className="text-muted-foreground">
+																					{t.chat.media.aspectRatio}:
+																				</span>
+																				<span className="font-medium">
+																					{message.imageContent.aspectRatio}
+																				</span>
+																			</div>
+																		)}
+																		{message.imageContent.style && (
+																			<div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
+																				<span className="text-muted-foreground">
+																					{t.chat.media.style}:
+																				</span>
+																				<span className="font-medium">
+																					{message.imageContent.style}
+																				</span>
+																			</div>
+																		)}
+																	</div>
+																</div>
+															</div>
+														</motion.div>
+													)}
+
+												{message.videoContent && (
+													<motion.div
+														initial={{ opacity: 0, y: 10 }}
+														animate={{ opacity: 1, y: 0 }}
+														transition={{ duration: 0.3, delay: 0.2 }}
+														className="mt-3"
+													>
+														<div className="bg-card border border-border rounded-xl p-4 space-y-3">
+															<div className="flex items-center justify-between">
+																<div className="flex items-center gap-2">
+																	<Icon icon={IconVideo} size="sm" className="text-primary" />
+																	<span className="font-medium text-sm">
+																		{t.chat.contentType.video}
+																	</span>
+																</div>
+																<Button
+																	size="sm"
+																	variant="outline"
+																	disabled={uploadFromUrl.isPending || !message.videoContent?.videoUrl}
+																	onClick={() =>
+																		handleSaveMediaToStorage(
+																			message.videoContent!.videoUrl!,
+																			message.videoContent!.prompt,
+																			"video"
+																		)
+																	}
+																>
+																	<Icon icon={IconBookmark} size="sm" className="mr-1.5" />
+																	{uploadFromUrl.isPending ? t.common.saving : t.chat.media.saveMedia}
+																</Button>
+															</div>
+
+															{message.videoContent.videoUrl && (
+																<div className="rounded-lg overflow-hidden bg-muted/30">
+																	<video
+																		src={message.videoContent.videoUrl}
+																		controls
+																		className="w-full max-h-80 object-contain"
+																		poster={message.videoContent.thumbnailUrl}
+																	/>
+																</div>
+															)}
+
+															<div className="space-y-2">
+																<div>
+																	<TypographyMuted className="text-xs uppercase tracking-wide mb-1">
+																		{t.chat.media.prompt}
+																	</TypographyMuted>
+																	<TypographyP className="text-sm bg-muted/50 rounded-lg p-3 mt-0">
+																		{message.videoContent.prompt}
+																	</TypographyP>
+																</div>
+
+																<div className="flex flex-wrap gap-3 text-xs">
+																	{message.videoContent.aspectRatio && (
+																		<div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
+																			<span className="text-muted-foreground">
+																				{t.chat.media.aspectRatio}:
+																			</span>
+																			<span className="font-medium">
+																				{message.videoContent.aspectRatio}
+																			</span>
+																		</div>
+																	)}
+																	{message.videoContent.durationSeconds && (
+																		<div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
+																			<span className="text-muted-foreground">
+																				{t.chat.media.duration}:
+																			</span>
+																			<span className="font-medium">
+																				{message.videoContent.durationSeconds}s
+																			</span>
+																		</div>
+																	)}
+																	{message.videoContent.style && (
+																		<div className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
+																			<span className="text-muted-foreground">
+																				{t.chat.media.style}:
+																			</span>
+																			<span className="font-medium">
+																				{message.videoContent.style}
+																			</span>
+																		</div>
+																	)}
+																</div>
+															</div>
+														</div>
+													</motion.div>
+												)}
 											</>
 										)}
 									</div>
@@ -737,42 +967,15 @@ export default function ChatPage() {
 					</div>
 				</div>
 
-				<div className="p-4 bg-linear-to-t from-background via-background to-transparent">
-					<form onSubmit={handleSubmit}>
-						<div className="max-w-3xl mx-auto">
-							<div className="relative group">
-								<div className="absolute -inset-0.5 bg-linear-to-r from-primary/50 via-primary/30 to-primary/50 rounded-xl opacity-0 group-focus-within:opacity-100 blur transition-all duration-500" />
-								<div className="relative flex gap-2 bg-background rounded-xl p-1.5 border border-border/50 group-focus-within:border-primary/30 transition-colors">
-									<Input
-										value={input}
-										onChange={(e) => setInput(e.target.value)}
-										placeholder={t.chat.inputPlaceholder}
-										disabled={isGeneratingInCurrentConversation}
-										className="flex-1 border-0 bg-transparent dark:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
-									/>
-									<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-										<Button
-											type="submit"
-											disabled={!input.trim() || isGeneratingInCurrentConversation}
-											className="rounded-lg px-4 shadow-lg shadow-primary/25 disabled:shadow-none"
-										>
-											<motion.div
-												animate={input.trim() ? { x: [0, 2, 0] } : {}}
-												transition={{
-													repeat: Infinity,
-													duration: 1.5,
-													ease: "easeInOut",
-												}}
-											>
-												<Icon icon={IconSend} size="sm" />
-											</motion.div>
-										</Button>
-									</motion.div>
-								</div>
-							</div>
-						</div>
-					</form>
-				</div>
+				<ChatInput
+					tenantId={tenantId}
+					onSubmit={handleChatInputSubmit}
+					disabled={isGeneratingInCurrentConversation}
+					contentType={contentType}
+					onContentTypeChange={setContentType}
+					value={input}
+					onValueChange={setInput}
+				/>
 			</div>
 		</div>
 	);

@@ -425,3 +425,5 @@ export function useActiveJobs(
 		refetchOnWindowFocus: true,
 	});
 }
+
+export { JobsApiError };

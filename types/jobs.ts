@@ -24,8 +24,31 @@ export interface JobTokenUsage {
 	model?: string;
 }
 
+export interface ImageContent {
+	type: "image";
+	prompt: string;
+	negativePrompt?: string;
+	aspectRatio?: string;
+	style?: string;
+	summary: string;
+	imageUrl?: string;
+	imageBase64?: string;
+	revisedPrompt?: string;
+}
+
+export interface VideoContent {
+	type: "video";
+	prompt: string;
+	style?: string;
+	summary: string;
+	videoUrl?: string;
+	thumbnailUrl?: string;
+	durationSeconds?: number;
+	aspectRatio?: string;
+}
+
 export interface GenerationResult {
-	type: "email" | "conversation";
+	type: "email" | "conversation" | "image" | "video";
 	content?: string;
 	template?: string;
 	subject?: string;
@@ -33,6 +56,8 @@ export interface GenerationResult {
 	blocks?: Record<string, unknown>[];
 	html?: string;
 	summary?: string;
+	imageContent?: ImageContent;
+	videoContent?: VideoContent;
 }
 
 export interface JobResponse {
@@ -116,12 +141,37 @@ export type SSEEvent =
 	| JobCancelledEvent
 	| JobHeartbeatEvent;
 
+export type ContentType = "template" | "image" | "video";
+
+export interface ImageJobSettings {
+	aspectRatio?: string;
+	style?: string;
+	negativePrompt?: string;
+}
+
+export interface VideoJobSettings {
+	aspectRatio?: string;
+	style?: string;
+	duration?: string;
+}
+
+export interface Attachment {
+	type: "image" | "document";
+	url: string;
+	name: string;
+	contentType: string;
+}
+
 export interface CreateGenerateJobRequest {
 	tenantId: string;
 	task: string;
 	language?: string;
 	conversationId?: string;
 	templateType?: string;
+	contentType?: ContentType;
+	imageSettings?: ImageJobSettings;
+	videoSettings?: VideoJobSettings;
+	attachments?: Attachment[];
 }
 
 export interface CreateRefineJobRequest {
@@ -132,6 +182,7 @@ export interface CreateRefineJobRequest {
 	existingBlocks?: Record<string, unknown>[];
 	conversationId?: string;
 	language?: string;
+	attachments?: Attachment[];
 }
 
 export const JobErrorCodes = {

@@ -17,6 +17,9 @@ import {
 	IconSquare,
 	IconX,
 	IconCloudUpload,
+	IconBrandAbstract,
+	IconVideo,
+	IconFolderPlus,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
@@ -24,6 +27,7 @@ import { Icon, TypographyH1, TypographyMuted, TypographyP } from "@/components/t
 import { useResolveTenantSlug, useTenant, useCurrentSubscription, usePlan } from "@/hooks/use-api";
 import {
 	useFiles,
+	useFolders,
 	useUploadFile,
 	useDeleteFile,
 	useBatchDeleteFiles,
@@ -33,6 +37,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { CardPagination } from "@/components/ui/card-pagination";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -51,9 +56,12 @@ import {
 	EmptyDescription,
 	EmptyContent,
 } from "@/components/ui/empty";
-import type { StorageFile } from "@/types/storage";
+import type { StorageFile, FileType, FolderWithCounts } from "@/types/storage";
 import Container from "@/components/container";
 import { cn } from "@/lib/utils";
+import { CreateFolderDialog } from "@/components/storage/create-folder-dialog";
+import { FolderCard } from "@/components/storage/folder-card";
+import { StorageBreadcrumb } from "@/components/storage/storage-breadcrumb";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -65,15 +73,20 @@ function formatFileSize(bytes: number): string {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-function getFileIcon(contentType: string) {
+function getFileIcon(contentType: string, fileType?: string) {
+	if (fileType === "logo") {
+		return <Icon icon={IconBrandAbstract} size="xl" className="text-primary" />;
+	}
 	if (contentType.startsWith("image/")) {
 		return <Icon icon={IconPhoto} size="xl" className="text-info" />;
 	}
-	if (contentType === "application/pdf") {
+	if (contentType === "application/pdf" || contentType === "text/markdown") {
 		return <Icon icon={IconFileText} size="xl" className="text-destructive" />;
 	}
 	return <Icon icon={IconFile} size="xl" className="text-muted-foreground" />;
 }
+
+type FilterType = "all" | FileType;
 
 export default function StoragePage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = use(params);
@@ -86,6 +99,8 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 	const [isSelectionMode, setIsSelectionMode] = useState(false);
 	const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
 	const [isDragOver, setIsDragOver] = useState(false);
+	const [filterType, setFilterType] = useState<FilterType>("all");
+	const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
 	const dropZoneRef = useRef<HTMLDivElement>(null);
 
 	const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -96,8 +111,13 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 
 	const { data: tenantData, isLoading: isTenantLoading } = useTenant(resolvedTenantId);
 	const { data: filesData, isLoading: isFilesLoading } = useFiles(resolvedTenantId || "", {
+		folderId: currentFolderId,
+		type: filterType === "all" ? undefined : filterType,
 		limit: ITEMS_PER_PAGE,
 		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+	});
+	const { data: foldersData, isLoading: isFoldersLoading } = useFolders(resolvedTenantId || "", {
+		parentId: currentFolderId,
 	});
 	const { data: subscription } = useCurrentSubscription(resolvedTenantId || "");
 	const { data: plan } = usePlan(subscription?.planId || "");
@@ -111,8 +131,9 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 	const tenant = tenantData?.tenant;
 	const files = filesData?.files || [];
 	const totalFiles = filesData?.total || 0;
+	const folders = foldersData?.folders || [];
 	const storageLimit = plan?.storageLimit || 100 * 1024 * 1024;
-	const isLoading = isResolving || isTenantLoading || isFilesLoading;
+	const isLoading = isResolving || isTenantLoading || isFilesLoading || isFoldersLoading;
 
 	const totalPages = Math.ceil(totalFiles / ITEMS_PER_PAGE);
 
@@ -129,6 +150,7 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 					tenantId: resolvedTenantId,
 					file,
 					fileType: file.type.startsWith("image/") ? "image" : "document",
+					folderId: currentFolderId,
 				});
 				toast.success(t.storage.uploadSuccess);
 			} catch {
@@ -138,7 +160,7 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 				e.target.value = "";
 			}
 		},
-		[resolvedTenantId, uploadFile, t]
+		[resolvedTenantId, uploadFile, t, currentFolderId]
 	);
 
 	const handleFileDrop = useCallback(
@@ -155,6 +177,7 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 						tenantId: resolvedTenantId,
 						file,
 						fileType: file.type.startsWith("image/") ? "image" : "document",
+						folderId: currentFolderId,
 					});
 					successCount++;
 				} catch {
@@ -180,7 +203,7 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 				toast.error(t.storage.uploadFailed);
 			}
 		},
-		[resolvedTenantId, uploadFile, t]
+		[resolvedTenantId, uploadFile, t, currentFolderId]
 	);
 
 	const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -278,6 +301,18 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 		setSelectedFiles(new Set());
 	};
 
+	const handleFilterChange = (value: string) => {
+		setFilterType(value as FilterType);
+		setCurrentPage(1);
+		exitSelectionMode();
+	};
+
+	const handleFolderNavigate = (folderId?: string) => {
+		setCurrentFolderId(folderId);
+		setCurrentPage(1);
+		exitSelectionMode();
+	};
+
 	const handleCopyLink = async (fileId: string) => {
 		if (!resolvedTenantId) return;
 
@@ -364,12 +399,22 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 									{t.storage.selectFiles}
 								</Button>
 							)}
+							<CreateFolderDialog
+								tenantId={resolvedTenantId || ""}
+								parentId={currentFolderId}
+								trigger={
+									<Button variant="outline">
+										<Icon icon={IconFolderPlus} className="mr-2" />
+										{t.storage.createFolder}
+									</Button>
+								}
+							/>
 							<input
 								type="file"
 								id="file-upload"
 								className="hidden"
 								onChange={handleFileUpload}
-								accept="image/*,.pdf"
+								accept="image/*,.pdf,.txt,.md"
 							/>
 							<label htmlFor="file-upload">
 								<Button asChild disabled={isUploading}>
@@ -406,7 +451,38 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 				</TypographyMuted>
 			</div>
 
-			{totalFiles === 0 ? (
+			<Tabs value={filterType} onValueChange={handleFilterChange} className="mb-6">
+				<TabsList>
+					<TabsTrigger value="all" className="gap-2">
+						<Icon icon={IconFile} size="sm" />
+						{t.storage.filterAll}
+					</TabsTrigger>
+					<TabsTrigger value="image" className="gap-2">
+						<Icon icon={IconPhoto} size="sm" />
+						{t.storage.filterImages}
+					</TabsTrigger>
+					<TabsTrigger value="document" className="gap-2">
+						<Icon icon={IconFileText} size="sm" />
+						{t.storage.filterDocuments}
+					</TabsTrigger>
+					<TabsTrigger value="logo" className="gap-2">
+						<Icon icon={IconBrandAbstract} size="sm" />
+						{t.storage.filterLogos}
+					</TabsTrigger>
+					<TabsTrigger value="video" className="gap-2">
+						<Icon icon={IconVideo} size="sm" />
+						{t.storage.filterVideos}
+					</TabsTrigger>
+				</TabsList>
+			</Tabs>
+
+			<StorageBreadcrumb
+				tenantId={resolvedTenantId || ""}
+				currentFolderId={currentFolderId}
+				onNavigate={handleFolderNavigate}
+			/>
+
+			{totalFiles === 0 && folders.length === 0 ? (
 				<div
 					ref={dropZoneRef}
 					onDragOver={handleDragOver}
@@ -436,9 +512,21 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 									/>
 								</motion.div>
 							</EmptyMedia>
-							<EmptyTitle>{isDragOver ? t.storage.dropToUpload : t.storage.noFiles}</EmptyTitle>
+							<EmptyTitle>
+								{isDragOver
+									? t.storage.dropToUpload
+									: currentFolderId
+									? t.storage.emptyFolder
+									: filterType !== "all"
+									? t.storage.noFilesInCategory
+									: t.storage.noFiles}
+							</EmptyTitle>
 							<EmptyDescription>
-								{isDragOver ? t.storage.releaseToUpload : t.storage.noFilesDescription}
+								{isDragOver
+									? t.storage.releaseToUpload
+									: currentFolderId
+									? t.storage.emptyFolderDescription
+									: t.storage.noFilesDescription}
 							</EmptyDescription>
 						</EmptyHeader>
 						<EmptyContent>
@@ -448,13 +536,24 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 										initial={{ opacity: 0, y: 10 }}
 										animate={{ opacity: 1, y: 0 }}
 										exit={{ opacity: 0, y: -10 }}
+										className="flex items-center gap-2"
 									>
+										<CreateFolderDialog
+											tenantId={resolvedTenantId || ""}
+											parentId={currentFolderId}
+											trigger={
+												<Button variant="outline">
+													<Icon icon={IconFolderPlus} className="mr-2" />
+													{t.storage.createFolder}
+												</Button>
+											}
+										/>
 										<input
 											type="file"
 											id="file-upload-empty"
 											className="hidden"
 											onChange={handleFileUpload}
-											accept="image/*,.pdf"
+											accept="image/*,.pdf,.txt,.md"
 											multiple
 										/>
 										<label htmlFor="file-upload-empty">
@@ -504,6 +603,15 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 						)}
 					</AnimatePresence>
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+						{folders.map((folder: FolderWithCounts) => (
+							<FolderCard
+								key={folder.id}
+								folder={folder}
+								tenantId={resolvedTenantId || ""}
+								onNavigate={handleFolderNavigate}
+								isSelectionMode={isSelectionMode}
+							/>
+						))}
 						{files.map((file: StorageFile) => (
 							<div
 								key={file.id}
@@ -520,7 +628,7 @@ export default function StoragePage({ params }: { params: Promise<{ id: string }
 										onClick={(e) => e.stopPropagation()}
 									/>
 								)}
-								{getFileIcon(file.contentType)}
+								{getFileIcon(file.contentType, file.fileType)}
 								<div className="flex-1 min-w-0">
 									<TypographyP className="font-medium truncate mt-0">
 										{file.originalName}

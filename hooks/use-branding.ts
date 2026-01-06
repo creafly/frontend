@@ -14,6 +14,8 @@ import type {
 	UpdateBrandSpacingRequest,
 	CreateBrandRadiusRequest,
 	UpdateBrandRadiusRequest,
+	CreateBrandDocumentRequest,
+	UpdateBrandDocumentRequest,
 	ReorderRequest,
 	CreateParsingRequest,
 	ApproveParsingRequest,
@@ -615,6 +617,99 @@ export function useDeleteParsingRequest() {
 			});
 			queryClient.invalidateQueries({
 				queryKey: ["parsing", variables.requestId],
+			});
+		},
+	});
+}
+
+export function useDocuments(tenantId: string, params?: PaginationParams) {
+	const { tokens } = useAuth();
+
+	return useQuery({
+		queryKey: ["branding", tenantId, "documents", params],
+		queryFn: () => brandingApi.getDocuments(tokens!.accessToken, tenantId, params),
+		enabled: !!tokens?.accessToken && !!tenantId,
+		retry: false,
+	});
+}
+
+export function useCreateDocument() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: CreateBrandDocumentRequest }) =>
+			brandingApi.createDocument(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useUpdateDocument() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({
+			tenantId,
+			documentId,
+			request,
+		}: {
+			tenantId: string;
+			documentId: string;
+			request: UpdateBrandDocumentRequest;
+		}) => brandingApi.updateDocument(tokens!.accessToken, tenantId, documentId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useDeleteDocument() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, documentId }: { tenantId: string; documentId: string }) =>
+			brandingApi.deleteDocument(tokens!.accessToken, tenantId, documentId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useDeleteDocumentsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchDeleteRequest }) =>
+			brandingApi.deleteDocumentsBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useReorderDocuments() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
+			brandingApi.reorderDocuments(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
 			});
 		},
 	});

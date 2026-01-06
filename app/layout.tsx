@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Figtree } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { I18nProvider } from "@/providers/i18n-provider";
@@ -14,7 +14,7 @@ import { FeatureFlagsProvider } from "@/providers/feature-flags-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/cookie-banner";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" });
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://creafly.ai";
 
@@ -66,8 +66,7 @@ export const metadata: Metadata = {
 	twitter: {
 		card: "summary_large_image",
 		title: "Creafly - AI-Powered Email Template Generation",
-		description:
-			"Create beautiful, responsive email templates in minutes with AI.",
+		description: "Create beautiful, responsive email templates in minutes with AI.",
 		images: ["/og-image.png"],
 		creator: "@creafly",
 	},
@@ -106,7 +105,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className={outfit.variable} suppressHydrationWarning>
+		<html lang="en" className={figtree.variable} suppressHydrationWarning>
 			<body className="antialiased font-sans">
 				<ThemeProvider
 					attribute="class"

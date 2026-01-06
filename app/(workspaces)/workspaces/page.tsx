@@ -225,7 +225,7 @@ export default function WorkspacesPage() {
 				</div>
 			</div>
 
-			<div className="flex-1 px-2 py-4">
+			<div className="flex-1 px-2 md:px-4 py-4">
 				{isLoading ? (
 					<div className="flex items-center justify-center py-20">
 						<Icon icon={IconLoader2} size="xl" className="animate-spin text-muted-foreground" />

@@ -11,6 +11,7 @@ import {
 	IconSquare,
 	IconSquareCheck,
 	IconX,
+	IconDatabase,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
@@ -61,6 +62,7 @@ import {
 	EmptyContent,
 } from "@/components/ui/empty";
 import type { BrandLogo } from "@/types/branding";
+import { StorageFilePicker } from "@/components/storage/storage-file-picker";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -425,13 +427,26 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 									<FieldLabelWithTooltip tooltip={t.branding.tooltips.logoFile}>
 										{t.branding.logoFile}
 									</FieldLabelWithTooltip>
-									<Input
-										value={fileUrl}
-										onChange={(e) => setFileUrl(e.target.value)}
-										placeholder="https://example.com/logo.png"
-										type="url"
-										required
-									/>
+									<div className="flex gap-2">
+										<Input
+											value={fileUrl}
+											onChange={(e) => setFileUrl(e.target.value)}
+											placeholder="https://example.com/logo.png"
+											type="url"
+											required
+											className="flex-1"
+										/>
+										<StorageFilePicker
+											tenantId={tenantId}
+											onSelect={(file, presignedUrl) => setFileUrl(presignedUrl)}
+											allowedTypes={["image", "logo"]}
+											trigger={
+												<Button type="button" variant="outline" size="icon">
+													<Icon icon={IconDatabase} size="sm" />
+												</Button>
+											}
+										/>
+									</div>
 								</Field>
 							</FieldGroup>
 						</div>
@@ -490,12 +505,25 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 									<FieldLabelWithTooltip tooltip={t.branding.tooltips.logoFile}>
 										{t.branding.logoFile}
 									</FieldLabelWithTooltip>
-									<Input
-										value={fileUrl}
-										onChange={(e) => setFileUrl(e.target.value)}
-										placeholder="https://example.com/logo.png"
-										type="url"
-									/>
+									<div className="flex gap-2">
+										<Input
+											value={fileUrl}
+											onChange={(e) => setFileUrl(e.target.value)}
+											placeholder="https://example.com/logo.png"
+											type="url"
+											className="flex-1"
+										/>
+										<StorageFilePicker
+											tenantId={tenantId}
+											onSelect={(file, presignedUrl) => setFileUrl(presignedUrl)}
+											allowedTypes={["image", "logo"]}
+											trigger={
+												<Button type="button" variant="outline" size="icon">
+													<Icon icon={IconDatabase} size="sm" />
+												</Button>
+											}
+										/>
+									</div>
 								</Field>
 							</FieldGroup>
 						</div>

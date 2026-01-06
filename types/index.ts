@@ -42,6 +42,8 @@ export interface BlockStyle {
 	borderColor?: string;
 	buttonColor?: string;
 	buttonTextColor?: string;
+	width?: number;
+	height?: number;
 }
 
 export interface BlockDefinition {
@@ -690,7 +692,7 @@ export interface ConversationMessage {
 	conversationId: string;
 	role: "user" | "assistant";
 	content: string;
-	type?: "email" | "conversation" | "subscription_error";
+	type?: "email" | "conversation" | "subscription_error" | "image" | "video";
 	html?: string;
 	template?: string;
 	subject?: string;
@@ -698,7 +700,33 @@ export interface ConversationMessage {
 	props?: Record<string, unknown>;
 	blocks?: Block[];
 	tokenUsage?: TokenUsage;
+	imageContent?: ImageContent;
+	videoContent?: VideoContent;
+	attachments?: import("./jobs").Attachment[];
 	createdAt: string;
+}
+
+export interface ImageContent {
+	type: "image";
+	prompt: string;
+	negativePrompt?: string;
+	aspectRatio?: string;
+	style?: string;
+	summary: string;
+	imageUrl?: string;
+	imageBase64?: string;
+	revisedPrompt?: string;
+}
+
+export interface VideoContent {
+	type: "video";
+	prompt: string;
+	style?: string;
+	summary: string;
+	videoUrl?: string;
+	thumbnailUrl?: string;
+	durationSeconds?: number;
+	aspectRatio?: string;
 }
 
 export interface Conversation {
@@ -744,7 +772,7 @@ export interface CreateConversationRequest {
 export interface AddMessageRequest {
 	role: "user" | "assistant";
 	content: string;
-	type?: "email" | "conversation" | "subscription_error";
+	type?: "email" | "conversation" | "subscription_error" | "image" | "video";
 	html?: string;
 	template?: string;
 	subject?: string;
@@ -752,6 +780,9 @@ export interface AddMessageRequest {
 	props?: Record<string, unknown>;
 	blocks?: Block[];
 	tokenUsage?: TokenUsage;
+	imageContent?: ImageContent;
+	videoContent?: VideoContent;
+	attachments?: import("./jobs").Attachment[];
 }
 
 export interface MessageSingleResponse {

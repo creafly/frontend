@@ -9,6 +9,7 @@ import type { Block, BlockStyle, CalloutVariant, BadgeVariant } from "@/types";
 import { cn } from "@/lib/utils";
 import { BlockEditPopover } from "./block-edit-popover";
 import { useEditorDnd } from "./editor-dnd-provider";
+import { SpacingControls } from "./spacing-controls";
 
 const GOOGLE_FONTS = [
 	"Open Sans",
@@ -66,6 +67,8 @@ interface RawBlockStyle {
 	buttonTextColor?: string;
 	lineHeight?: number;
 	padding?: string | number;
+	width?: number;
+	height?: number;
 }
 
 function normalizeStyle(style?: RawBlockStyle): BlockStyle | undefined {
@@ -90,6 +93,8 @@ function normalizeStyle(style?: RawBlockStyle): BlockStyle | undefined {
 		borderColor: style.borderColor,
 		buttonColor: style.buttonColor,
 		buttonTextColor: style.buttonTextColor,
+		width: style.width,
+		height: style.height,
 	};
 
 	if (typeof style.fontWeight === "number") {
@@ -154,6 +159,8 @@ function buildStyles(style?: RawBlockStyle): React.CSSProperties {
 		borderStyle: normalized.borderWidth ? "solid" : undefined,
 		borderColor: normalized.borderColor,
 		lineHeight: style.lineHeight,
+		width: normalized.width,
+		height: normalized.height,
 	};
 }
 
@@ -355,6 +362,52 @@ function NestedBlockWrapper({
 		onSelectBlock(path);
 	};
 
+	const blockStyle = "style" in block ? (block.style as RawBlockStyle) : undefined;
+
+	const handlePaddingChange = (side: "top" | "right" | "bottom" | "left", value: number) => {
+		const key = `padding${side.charAt(0).toUpperCase() + side.slice(1)}` as keyof RawBlockStyle;
+		onBlockUpdate(path, {
+			...block,
+			style: { ...blockStyle, [key]: value },
+		} as Block);
+	};
+
+	const handleMarginChange = (side: "top" | "right" | "bottom" | "left", value: number) => {
+		const key = `margin${side.charAt(0).toUpperCase() + side.slice(1)}` as keyof RawBlockStyle;
+		onBlockUpdate(path, {
+			...block,
+			style: { ...blockStyle, [key]: value },
+		} as Block);
+	};
+
+	const handleBorderRadiusChange = (value: number) => {
+		onBlockUpdate(path, {
+			...block,
+			style: { ...blockStyle, borderRadius: value },
+		} as Block);
+	};
+
+	const handleWidthChange = (value: number) => {
+		onBlockUpdate(path, {
+			...block,
+			style: { ...blockStyle, width: value },
+		} as Block);
+	};
+
+	const handleHeightChange = (value: number) => {
+		onBlockUpdate(path, {
+			...block,
+			style: { ...blockStyle, height: value },
+		} as Block);
+	};
+
+	const handleTextAlignChange = (value: "left" | "center" | "right") => {
+		onBlockUpdate(path, {
+			...block,
+			style: { ...blockStyle, textAlign: value },
+		} as Block);
+	};
+
 	return (
 		<BlockEditPopover
 			block={block}
@@ -396,6 +449,28 @@ function NestedBlockWrapper({
 					onBlockUpdate={onBlockUpdate}
 					onBlockDelete={onBlockDelete}
 				/>
+				{isSelected && !isDragging && (
+					<SpacingControls
+						paddingTop={blockStyle?.paddingTop}
+						paddingRight={blockStyle?.paddingRight}
+						paddingBottom={blockStyle?.paddingBottom}
+						paddingLeft={blockStyle?.paddingLeft}
+						marginTop={blockStyle?.marginTop}
+						marginRight={blockStyle?.marginRight}
+						marginBottom={blockStyle?.marginBottom}
+						marginLeft={blockStyle?.marginLeft}
+						borderRadius={blockStyle?.borderRadius}
+						width={blockStyle?.width}
+						height={blockStyle?.height}
+						textAlign={blockStyle?.textAlign}
+						onPaddingChange={handlePaddingChange}
+						onMarginChange={handleMarginChange}
+						onBorderRadiusChange={handleBorderRadiusChange}
+						onWidthChange={handleWidthChange}
+						onHeightChange={handleHeightChange}
+						onTextAlignChange={handleTextAlignChange}
+					/>
+				)}
 			</div>
 		</BlockEditPopover>
 	);
@@ -442,6 +517,52 @@ function PreviewBlock({
 		onSelect();
 	};
 
+	const blockStyle = "style" in block ? (block.style as RawBlockStyle) : undefined;
+
+	const handlePaddingChange = (side: "top" | "right" | "bottom" | "left", value: number) => {
+		const key = `padding${side.charAt(0).toUpperCase() + side.slice(1)}` as keyof RawBlockStyle;
+		onUpdate({
+			...block,
+			style: { ...blockStyle, [key]: value },
+		} as Block);
+	};
+
+	const handleMarginChange = (side: "top" | "right" | "bottom" | "left", value: number) => {
+		const key = `margin${side.charAt(0).toUpperCase() + side.slice(1)}` as keyof RawBlockStyle;
+		onUpdate({
+			...block,
+			style: { ...blockStyle, [key]: value },
+		} as Block);
+	};
+
+	const handleBorderRadiusChange = (value: number) => {
+		onUpdate({
+			...block,
+			style: { ...blockStyle, borderRadius: value },
+		} as Block);
+	};
+
+	const handleWidthChange = (value: number) => {
+		onUpdate({
+			...block,
+			style: { ...blockStyle, width: value },
+		} as Block);
+	};
+
+	const handleHeightChange = (value: number) => {
+		onUpdate({
+			...block,
+			style: { ...blockStyle, height: value },
+		} as Block);
+	};
+
+	const handleTextAlignChange = (value: "left" | "center" | "right") => {
+		onUpdate({
+			...block,
+			style: { ...blockStyle, textAlign: value },
+		} as Block);
+	};
+
 	return (
 		<BlockEditPopover
 			block={block}
@@ -479,6 +600,28 @@ function PreviewBlock({
 					onBlockUpdate={onBlockUpdate}
 					onBlockDelete={onBlockDelete}
 				/>
+				{isSelected && !isDragging && (
+					<SpacingControls
+						paddingTop={blockStyle?.paddingTop}
+						paddingRight={blockStyle?.paddingRight}
+						paddingBottom={blockStyle?.paddingBottom}
+						paddingLeft={blockStyle?.paddingLeft}
+						marginTop={blockStyle?.marginTop}
+						marginRight={blockStyle?.marginRight}
+						marginBottom={blockStyle?.marginBottom}
+						marginLeft={blockStyle?.marginLeft}
+						borderRadius={blockStyle?.borderRadius}
+						width={blockStyle?.width}
+						height={blockStyle?.height}
+						textAlign={blockStyle?.textAlign}
+						onPaddingChange={handlePaddingChange}
+						onMarginChange={handleMarginChange}
+						onBorderRadiusChange={handleBorderRadiusChange}
+						onWidthChange={handleWidthChange}
+						onHeightChange={handleHeightChange}
+						onTextAlignChange={handleTextAlignChange}
+					/>
+				)}
 			</div>
 		</BlockEditPopover>
 	);

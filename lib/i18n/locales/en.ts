@@ -55,6 +55,20 @@ export interface Translations {
 			newsletter: string;
 			orderConfirmation: string;
 		};
+		suggestions: {
+			image: {
+				hero: string;
+				product: string;
+				banner: string;
+				social: string;
+			};
+			video: {
+				promo: string;
+				product: string;
+				social: string;
+				story: string;
+			};
+		};
 		inputPlaceholder: string;
 		generating: string;
 		saveAndEdit: string;
@@ -76,6 +90,64 @@ export interface Translations {
 		hideConversations: string;
 		showMore: string;
 		showLess: string;
+		contentType: {
+			template: string;
+			image: string;
+			video: string;
+		};
+		media: {
+			imageGenerated: string;
+			videoGenerated: string;
+			saveMedia: string;
+			prompt: string;
+			negativePrompt: string;
+			aspectRatio: string;
+			style: string;
+			duration: string;
+			scenes: string;
+			scene: string;
+			audioMood: string;
+		};
+		settings: {
+			title: string;
+			imageSettings: string;
+			videoSettings: string;
+			aspectRatios: {
+				square: string;
+				landscape: string;
+				portrait: string;
+				wide: string;
+				tall: string;
+			};
+			styles: {
+				realistic: string;
+				artistic: string;
+				cartoon: string;
+				abstract: string;
+				cinematic: string;
+				anime: string;
+				photography: string;
+				illustration: string;
+			};
+			durations: {
+				short: string;
+				medium: string;
+				long: string;
+			};
+			negativePromptPlaceholder: string;
+			negativePromptHelp: string;
+		};
+		attachments: {
+			title: string;
+			dropzone: string;
+			dropzoneActive: string;
+			addFiles: string;
+			removeFile: string;
+			maxFiles: string;
+			maxSize: string;
+			supportedFormats: string;
+			uploadFromDevice: string;
+		};
 	};
 	templates: {
 		title: string;
@@ -1225,6 +1297,41 @@ export interface Translations {
 		batchDeleteFailed: string;
 		deleteSelected: string;
 		selectFiles: string;
+		filterAll: string;
+		filterImages: string;
+		filterDocuments: string;
+		filterLogos: string;
+		filterVideos: string;
+		saveToStorage: string;
+		savedToStorage: string;
+		saveToStorageFailed: string;
+		selectFromStorage: string;
+		noFilesInCategory: string;
+		folders: string;
+		folder: string;
+		createFolder: string;
+		createFolderDescription: string;
+		folderName: string;
+		folderNamePlaceholder: string;
+		folderCreated: string;
+		folderCreateFailed: string;
+		renameFolder: string;
+		folderRenamed: string;
+		folderRenameFailed: string;
+		deleteFolder: string;
+		deleteFolderConfirm: string;
+		folderDeleted: string;
+		folderDeleteFailed: string;
+		noFolders: string;
+		moveToFolder: string;
+		moveToRoot: string;
+		moveFailed: string;
+		moveSuccess: string;
+		rootFolder: string;
+		back: string;
+		emptyFolder: string;
+		emptyFolderDescription: string;
+		itemsCount: string;
 	};
 	status: {
 		title: string;
@@ -1309,6 +1416,20 @@ export const en: Translations = {
 			newsletter: "Make a newsletter about our latest features",
 			orderConfirmation: "Design an order confirmation email",
 		},
+		suggestions: {
+			image: {
+				hero: "Generate a hero image for landing page",
+				product: "Create a product showcase image",
+				banner: "Design a promotional banner",
+				social: "Create social media post image",
+			},
+			video: {
+				promo: "Create a promotional video intro",
+				product: "Generate product demo animation",
+				social: "Make a short social media video",
+				story: "Create an Instagram story video",
+			},
+		},
 		inputPlaceholder: "Describe the email you want to create...",
 		generating: "Generating response...",
 		saveAndEdit: "Save & Edit",
@@ -1330,6 +1451,64 @@ export const en: Translations = {
 		hideConversations: "Hide conversations",
 		showMore: "Show more",
 		showLess: "Show less",
+		contentType: {
+			template: "Template",
+			image: "Image",
+			video: "Video",
+		},
+		media: {
+			imageGenerated: "Image prompt generated successfully!",
+			videoGenerated: "Video prompt generated successfully!",
+			saveMedia: "Save Media",
+			prompt: "Prompt",
+			negativePrompt: "Negative Prompt",
+			aspectRatio: "Aspect Ratio",
+			style: "Style",
+			duration: "Duration",
+			scenes: "Scenes",
+			scene: "Scene",
+			audioMood: "Audio Mood",
+		},
+		settings: {
+			title: "Generation Settings",
+			imageSettings: "Image Settings",
+			videoSettings: "Video Settings",
+			aspectRatios: {
+				square: "Square (1:1)",
+				landscape: "Landscape (16:9)",
+				portrait: "Portrait (9:16)",
+				wide: "Wide (21:9)",
+				tall: "Tall (4:5)",
+			},
+			styles: {
+				realistic: "Realistic",
+				artistic: "Artistic",
+				cartoon: "Cartoon",
+				abstract: "Abstract",
+				cinematic: "Cinematic",
+				anime: "Anime",
+				photography: "Photography",
+				illustration: "Illustration",
+			},
+			durations: {
+				short: "Short (5s)",
+				medium: "Medium (10s)",
+				long: "Long (15s)",
+			},
+			negativePromptPlaceholder: "What to avoid in the image...",
+			negativePromptHelp: "Describe elements you don't want in the generated image",
+		},
+		attachments: {
+			title: "Attachments",
+			dropzone: "Drop files here or click to upload",
+			dropzoneActive: "Drop files here...",
+			addFiles: "Add files",
+			removeFile: "Remove",
+			maxFiles: "Maximum {count} files",
+			maxSize: "Maximum size: {size}MB",
+			supportedFormats: "Supported formats: {formats}",
+			uploadFromDevice: "Upload from device",
+		},
 	},
 	templates: {
 		title: "Templates",
@@ -2527,6 +2706,41 @@ export const en: Translations = {
 		batchDeleteFailed: "Failed to delete files",
 		deleteSelected: "Delete Selected",
 		selectFiles: "Select files to delete",
+		filterAll: "All Files",
+		filterImages: "Images",
+		filterDocuments: "Documents",
+		filterLogos: "Logos",
+		filterVideos: "Videos",
+		saveToStorage: "Save to Storage",
+		savedToStorage: "Saved to storage",
+		saveToStorageFailed: "Failed to save to storage",
+		selectFromStorage: "Select from Storage",
+		noFilesInCategory: "No files in this category",
+		folders: "Folders",
+		folder: "Folder",
+		createFolder: "New Folder",
+		createFolderDescription: "Create a new folder to organize your files",
+		folderName: "Folder Name",
+		folderNamePlaceholder: "Enter folder name",
+		folderCreated: "Folder created",
+		folderCreateFailed: "Failed to create folder",
+		renameFolder: "Rename Folder",
+		folderRenamed: "Folder renamed",
+		folderRenameFailed: "Failed to rename folder",
+		deleteFolder: "Delete Folder",
+		deleteFolderConfirm: "Are you sure you want to delete this folder and all its contents?",
+		folderDeleted: "Folder deleted",
+		folderDeleteFailed: "Failed to delete folder",
+		noFolders: "No folders",
+		moveToFolder: "Move to Folder",
+		moveToRoot: "Move to Root",
+		moveFailed: "Failed to move",
+		moveSuccess: "Moved successfully",
+		rootFolder: "All Files",
+		back: "Back",
+		emptyFolder: "This folder is empty",
+		emptyFolderDescription: "Upload files or create subfolders to get started",
+		itemsCount: "{folders} folders, {files} files",
 	},
 	status: {
 		title: "System Status",

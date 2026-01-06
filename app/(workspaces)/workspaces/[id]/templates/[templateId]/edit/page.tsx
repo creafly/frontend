@@ -32,8 +32,18 @@ import {
 	IconPencil,
 	IconLayoutSidebarRight,
 	IconSparkles,
+	IconMenu2,
+	IconX,
 } from "@tabler/icons-react";
-import { Icon, TypographyH1, TypographyH2, TypographyError, TypographyMuted } from "@/components/typography";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+	Icon,
+	TypographyH1,
+	TypographyH2,
+	TypographyError,
+	TypographyMuted,
+} from "@/components/typography";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import type { Block } from "@/types";
@@ -88,6 +98,8 @@ export default function TemplateEditPage({
 	const [selectedBlockPath, setSelectedBlockPath] = useState<string | null>(null);
 	const [sidebarOpen, setSidebarOpen] = useLocalStorage("template-edit-sidebar", false);
 	const [chatOpen, setChatOpen] = useState(false);
+	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const isMobile = useIsMobile();
 
 	const templateId = data?.template?.id ?? null;
 
@@ -373,24 +385,29 @@ export default function TemplateEditPage({
 				initial={{ opacity: 0, y: -10 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.3 }}
-				className="flex items-center justify-between border-b px-4 py-3 bg-background/80 backdrop-blur-sm shrink-0"
+				className="flex items-center justify-between border-b px-2 sm:px-4 py-2 sm:py-3 bg-background/80 backdrop-blur-sm shrink-0"
 			>
-				<div className="flex flex-1 items-center justify-between">
-					<div className="flex items-center gap-3">
+				<div className="flex flex-1 items-center justify-between gap-2">
+					<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 						<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-							<Button variant="ghost" size="icon" asChild>
+							<Button variant="ghost" size="icon" className="shrink-0" asChild>
 								<Link href={`/workspaces/${resolvedParams?.id}/templates/${template.id}`}>
 									<Icon icon={IconArrowLeft} size="sm" />
 								</Link>
 							</Button>
 						</motion.div>
-						<div className="mr-4">
-							<TypographyH1 size="xs" className="font-semibold">{t.templateForm.editTitle}</TypographyH1>
-							<TypographyMuted>{template.name}</TypographyMuted>
+						<div className="min-w-0 hidden sm:block">
+							<TypographyH1 size="xs" className="font-semibold truncate">
+								{t.templateForm.editTitle}
+							</TypographyH1>
+							<TypographyMuted className="truncate">{template.name}</TypographyMuted>
 						</div>
+						<TypographyMuted className="truncate sm:hidden text-sm font-medium">
+							{template.name}
+						</TypographyMuted>
 					</div>
 
-					<div className="flex items-center gap-2">
+					<div className="hidden md:flex items-center gap-2">
 						{supportsBlockEditing && (
 							<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 								<Button
@@ -442,12 +459,59 @@ export default function TemplateEditPage({
 							</Button>
 						</motion.div>
 					</div>
+
+					<div className="flex md:hidden items-center gap-1">
+						{supportsBlockEditing && (
+							<Button
+								variant={chatOpen ? "secondary" : "ghost"}
+								size="icon"
+								onClick={() => setChatOpen(!chatOpen)}
+								className={cn("h-8 w-8", chatOpen && "bg-primary/10 text-primary")}
+							>
+								<Icon icon={IconSparkles} size="sm" />
+							</Button>
+						)}
+						<Button
+							onClick={handleSave}
+							disabled={updateTemplate.isPending || !hasChanges}
+							size="sm"
+							className={cn("h-8 px-3", hasChanges && "shadow-lg shadow-primary/20")}
+						>
+							<Icon icon={IconDeviceFloppy} size="sm" className={hasChanges ? "mr-1" : ""} />
+							{hasChanges && <span className="hidden xs:inline">{t.common.save}</span>}
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8"
+							onClick={() => setMobileMenuOpen(true)}
+						>
+							<Icon icon={IconMenu2} size="sm" />
+						</Button>
+					</div>
 				</div>
 			</motion.div>
 
+			{supportsBlockEditing && isMobile && (
+				<div className="border-b px-2 py-2 bg-background shrink-0">
+					<Tabs value={activeTab} onValueChange={(v) => v && setActiveTab(v)} className="w-full">
+						<TabsList className="w-full">
+							<TabsTrigger value="overview" className="flex-1">
+								<Icon icon={IconLayoutList} size="sm" className="mr-1" />
+								<span className="text-xs">{t.templateForm.overviewTab}</span>
+							</TabsTrigger>
+							<TabsTrigger value="visual-editor" className="flex-1">
+								<Icon icon={IconPencil} size="sm" className="mr-1" />
+								<span className="text-xs">{t.templateForm.visualEditorTab}</span>
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
+			)}
+
 			<div className="flex-1 flex overflow-hidden">
 				<motion.div
-					className="py-4 flex-1 overflow-auto"
+					className="py-2 sm:py-4 flex-1 overflow-auto"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ duration: 0.3, delay: 0.1 }}
@@ -456,7 +520,7 @@ export default function TemplateEditPage({
 				</motion.div>
 
 				<AnimatePresence mode="wait">
-					{sidebarOpen && (
+					{sidebarOpen && !isMobile && (
 						<motion.div
 							initial={{ width: 0, opacity: 0 }}
 							animate={{ width: 320, opacity: 1 }}
@@ -469,6 +533,17 @@ export default function TemplateEditPage({
 					)}
 				</AnimatePresence>
 			</div>
+
+			<Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+				<SheetContent side="right" className="w-full sm:w-80 p-0">
+					<SheetHeader className="px-4 py-3 border-b">
+						<SheetTitle>
+							{activeTab === "visual-editor" ? t.templateForm.blocks : t.templateForm.details}
+						</SheetTitle>
+					</SheetHeader>
+					<ScrollArea className="h-[calc(100vh-60px)]">{renderSidebarContent()}</ScrollArea>
+				</SheetContent>
+			</Sheet>
 		</div>
 	);
 

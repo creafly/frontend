@@ -88,7 +88,8 @@ export async function fetchWithRetry<T>(url: string, options?: FetchOptions): Pr
 		...(fetchOptions.headers || {}),
 	};
 
-	if (!skipContentType && fetchOptions.body) {
+	const isFormData = fetchOptions.body instanceof FormData;
+	if (!skipContentType && fetchOptions.body && !isFormData) {
 		(headers as Record<string, string>)["Content-Type"] = "application/json";
 	}
 

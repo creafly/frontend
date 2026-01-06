@@ -1087,7 +1087,59 @@ export function useAddMessageToConversation() {
 			conversationId: string;
 			message: AddMessageRequest;
 		}) => api.conversationsApi.addMessage(tenantId, conversationId, message),
-		onSuccess: (_, variables) => {
+		onMutate: async (variables) => {
+			await queryClient.cancelQueries({
+				queryKey: ["conversation", variables.tenantId, variables.conversationId],
+			});
+
+			const previousData = queryClient.getQueryData<{ conversation: import("@/types").ConversationWithMessages }>([
+				"conversation",
+				variables.tenantId,
+				variables.conversationId,
+			]);
+
+			if (previousData) {
+				const optimisticMessage: import("@/types").ConversationMessage = {
+					id: `temp-${Date.now()}`,
+					conversationId: variables.conversationId,
+					role: variables.message.role,
+					content: variables.message.content,
+					type: variables.message.type,
+					html: variables.message.html,
+					template: variables.message.template,
+					subject: variables.message.subject,
+					summary: variables.message.summary,
+					props: variables.message.props,
+					blocks: variables.message.blocks,
+					tokenUsage: variables.message.tokenUsage,
+					imageContent: variables.message.imageContent,
+					videoContent: variables.message.videoContent,
+					attachments: variables.message.attachments,
+					createdAt: new Date().toISOString(),
+				};
+
+				queryClient.setQueryData<{ conversation: import("@/types").ConversationWithMessages }>(
+					["conversation", variables.tenantId, variables.conversationId],
+					{
+						conversation: {
+							...previousData.conversation,
+							messages: [...previousData.conversation.messages, optimisticMessage],
+						},
+					}
+				);
+			}
+
+			return { previousData };
+		},
+		onError: (_, variables, context) => {
+			if (context?.previousData) {
+				queryClient.setQueryData(
+					["conversation", variables.tenantId, variables.conversationId],
+					context.previousData
+				);
+			}
+		},
+		onSettled: (_, __, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["conversations", variables.tenantId],
 			});
