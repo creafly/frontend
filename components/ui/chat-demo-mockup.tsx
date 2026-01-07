@@ -9,6 +9,11 @@ import {
 	IconTemplate,
 	IconSettings,
 	IconLayoutSidebarLeftExpand,
+	IconCheck,
+	IconLoader2,
+	IconPaperclip,
+	IconChevronDown,
+	IconDatabase,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import { Icon, TypographyP } from "@/components/typography";
@@ -21,6 +26,18 @@ interface DemoMessage {
 	content: string;
 	isEmail?: boolean;
 }
+
+interface AgentStep {
+	id: string;
+	message: string;
+	status: "pending" | "in_progress" | "completed";
+}
+
+const AGENT_STEPS: Omit<AgentStep, "status">[] = [
+	{ id: "1", message: "Analyzing request..." },
+	{ id: "2", message: "Selecting template..." },
+	{ id: "3", message: "Generating content..." },
+];
 
 interface ChatDemoMockupProps {
 	userMessage?: string;
@@ -101,6 +118,7 @@ export function ChatDemoMockup({
 	const [phase, setPhase] = useState<DemoPhase>("empty");
 	const [typedText, setTypedText] = useState("");
 	const [messages, setMessages] = useState<DemoMessage[]>([]);
+	const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
 	const emailPreviewRef = useRef<HTMLIFrameElement>(null);
 	const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +126,7 @@ export function ChatDemoMockup({
 		setPhase("empty");
 		setTypedText("");
 		setMessages([]);
+		setAgentSteps([]);
 	}, []);
 
 	const startDemo = useCallback(() => {
@@ -148,8 +167,36 @@ export function ChatDemoMockup({
 	useEffect(() => {
 		if (phase !== "generating") return;
 
-		const timer = setTimeout(() => setPhase("showing-summary"), 2500);
-		return () => clearTimeout(timer);
+		setAgentSteps([{ ...AGENT_STEPS[0], status: "in_progress" }]);
+
+		const stepIntervals: NodeJS.Timeout[] = [];
+
+		AGENT_STEPS.forEach((step, index) => {
+			if (index === 0) return;
+
+			const timeout = setTimeout(() => {
+				setAgentSteps((prev) => {
+					const updated = prev.map((s, i) =>
+						i === index - 1 ? { ...s, status: "completed" as const } : s
+					);
+					return [...updated, { ...step, status: "in_progress" as const }];
+				});
+			}, index * 600);
+
+			stepIntervals.push(timeout);
+		});
+
+		const completeTimer = setTimeout(() => {
+			setAgentSteps((prev) =>
+				prev.map((s) => ({ ...s, status: "completed" as const }))
+			);
+			setTimeout(() => setPhase("showing-summary"), 400);
+		}, AGENT_STEPS.length * 600);
+
+		return () => {
+			stepIntervals.forEach(clearTimeout);
+			clearTimeout(completeTimer);
+		};
 	}, [phase]);
 
 	useEffect(() => {
@@ -238,7 +285,7 @@ export function ChatDemoMockup({
 	}, [messages, phase]);
 
 	return (
-		<div className={cn("flex h-105 bg-background rounded-lg", className)}>
+		<div className={cn("flex h-115 bg-background rounded-lg", className)}>
 			<div className="w-12 border-r border-border/50 flex flex-col items-center py-3 gap-1 shrink-0">
 				<div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center mb-3">
 					<span className="text-xs font-bold text-primary">W</span>
@@ -362,26 +409,66 @@ export function ChatDemoMockup({
 							))}
 						</AnimatePresence>
 
-						{phase === "generating" && (
+						{phase === "generating" && agentSteps.length > 0 && (
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
 								exit={{ opacity: 0 }}
-								className="flex justify-start items-center gap-2"
+								className="flex flex-col gap-1.5"
 							>
-								<motion.span
-									className="text-sm font-medium text-muted-foreground"
-									animate={{
-										opacity: [0.4, 1, 0.4],
-									}}
-									transition={{
-										duration: 1.5,
-										repeat: Infinity,
-										ease: "easeInOut",
-									}}
-								>
-									{generatingText}
-								</motion.span>
+								<AnimatePresence mode="popLayout">
+									{agentSteps.map((step, index) => (
+										<motion.div
+											key={step.id}
+											initial={{ opacity: 0, x: -10, height: 0 }}
+											animate={{ opacity: 1, x: 0, height: "auto" }}
+											exit={{ opacity: 0, x: 10, height: 0 }}
+											transition={{
+												duration: 0.2,
+												delay: index === agentSteps.length - 1 ? 0.05 : 0,
+											}}
+											className="flex items-center gap-2"
+										>
+											<div className="flex items-center justify-center w-5 h-5 shrink-0">
+												{step.status === "completed" ? (
+													<motion.div
+														initial={{ scale: 0 }}
+														animate={{ scale: 1 }}
+														transition={{ type: "spring", stiffness: 500, damping: 25 }}
+														className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/20"
+													>
+														<Icon icon={IconCheck} size="xs" className="text-primary" />
+													</motion.div>
+												) : (
+													<motion.div
+														animate={{ rotate: 360 }}
+														transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+													>
+														<Icon icon={IconLoader2} size="sm" className="text-muted-foreground" />
+													</motion.div>
+												)}
+											</div>
+											<motion.span
+												className={cn(
+													"text-sm transition-colors duration-200",
+													step.status === "completed"
+														? "text-muted-foreground"
+														: "text-foreground font-medium"
+												)}
+												animate={{
+													opacity: step.status === "in_progress" ? [0.7, 1, 0.7] : 1,
+												}}
+												transition={{
+													duration: 1.5,
+													repeat: step.status === "in_progress" ? Infinity : 0,
+													ease: "easeInOut",
+												}}
+											>
+												{step.message}
+											</motion.span>
+										</motion.div>
+									))}
+								</AnimatePresence>
 							</motion.div>
 						)}
 					</div>
@@ -391,47 +478,68 @@ export function ChatDemoMockup({
 					<div className="relative">
 						<div
 							className={cn(
-								"flex gap-2 bg-muted/30 rounded-lg p-1.5 border transition-colors",
+								"bg-muted/30 rounded-2xl border transition-colors overflow-hidden",
 								phase === "typing" ? "border-primary/30" : "border-border/50"
 							)}
 						>
-							<div className="flex-1 px-3 py-1.5 text-sm min-h-8 flex items-center">
-								{typedText ? (
-									<span className="text-foreground">{typedText}</span>
-								) : (
-									<span className="text-muted-foreground/60">{inputPlaceholder}</span>
-								)}
-								{phase === "typing" && (
-									<motion.span
-										className="inline-block w-0.5 h-4 bg-primary ml-0.5"
-										animate={{ opacity: [1, 0] }}
-										transition={{ duration: 0.5, repeat: Infinity }}
-									/>
-								)}
-							</div>
-							<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-								<Button
-									size="sm"
-									disabled={phase !== "typing" || typedText.length === 0}
-									className={cn(
-										"rounded-md px-3 h-8 transition-all",
-										typedText.length > 0 && phase === "typing"
-											? "shadow-lg shadow-primary/25"
-											: "opacity-50"
+							<div className="flex items-center gap-2 px-3 py-2">
+								<div className="flex-1 text-sm min-h-8 flex items-center">
+									{typedText ? (
+										<span className="text-foreground">{typedText}</span>
+									) : (
+										<span className="text-muted-foreground/60">{inputPlaceholder}</span>
 									)}
-								>
-									<motion.div
-										animate={typedText.length > 0 && phase === "typing" ? { x: [0, 2, 0] } : {}}
-										transition={{
-											repeat: Infinity,
-											duration: 1.5,
-											ease: "easeInOut",
-										}}
+									{phase === "typing" && (
+										<motion.span
+											className="inline-block w-0.5 h-4 bg-primary ml-0.5"
+											animate={{ opacity: [1, 0] }}
+											transition={{ duration: 0.5, repeat: Infinity }}
+										/>
+									)}
+								</div>
+								<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+									<Button
+										size="sm"
+										disabled={phase !== "typing" || typedText.length === 0}
+										className={cn(
+											"rounded-full h-8 w-8 p-0 transition-all",
+											typedText.length > 0 && phase === "typing"
+												? "shadow-lg shadow-primary/25"
+												: "opacity-50"
+										)}
 									>
 										<Icon icon={IconSend} size="sm" />
-									</motion.div>
+									</Button>
+								</motion.div>
+							</div>
+
+							<div className="flex items-center gap-1 px-2 py-1.5">
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 w-7 text-muted-foreground"
+								>
+									<Icon icon={IconPaperclip} size="sm" />
 								</Button>
-							</motion.div>
+
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 w-7 text-muted-foreground"
+								>
+									<Icon icon={IconDatabase} size="sm" />
+								</Button>
+
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-7 px-2 text-muted-foreground gap-1"
+								>
+									<Icon icon={IconTemplate} size="sm" />
+									<span className="text-xs">Template</span>
+									<Icon icon={IconChevronDown} size="xs" className="opacity-60" />
+								</Button>
+							</div>
 						</div>
 					</div>
 				</div>

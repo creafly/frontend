@@ -10,27 +10,33 @@ import {
 	IconPhoto,
 	IconClick,
 	IconSquare,
+	IconAlignLeft,
+	IconAlignCenter,
+	IconAlignRight,
 } from "@tabler/icons-react";
 import { Icon } from "@/components/typography";
 import { cn } from "@/lib/utils";
+import { APP_DOMAIN } from "@/lib/constants";
 
 interface InteractivePreviewMockupProps {
 	isActive: boolean;
 }
 
-type Phase = "idle" | "selecting" | "dragging" | "editing" | "complete";
+type Phase = "idle" | "selecting" | "spacing" | "dragging" | "editing" | "complete";
 
 interface Block {
 	id: string;
 	type: "heading" | "text" | "image" | "button";
 	content: string;
+	paddingTop?: number;
+	paddingBottom?: number;
 }
 
 const initialBlocks: Block[] = [
-	{ id: "1", type: "heading", content: "Summer Sale!" },
-	{ id: "2", type: "text", content: "Get up to 50% off on selected items" },
-	{ id: "3", type: "image", content: "product-banner.jpg" },
-	{ id: "4", type: "button", content: "Shop Now" },
+	{ id: "1", type: "heading", content: "Summer Sale!", paddingTop: 16, paddingBottom: 8 },
+	{ id: "2", type: "text", content: "Get up to 50% off on selected items", paddingTop: 8, paddingBottom: 8 },
+	{ id: "3", type: "image", content: "product-banner.jpg", paddingTop: 12, paddingBottom: 12 },
+	{ id: "4", type: "button", content: "Shop Now", paddingTop: 16, paddingBottom: 16 },
 ];
 
 const blockIcons = {
@@ -45,12 +51,16 @@ export function InteractivePreviewMockup({ isActive }: InteractivePreviewMockupP
 	const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 	const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
 	const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
+	const [showSpacingControls, setShowSpacingControls] = useState(false);
+	const [animatedPadding, setAnimatedPadding] = useState(16);
 
 	const resetDemo = useCallback(() => {
 		setPhase("idle");
 		setSelectedBlockId(null);
 		setBlocks(initialBlocks);
 		setDraggedBlockId(null);
+		setShowSpacingControls(false);
+		setAnimatedPadding(16);
 	}, []);
 
 	useEffect(() => {
@@ -67,10 +77,35 @@ export function InteractivePreviewMockup({ isActive }: InteractivePreviewMockupP
 		if (phase !== "selecting") return;
 
 		const timer = setTimeout(() => {
-			setSelectedBlockId("2");
-			setTimeout(() => setPhase("dragging"), 1000);
+			setSelectedBlockId("1");
+			setShowSpacingControls(true);
+			setTimeout(() => setPhase("spacing"), 600);
 		}, 600);
 		return () => clearTimeout(timer);
+	}, [phase]);
+
+	useEffect(() => {
+		if (phase !== "spacing") return;
+
+		let currentPadding = 16;
+		const targetPadding = 32;
+		const interval = setInterval(() => {
+			currentPadding += 1;
+			setAnimatedPadding(currentPadding);
+			setBlocks((prev) =>
+				prev.map((b) => (b.id === "1" ? { ...b, paddingBottom: currentPadding } : b))
+			);
+			if (currentPadding >= targetPadding) {
+				clearInterval(interval);
+				setTimeout(() => {
+					setShowSpacingControls(false);
+					setSelectedBlockId("2");
+					setPhase("dragging");
+				}, 800);
+			}
+		}, 50);
+
+		return () => clearInterval(interval);
 	}, [phase]);
 
 	useEffect(() => {
@@ -125,7 +160,7 @@ export function InteractivePreviewMockup({ isActive }: InteractivePreviewMockupP
 				</div>
 				<div className="flex-1 mx-2">
 					<div className="h-6 rounded-md bg-background/80 flex items-center px-3 text-xs text-muted-foreground">
-						app.creafly.ai/templates/edit
+						{APP_DOMAIN}/templates/edit
 					</div>
 				</div>
 			</div>
@@ -172,7 +207,72 @@ export function InteractivePreviewMockup({ isActive }: InteractivePreviewMockupP
 												? "border-primary ring-2 ring-primary/20 bg-primary/5"
 												: "border-transparent hover:border-border bg-muted/30"
 										)}
+										style={{
+											paddingTop: block.paddingTop ? `${block.paddingTop}px` : undefined,
+											paddingBottom: block.paddingBottom ? `${block.paddingBottom}px` : undefined,
+										}}
 									>
+										{selectedBlockId === block.id && showSpacingControls && (
+											<>
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-0.5 bg-white rounded px-1 py-0.5 shadow-sm z-10"
+												>
+													{(["left", "center", "right"] as const).map((align) => {
+														const AlignIcon = align === "left" ? IconAlignLeft : align === "center" ? IconAlignCenter : IconAlignRight;
+														return (
+															<div
+																key={align}
+																className={cn(
+																	"w-5 h-5 flex items-center justify-center rounded cursor-pointer",
+																	align === "center" ? "bg-primary text-white" : "text-muted-foreground"
+																)}
+															>
+																<AlignIcon size={12} />
+															</div>
+														);
+													})}
+												</motion.div>
+
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute top-0 left-0 right-0 h-1.5 bg-green-500/40 rounded-t cursor-ns-resize"
+												/>
+
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute bottom-0 left-0 right-0 h-1.5 bg-green-500/80 rounded-b cursor-ns-resize"
+												/>
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded"
+												>
+													{animatedPadding}px
+												</motion.div>
+
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute top-1/2 -left-2 -translate-y-1/2 w-1.5 h-6 bg-blue-500/50 rounded cursor-ew-resize"
+												/>
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute top-1/2 -right-2 -translate-y-1/2 w-1.5 h-6 bg-blue-500/50 rounded cursor-ew-resize"
+												/>
+
+												<motion.div
+													initial={{ opacity: 0 }}
+													animate={{ opacity: 1 }}
+													className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500/60 rounded-full cursor-nwse-resize"
+												/>
+											</>
+										)}
+
 										<div className="flex items-center gap-2">
 											<div
 												className={cn(

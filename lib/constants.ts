@@ -1,5 +1,7 @@
 export const TENANT_ID = "demo_tenant";
 
+export const APP_DOMAIN = "app.creafly.ai";
+
 export type ViewportSize = "desktop" | "tablet" | "mobile";
 
 export const VIEWPORT_WIDTHS: Record<ViewportSize, string> = {

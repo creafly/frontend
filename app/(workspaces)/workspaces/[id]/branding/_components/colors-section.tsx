@@ -12,6 +12,7 @@ import {
 	IconSquareCheck,
 	IconX,
 	IconPalette,
+	IconRefresh,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
@@ -30,10 +31,14 @@ import {
 	useUpdateColor,
 	useDeleteColor,
 	useDeleteColorsBatch,
+	useRestoreColor,
+	useRestoreColorsBatch,
 } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
 	Dialog,
 	DialogContent,
@@ -82,6 +87,7 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
+	const [showDeleted, setShowDeleted] = useState(false);
 
 	const [name, setName] = useState("");
 	const [value, setValue] = useState("#000000");
@@ -94,6 +100,7 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 	const { data: colorsData, isLoading } = useColors(tenantId, {
 		limit: ITEMS_PER_PAGE,
 		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+		includeDeleted: showDeleted,
 	});
 
 	const colors = colorsData?.colors || [];
@@ -104,6 +111,8 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 	const updateColor = useUpdateColor();
 	const deleteColor = useDeleteColor();
 	const deleteColorsBatch = useDeleteColorsBatch();
+	const restoreColor = useRestoreColor();
+	const restoreColorsBatch = useRestoreColorsBatch();
 
 	const resetForm = () => {
 		setName("");
@@ -261,6 +270,28 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 		}
 	};
 
+	const handleRestore = async (colorId: string) => {
+		try {
+			await restoreColor.mutateAsync({ tenantId, colorId });
+			toast.success(t.branding.colorRestored);
+		} catch {
+			toast.error(t.branding.colorRestoreFailed);
+		}
+	};
+
+	const handleBatchRestore = async () => {
+		try {
+			await restoreColorsBatch.mutateAsync({
+				tenantId,
+				request: { ids: Array.from(selectedIds) },
+			});
+			toast.success(t.branding.batchRestoreSuccess.replace("{count}", String(selectedIds.size)));
+			exitSelectionMode();
+		} catch {
+			toast.error(t.branding.batchRestoreFailed);
+		}
+	};
+
 	const sortedColors = colors;
 
 	if (isLoading) {
@@ -278,7 +309,17 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 					<TypographyH3 size="xs">{t.branding.colors}</TypographyH3>
 					<TypographyMuted>{t.branding.colorsDescription}</TypographyMuted>
 				</div>
-				<div className="flex flex-wrap gap-2">
+				<div className="flex flex-wrap items-center gap-2">
+					<div className="flex items-center gap-2 mr-2">
+						<Switch
+							id="show-deleted-colors"
+							checked={showDeleted}
+							onCheckedChange={setShowDeleted}
+						/>
+						<Label htmlFor="show-deleted-colors" className="text-sm cursor-pointer">
+							{t.common.showDeleted}
+						</Label>
+					</div>
 					{isSelectionMode ? (
 						<>
 							<Button
@@ -298,6 +339,21 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 									</>
 								)}
 							</Button>
+							{showDeleted && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleBatchRestore}
+									disabled={selectedIds.size === 0 || restoreColorsBatch.isPending}
+								>
+									{restoreColorsBatch.isPending ? (
+										<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+									) : (
+										<Icon icon={IconRefresh} size="sm" className="mr-2" />
+									)}
+									{t.branding.restoreSelected} ({selectedIds.size})
+								</Button>
+							)}
 							<Button
 								variant="destructive"
 								size="sm"
@@ -354,54 +410,82 @@ export function ColorsSection({ tenantId }: ColorsSectionProps) {
 			) : (
 				<>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-						{sortedColors.map((color) => (
-							<div
-								key={color.id}
-								className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
-									isSelectionMode && selectedIds.has(color.id) ? "ring-2 ring-primary" : ""
-								}`}
-								onClick={isSelectionMode ? () => toggleSelection(color.id) : undefined}
-							>
-								{isSelectionMode && (
-									<div className="flex justify-end mb-2">
-										<Checkbox
-											checked={selectedIds.has(color.id)}
-											onCheckedChange={() => toggleSelection(color.id)}
-										/>
-									</div>
-								)}
+						{sortedColors.map((color) => {
+							const isDeleted = !!color.deletedAt;
+							return (
 								<div
-									className="w-full h-16 rounded-md mb-3 border"
-									style={{ backgroundColor: color.value }}
-								/>
-								<div className="flex items-center justify-between">
-									<div>
-										<TypographyP className="font-medium text-sm mt-0">{color.name}</TypographyP>
-										<TypographyMuted className="text-xs uppercase">{color.value}</TypographyMuted>
-									</div>
-									{!isSelectionMode && (
-										<div className="flex gap-1">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8"
-												onClick={() => openEditDialog(color)}
-											>
-												<Icon icon={IconEdit} size="sm" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8 text-destructive hover:text-destructive"
-												onClick={() => setDeleteColorId(color.id)}
-											>
-												<Icon icon={IconTrash} size="sm" />
-											</Button>
+									key={color.id}
+									className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
+										isSelectionMode && selectedIds.has(color.id) ? "ring-2 ring-primary" : ""
+									} ${isDeleted ? "opacity-60" : ""}`}
+									onClick={isSelectionMode ? () => toggleSelection(color.id) : undefined}
+								>
+									{isSelectionMode && (
+										<div className="flex justify-end mb-2">
+											<Checkbox
+												checked={selectedIds.has(color.id)}
+												onCheckedChange={() => toggleSelection(color.id)}
+											/>
 										</div>
 									)}
+									<div
+										className={`w-full h-16 rounded-md mb-3 border ${isDeleted ? "grayscale" : ""}`}
+										style={{ backgroundColor: color.value }}
+									/>
+									<div className="flex items-center justify-between">
+										<div>
+											<TypographyP className={`font-medium text-sm mt-0 ${isDeleted ? "line-through" : ""}`}>
+												{color.name}
+											</TypographyP>
+											<TypographyMuted className="text-xs uppercase">{color.value}</TypographyMuted>
+											{isDeleted && (
+												<TypographyMuted className="text-xs text-destructive">
+													{t.common.deleted}
+												</TypographyMuted>
+											)}
+										</div>
+										{!isSelectionMode && (
+											<div className="flex gap-1">
+												{isDeleted ? (
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8"
+														onClick={() => handleRestore(color.id)}
+														disabled={restoreColor.isPending}
+													>
+														{restoreColor.isPending ? (
+															<Icon icon={IconLoader2} size="sm" className="animate-spin" />
+														) : (
+															<Icon icon={IconRefresh} size="sm" />
+														)}
+													</Button>
+												) : (
+													<>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8"
+															onClick={() => openEditDialog(color)}
+														>
+															<Icon icon={IconEdit} size="sm" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8 text-destructive hover:text-destructive"
+															onClick={() => setDeleteColorId(color.id)}
+														>
+															<Icon icon={IconTrash} size="sm" />
+														</Button>
+													</>
+												)}
+											</div>
+										)}
+									</div>
 								</div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 
 					<CardPagination

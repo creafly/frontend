@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { APP_DOMAIN } from "@/lib/constants";
 import { TypographyMuted } from "@/components/typography";
 import { BorderBeam } from "@/components/ui/border-beam";
 
@@ -16,7 +17,7 @@ interface BrowserMockupProps {
 }
 
 export function BrowserMockup({
-	url = "app.creafly.ai",
+	url = APP_DOMAIN,
 	children,
 	className,
 	showBorderBeam = false,

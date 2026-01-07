@@ -20,11 +20,13 @@ import type {
 	CreateParsingRequest,
 	ApproveParsingRequest,
 	BatchDeleteRequest,
+	BatchRestoreRequest,
 } from "@/types/branding";
 
 interface PaginationParams {
 	limit?: number;
 	offset?: number;
+	includeDeleted?: boolean;
 }
 
 export function useLogos(tenantId: string, params?: PaginationParams) {
@@ -175,6 +177,36 @@ export function useReorderLogos() {
 	});
 }
 
+export function useRestoreLogo() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, logoId }: { tenantId: string; logoId: string }) =>
+			brandingApi.restoreLogo(tokens!.accessToken, tenantId, logoId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreLogosBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchRestoreRequest }) =>
+			brandingApi.restoreLogosBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useCreateColor() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
@@ -249,6 +281,36 @@ export function useReorderColors() {
 	return useMutation({
 		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
 			brandingApi.reorderColors(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreColor() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, colorId }: { tenantId: string; colorId: string }) =>
+			brandingApi.restoreColor(tokens!.accessToken, tenantId, colorId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreColorsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchRestoreRequest }) =>
+			brandingApi.restoreColorsBatch(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -339,6 +401,36 @@ export function useReorderFonts() {
 	});
 }
 
+export function useRestoreFont() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, fontId }: { tenantId: string; fontId: string }) =>
+			brandingApi.restoreFont(tokens!.accessToken, tenantId, fontId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreFontsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchRestoreRequest }) =>
+			brandingApi.restoreFontsBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useCreateSpacing() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
@@ -421,6 +513,36 @@ export function useReorderSpacings() {
 	});
 }
 
+export function useRestoreSpacing() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, spacingId }: { tenantId: string; spacingId: string }) =>
+			brandingApi.restoreSpacing(tokens!.accessToken, tenantId, spacingId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreSpacingsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchRestoreRequest }) =>
+			brandingApi.restoreSpacingsBatch(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
 export function useCreateRadius() {
 	const queryClient = useQueryClient();
 	const { tokens } = useAuth();
@@ -495,6 +617,36 @@ export function useReorderRadii() {
 	return useMutation({
 		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
 			brandingApi.reorderRadii(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreRadius() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, radiusId }: { tenantId: string; radiusId: string }) =>
+			brandingApi.restoreRadius(tokens!.accessToken, tenantId, radiusId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreRadiiBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchRestoreRequest }) =>
+			brandingApi.restoreRadiiBatch(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],
@@ -707,6 +859,36 @@ export function useReorderDocuments() {
 	return useMutation({
 		mutationFn: ({ tenantId, request }: { tenantId: string; request: ReorderRequest }) =>
 			brandingApi.reorderDocuments(tokens!.accessToken, tenantId, request),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreDocument() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, documentId }: { tenantId: string; documentId: string }) =>
+			brandingApi.restoreDocument(tokens!.accessToken, tenantId, documentId),
+		onSuccess: (_, variables) => {
+			queryClient.invalidateQueries({
+				queryKey: ["branding", variables.tenantId],
+			});
+		},
+	});
+}
+
+export function useRestoreDocumentsBatch() {
+	const queryClient = useQueryClient();
+	const { tokens } = useAuth();
+
+	return useMutation({
+		mutationFn: ({ tenantId, request }: { tenantId: string; request: BatchRestoreRequest }) =>
+			brandingApi.restoreDocumentsBatch(tokens!.accessToken, tenantId, request),
 		onSuccess: (_, variables) => {
 			queryClient.invalidateQueries({
 				queryKey: ["branding", variables.tenantId],

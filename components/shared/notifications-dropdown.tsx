@@ -125,7 +125,7 @@ export function NotificationsDropdown() {
 					)}
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-80 p-0" align="end">
+			<PopoverContent className="w-80 p-0 gap-0" align="end">
 				<div className="flex items-center justify-between p-4 pb-2">
 					<div className="flex items-center gap-2">
 						<TypographyH4>{t.notifications.title}</TypographyH4>
@@ -280,7 +280,9 @@ function NotificationItem({
 				{icon}
 			</div>
 			<div className="flex-1 min-w-0">
-				<TypographyP className={cn("text-sm truncate mt-0", notification.status === "unread" && "font-medium")}>
+				<TypographyP
+					className={cn("text-sm truncate mt-0", notification.status === "unread" && "font-medium")}
+				>
 					{displayTitle}
 				</TypographyP>
 				<TypographyMuted className="text-xs line-clamp-2">{displayMessage}</TypographyMuted>

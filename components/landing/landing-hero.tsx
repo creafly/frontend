@@ -87,7 +87,7 @@ export function LandingHero() {
 
 					<BlurFade delay={0.3}>
 						<div className="relative">
-							<BrowserMockup url="app.creafly.ai" showBorderBeam noPadding className="z-10">
+							<BrowserMockup showBorderBeam noPadding className="z-10">
 								<ChatDemoMockup
 									userMessage={t.landing.demo.userMessage}
 									aiSummary={t.landing.demo.aiSummary}

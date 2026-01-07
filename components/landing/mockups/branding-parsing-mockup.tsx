@@ -12,6 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { Icon } from "@/components/typography";
 import { cn } from "@/lib/utils";
+import { APP_DOMAIN } from "@/lib/constants";
 
 interface BrandingParsingMockupProps {
 	isActive: boolean;
@@ -94,7 +95,7 @@ export function BrandingParsingMockup({ isActive }: BrandingParsingMockupProps) 
 				</div>
 				<div className="flex-1 mx-2">
 					<div className="h-6 rounded-md bg-background/80 flex items-center px-3 text-xs text-muted-foreground">
-						app.creafly.ai/branding
+						{APP_DOMAIN}/branding
 					</div>
 				</div>
 			</div>

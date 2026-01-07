@@ -38,6 +38,7 @@ import type {
 	BatchCreateDocumentRequest,
 	BatchUpdateDocumentRequest,
 	BatchDeleteRequest,
+	BatchRestoreRequest,
 	BrandParsingRequest,
 	CreateParsingRequest,
 	ApproveParsingRequest,
@@ -73,10 +74,11 @@ export const brandingApi = {
 		return fetchBrandingApi<TenantBranding>("/api/v1/branding", accessToken, tenantId);
 	},
 
-	getLogos: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+	getLogos: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number; includeDeleted?: boolean }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		if (params?.includeDeleted) searchParams.set("includeDeleted", "true");
 		const queryString = searchParams.toString();
 		return fetchBrandingApi<BrandLogoList>(`/api/v1/logos${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
@@ -143,10 +145,25 @@ export const brandingApi = {
 		});
 	},
 
-	getColors: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+	restoreLogo: async (accessToken: string, tenantId: string, logoId: string) => {
+		return fetchBrandingApi<BrandLogo>(`/api/v1/logos/${logoId}/restore`, accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify({}),
+		});
+	},
+
+	restoreLogosBatch: async (accessToken: string, tenantId: string, request: BatchRestoreRequest) => {
+		return fetchBrandingApi<void>("/api/v1/logos/batch/restore", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	getColors: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number; includeDeleted?: boolean }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		if (params?.includeDeleted) searchParams.set("includeDeleted", "true");
 		const queryString = searchParams.toString();
 		return fetchBrandingApi<BrandColorList>(`/api/v1/colors${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
@@ -213,10 +230,25 @@ export const brandingApi = {
 		});
 	},
 
-	getFonts: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+	restoreColor: async (accessToken: string, tenantId: string, colorId: string) => {
+		return fetchBrandingApi<BrandColor>(`/api/v1/colors/${colorId}/restore`, accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify({}),
+		});
+	},
+
+	restoreColorsBatch: async (accessToken: string, tenantId: string, request: BatchRestoreRequest) => {
+		return fetchBrandingApi<void>("/api/v1/colors/batch/restore", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	getFonts: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number; includeDeleted?: boolean }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		if (params?.includeDeleted) searchParams.set("includeDeleted", "true");
 		const queryString = searchParams.toString();
 		return fetchBrandingApi<BrandFontList>(`/api/v1/fonts${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
@@ -283,10 +315,25 @@ export const brandingApi = {
 		});
 	},
 
-	getSpacings: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+	restoreFont: async (accessToken: string, tenantId: string, fontId: string) => {
+		return fetchBrandingApi<BrandFont>(`/api/v1/fonts/${fontId}/restore`, accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify({}),
+		});
+	},
+
+	restoreFontsBatch: async (accessToken: string, tenantId: string, request: BatchRestoreRequest) => {
+		return fetchBrandingApi<void>("/api/v1/fonts/batch/restore", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	getSpacings: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number; includeDeleted?: boolean }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		if (params?.includeDeleted) searchParams.set("includeDeleted", "true");
 		const queryString = searchParams.toString();
 		return fetchBrandingApi<BrandSpacingList>(`/api/v1/spacings${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
@@ -361,10 +408,25 @@ export const brandingApi = {
 		});
 	},
 
-	getRadii: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+	restoreSpacing: async (accessToken: string, tenantId: string, spacingId: string) => {
+		return fetchBrandingApi<BrandSpacing>(`/api/v1/spacings/${spacingId}/restore`, accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify({}),
+		});
+	},
+
+	restoreSpacingsBatch: async (accessToken: string, tenantId: string, request: BatchRestoreRequest) => {
+		return fetchBrandingApi<void>("/api/v1/spacings/batch/restore", accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	},
+
+	getRadii: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number; includeDeleted?: boolean }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		if (params?.includeDeleted) searchParams.set("includeDeleted", "true");
 		const queryString = searchParams.toString();
 		return fetchBrandingApi<BrandRadiusList>(`/api/v1/radii${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
@@ -431,6 +493,20 @@ export const brandingApi = {
 	deleteRadiiBatch: async (accessToken: string, tenantId: string, request: BatchDeleteRequest) => {
 		return fetchBrandingApi<void>("/api/v1/radii/batch", accessToken, tenantId, {
 			method: "DELETE",
+			body: JSON.stringify(request),
+		});
+	},
+
+	restoreRadius: async (accessToken: string, tenantId: string, radiusId: string) => {
+		return fetchBrandingApi<BrandRadius>(`/api/v1/radii/${radiusId}/restore`, accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify({}),
+		});
+	},
+
+	restoreRadiiBatch: async (accessToken: string, tenantId: string, request: BatchRestoreRequest) => {
+		return fetchBrandingApi<void>("/api/v1/radii/batch/restore", accessToken, tenantId, {
+			method: "POST",
 			body: JSON.stringify(request),
 		});
 	},
@@ -511,10 +587,11 @@ export const brandingApi = {
 		);
 	},
 
-	getDocuments: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number }) => {
+	getDocuments: async (accessToken: string, tenantId: string, params?: { limit?: number; offset?: number; includeDeleted?: boolean }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.limit !== undefined) searchParams.set("limit", params.limit.toString());
 		if (params?.offset !== undefined) searchParams.set("offset", params.offset.toString());
+		if (params?.includeDeleted) searchParams.set("includeDeleted", "true");
 		const queryString = searchParams.toString();
 		return fetchBrandingApi<BrandDocumentList>(`/api/v1/documents${queryString ? `?${queryString}` : ""}`, accessToken, tenantId);
 	},
@@ -577,6 +654,20 @@ export const brandingApi = {
 	reorderDocuments: async (accessToken: string, tenantId: string, request: ReorderRequest) => {
 		return fetchBrandingApi<void>("/api/v1/documents/reorder", accessToken, tenantId, {
 			method: "PUT",
+			body: JSON.stringify(request),
+		});
+	},
+
+	restoreDocument: async (accessToken: string, tenantId: string, documentId: string) => {
+		return fetchBrandingApi<BrandDocument>(`/api/v1/documents/${documentId}/restore`, accessToken, tenantId, {
+			method: "POST",
+			body: JSON.stringify({}),
+		});
+	},
+
+	restoreDocumentsBatch: async (accessToken: string, tenantId: string, request: BatchRestoreRequest) => {
+		return fetchBrandingApi<void>("/api/v1/documents/batch/restore", accessToken, tenantId, {
+			method: "POST",
 			body: JSON.stringify(request),
 		});
 	},

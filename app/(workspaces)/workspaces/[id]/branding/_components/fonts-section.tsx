@@ -12,6 +12,7 @@ import {
 	IconSquareCheck,
 	IconX,
 	IconTypography,
+	IconRefresh,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
@@ -21,10 +22,14 @@ import {
 	useUpdateFont,
 	useDeleteFont,
 	useDeleteFontsBatch,
+	useRestoreFont,
+	useRestoreFontsBatch,
 } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -251,6 +256,7 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 	const [isSelectionMode, setIsSelectionMode] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
+	const [showDeleted, setShowDeleted] = useState(false);
 
 	const [name, setName] = useState("");
 	const [fontFamily, setFontFamily] = useState("");
@@ -266,6 +272,7 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 	const { data: fontsData, isLoading } = useFonts(tenantId, {
 		limit: ITEMS_PER_PAGE,
 		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+		includeDeleted: showDeleted,
 	});
 
 	const fonts = fontsData?.fonts || [];
@@ -276,6 +283,8 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 	const updateFont = useUpdateFont();
 	const deleteFont = useDeleteFont();
 	const deleteFontsBatch = useDeleteFontsBatch();
+	const restoreFont = useRestoreFont();
+	const restoreFontsBatch = useRestoreFontsBatch();
 
 	const resetForm = () => {
 		setName("");
@@ -442,6 +451,28 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 		}
 	};
 
+	const handleRestore = async (fontId: string) => {
+		try {
+			await restoreFont.mutateAsync({ tenantId, fontId });
+			toast.success(t.branding.fontRestored);
+		} catch {
+			toast.error(t.branding.fontRestoreFailed);
+		}
+	};
+
+	const handleBatchRestore = async () => {
+		try {
+			await restoreFontsBatch.mutateAsync({
+				tenantId,
+				request: { ids: Array.from(selectedIds) },
+			});
+			toast.success(t.branding.batchRestoreSuccess.replace("{count}", String(selectedIds.size)));
+			exitSelectionMode();
+		} catch {
+			toast.error(t.branding.batchRestoreFailed);
+		}
+	};
+
 	const sortedFonts = fonts;
 
 	if (isLoading) {
@@ -454,10 +485,22 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex flex-wrap items-center justify-between gap-2">
-				<div>
-					<TypographyH3 size="xs">{t.branding.fonts}</TypographyH3>
-					<TypographyMuted>{t.branding.fontsDescription}</TypographyMuted>
+			<div className="flex flex-wrap items-center justify-between gap-4">
+				<div className="flex flex-1 items-center justify-between gap-4">
+					<div>
+						<TypographyH3 size="xs">{t.branding.fonts}</TypographyH3>
+						<TypographyMuted>{t.branding.fontsDescription}</TypographyMuted>
+					</div>
+					<div className="flex items-center gap-2">
+						<Switch
+							id="show-deleted-fonts"
+							checked={showDeleted}
+							onCheckedChange={setShowDeleted}
+						/>
+						<Label htmlFor="show-deleted-fonts" className="text-sm text-muted-foreground">
+							{t.common.showDeleted}
+						</Label>
+					</div>
 				</div>
 				<div className="flex flex-wrap gap-2">
 					{isSelectionMode ? (
@@ -479,6 +522,21 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 									</>
 								)}
 							</Button>
+							{showDeleted && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleBatchRestore}
+									disabled={selectedIds.size === 0 || restoreFontsBatch.isPending}
+								>
+									{restoreFontsBatch.isPending ? (
+										<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+									) : (
+										<Icon icon={IconRefresh} size="sm" className="mr-2" />
+									)}
+									{t.branding.restoreSelected} ({selectedIds.size})
+								</Button>
+							)}
 							<Button
 								variant="destructive"
 								size="sm"
@@ -535,47 +593,74 @@ export function FontsSection({ tenantId }: FontsSectionProps) {
 			) : (
 				<>
 					<div className="space-y-2">
-						{sortedFonts.map((font) => (
-							<div
-								key={font.id}
-								className={`flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
-									isSelectionMode && selectedIds.has(font.id) ? "ring-2 ring-primary" : ""
-								}`}
-								onClick={isSelectionMode ? () => toggleSelection(font.id) : undefined}
-							>
-								{isSelectionMode && (
-									<div className="mr-4">
-										<Checkbox
-											checked={selectedIds.has(font.id)}
-											onCheckedChange={() => toggleSelection(font.id)}
-										/>
+						{sortedFonts.map((font) => {
+							const isDeleted = !!font.deletedAt;
+							return (
+								<div
+									key={font.id}
+									className={`flex items-center justify-between p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
+										isSelectionMode && selectedIds.has(font.id) ? "ring-2 ring-primary" : ""
+									} ${isDeleted ? "opacity-60" : ""}`}
+									onClick={isSelectionMode ? () => toggleSelection(font.id) : undefined}
+								>
+									{isSelectionMode && (
+										<div className="mr-4">
+											<Checkbox
+												checked={selectedIds.has(font.id)}
+												onCheckedChange={() => toggleSelection(font.id)}
+											/>
+										</div>
+									)}
+									<div className="flex-1">
+										<TypographyP className={`font-medium mt-0 ${isDeleted ? "line-through" : ""}`}>
+											{font.name}
+										</TypographyP>
+										<TypographyMuted>
+											{font.fontFamily.split(",")} -{" "}
+											{FONT_WEIGHTS.find((w) => w.value === font.fontWeight)?.label ||
+												font.fontWeight}
+										</TypographyMuted>
+										{isDeleted && (
+											<TypographyMuted className="text-destructive text-xs">
+												{t.common.deleted}
+											</TypographyMuted>
+										)}
 									</div>
-								)}
-								<div className="flex-1">
-									<TypographyP className="font-medium mt-0">{font.name}</TypographyP>
-									<TypographyMuted>
-										{font.fontFamily.split(",")} -{" "}
-										{FONT_WEIGHTS.find((w) => w.value === font.fontWeight)?.label ||
-											font.fontWeight}
-									</TypographyMuted>
+									{!isSelectionMode && (
+										<div className="flex gap-1">
+											{isDeleted ? (
+												<Button
+													variant="ghost"
+													size="icon"
+													onClick={() => handleRestore(font.id)}
+													disabled={restoreFont.isPending}
+												>
+													{restoreFont.isPending ? (
+														<Icon icon={IconLoader2} size="sm" className="animate-spin" />
+													) : (
+														<Icon icon={IconRefresh} size="sm" />
+													)}
+												</Button>
+											) : (
+												<>
+													<Button variant="ghost" size="icon" onClick={() => openEditDialog(font)}>
+														<Icon icon={IconEdit} size="sm" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="text-destructive hover:text-destructive"
+														onClick={() => setDeleteFontId(font.id)}
+													>
+														<Icon icon={IconTrash} size="sm" />
+													</Button>
+												</>
+											)}
+										</div>
+									)}
 								</div>
-								{!isSelectionMode && (
-									<div className="flex gap-1">
-										<Button variant="ghost" size="icon" onClick={() => openEditDialog(font)}>
-											<Icon icon={IconEdit} size="sm" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="text-destructive hover:text-destructive"
-											onClick={() => setDeleteFontId(font.id)}
-										>
-											<Icon icon={IconTrash} size="sm" />
-										</Button>
-									</div>
-								)}
-							</div>
-						))}
+							);
+						})}
 					</div>
 
 					<CardPagination

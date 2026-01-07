@@ -12,6 +12,7 @@ import {
 	IconSquareCheck,
 	IconX,
 	IconBorderRadius,
+	IconRefresh,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
@@ -30,10 +31,14 @@ import {
 	useUpdateRadius,
 	useDeleteRadius,
 	useDeleteRadiiBatch,
+	useRestoreRadius,
+	useRestoreRadiiBatch,
 } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
 	Dialog,
 	DialogContent,
@@ -89,12 +94,14 @@ export function RadiiSection({ tenantId }: RadiiSectionProps) {
 	const [isSelectionMode, setIsSelectionMode] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
+	const [showDeleted, setShowDeleted] = useState(false);
 
 	const [currentPage, setCurrentPage] = useState(1);
 
 	const { data: radiiData, isLoading } = useRadii(tenantId, {
 		limit: ITEMS_PER_PAGE,
 		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+		includeDeleted: showDeleted,
 	});
 
 	const radii = radiiData?.radii || [];
@@ -105,6 +112,8 @@ export function RadiiSection({ tenantId }: RadiiSectionProps) {
 	const updateRadius = useUpdateRadius();
 	const deleteRadius = useDeleteRadius();
 	const deleteRadiiBatch = useDeleteRadiiBatch();
+	const restoreRadius = useRestoreRadius();
+	const restoreRadiiBatch = useRestoreRadiiBatch();
 
 	const resetForm = () => {
 		setName("");
@@ -262,6 +271,28 @@ export function RadiiSection({ tenantId }: RadiiSectionProps) {
 		}
 	};
 
+	const handleRestore = async (radiusId: string) => {
+		try {
+			await restoreRadius.mutateAsync({ tenantId, radiusId });
+			toast.success(t.branding.radiusRestored);
+		} catch {
+			toast.error(t.branding.radiusRestoreFailed);
+		}
+	};
+
+	const handleBatchRestore = async () => {
+		try {
+			await restoreRadiiBatch.mutateAsync({
+				tenantId,
+				request: { ids: Array.from(selectedIds) },
+			});
+			toast.success(t.branding.batchRestoreSuccess.replace("{count}", String(selectedIds.size)));
+			exitSelectionMode();
+		} catch {
+			toast.error(t.branding.batchRestoreFailed);
+		}
+	};
+
 	const sortedRadii = radii;
 
 	if (isLoading) {
@@ -274,10 +305,22 @@ export function RadiiSection({ tenantId }: RadiiSectionProps) {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex flex-wrap items-center justify-between gap-2">
-				<div>
-					<TypographyH3 size="xs">{t.branding.radii}</TypographyH3>
-					<TypographyMuted>{t.branding.radiiDescription}</TypographyMuted>
+			<div className="flex flex-wrap items-center justify-between gap-4">
+				<div className="flex flex-1 items-center justify-between gap-4">
+					<div>
+						<TypographyH3 size="xs">{t.branding.radii}</TypographyH3>
+						<TypographyMuted>{t.branding.radiiDescription}</TypographyMuted>
+					</div>
+					<div className="flex items-center gap-2">
+						<Switch
+							id="show-deleted-radii"
+							checked={showDeleted}
+							onCheckedChange={setShowDeleted}
+						/>
+						<Label htmlFor="show-deleted-radii" className="text-sm text-muted-foreground">
+							{t.common.showDeleted}
+						</Label>
+					</div>
 				</div>
 				<div className="flex flex-wrap gap-2">
 					{isSelectionMode ? (
@@ -299,6 +342,21 @@ export function RadiiSection({ tenantId }: RadiiSectionProps) {
 									</>
 								)}
 							</Button>
+							{showDeleted && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleBatchRestore}
+									disabled={selectedIds.size === 0 || restoreRadiiBatch.isPending}
+								>
+									{restoreRadiiBatch.isPending ? (
+										<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+									) : (
+										<Icon icon={IconRefresh} size="sm" className="mr-2" />
+									)}
+									{t.branding.restoreSelected} ({selectedIds.size})
+								</Button>
+							)}
 							<Button
 								variant="destructive"
 								size="sm"
@@ -355,52 +413,86 @@ export function RadiiSection({ tenantId }: RadiiSectionProps) {
 			) : (
 				<>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-						{sortedRadii.map((radius) => (
-							<div
-								key={radius.id}
-								className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors relative ${
-									isSelectionMode && selectedIds.has(radius.id) ? "ring-2 ring-primary" : ""
-								}`}
-								onClick={isSelectionMode ? () => toggleSelection(radius.id) : undefined}
-							>
-								{isSelectionMode && (
-									<div className="absolute top-2 left-2">
-										<Checkbox
-											checked={selectedIds.has(radius.id)}
-											onCheckedChange={() => toggleSelection(radius.id)}
-											onClick={(e) => e.stopPropagation()}
-										/>
+						{sortedRadii.map((radius) => {
+							const isDeleted = !!radius.deletedAt;
+							return (
+								<div
+									key={radius.id}
+									className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors relative ${
+										isSelectionMode && selectedIds.has(radius.id) ? "ring-2 ring-primary" : ""
+									} ${isDeleted ? "opacity-60" : ""}`}
+									onClick={isSelectionMode ? () => toggleSelection(radius.id) : undefined}
+								>
+									{isSelectionMode && (
+										<div className="absolute top-2 left-2">
+											<Checkbox
+												checked={selectedIds.has(radius.id)}
+												onCheckedChange={() => toggleSelection(radius.id)}
+												onClick={(e) => e.stopPropagation()}
+											/>
+										</div>
+									)}
+									<div
+										className={`flex items-center justify-center mb-3 ${
+											isDeleted ? "grayscale" : ""
+										}`}
+									>
+										<div className="w-12 h-12 bg-primary" style={{ borderRadius: radius.value }} />
 									</div>
-								)}
-								<div className="flex items-center justify-center mb-3">
-									<div className="w-12 h-12 bg-primary" style={{ borderRadius: radius.value }} />
-								</div>
-								<div className="text-center">
-									<TypographyP className="font-medium text-sm mt-0">{radius.name}</TypographyP>
-									<TypographyMuted className="text-xs">{radius.value}px</TypographyMuted>
-								</div>
-								{!isSelectionMode && (
-									<div className="flex justify-center gap-1 mt-2">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7"
-											onClick={() => openEditDialog(radius)}
+									<div className="text-center">
+										<TypographyP
+											className={`font-medium text-sm mt-0 ${isDeleted ? "line-through" : ""}`}
 										>
-											<Icon icon={IconEdit} size="xs" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-destructive hover:text-destructive"
-											onClick={() => setDeleteRadiusId(radius.id)}
-										>
-											<Icon icon={IconTrash} size="xs" />
-										</Button>
+											{radius.name}
+										</TypographyP>
+										<TypographyMuted className="text-xs">{radius.value}px</TypographyMuted>
+										{isDeleted && (
+											<TypographyMuted className="text-destructive text-xs">
+												{t.common.deleted}
+											</TypographyMuted>
+										)}
 									</div>
-								)}
-							</div>
-						))}
+									{!isSelectionMode && (
+										<div className="flex justify-center gap-1 mt-2">
+											{isDeleted ? (
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-7 w-7"
+													onClick={() => handleRestore(radius.id)}
+													disabled={restoreRadius.isPending}
+												>
+													{restoreRadius.isPending ? (
+														<Icon icon={IconLoader2} size="xs" className="animate-spin" />
+													) : (
+														<Icon icon={IconRefresh} size="xs" />
+													)}
+												</Button>
+											) : (
+												<>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-7 w-7"
+														onClick={() => openEditDialog(radius)}
+													>
+														<Icon icon={IconEdit} size="xs" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-7 w-7 text-destructive hover:text-destructive"
+														onClick={() => setDeleteRadiusId(radius.id)}
+													>
+														<Icon icon={IconTrash} size="xs" />
+													</Button>
+												</>
+											)}
+										</div>
+									)}
+								</div>
+							);
+						})}
 					</div>
 
 					<CardPagination

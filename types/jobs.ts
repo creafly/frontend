@@ -15,7 +15,8 @@ export type SSEEventType =
 	| "job:completed"
 	| "job:failed"
 	| "job:cancelled"
-	| "job:heartbeat";
+	| "job:heartbeat"
+	| "job:agent_event";
 
 export interface JobTokenUsage {
 	inputTokens: number;
@@ -132,6 +133,15 @@ export interface JobHeartbeatEvent {
 	timestamp: string;
 }
 
+export interface JobAgentEvent {
+	type: "job:agent_event";
+	jobId: string;
+	eventType: string;
+	toolName: string | null;
+	message: string | null;
+	timestamp: string;
+}
+
 export type SSEEvent =
 	| JobStartedEvent
 	| JobProgressEvent
@@ -139,7 +149,8 @@ export type SSEEvent =
 	| JobCompletedEvent
 	| JobFailedEvent
 	| JobCancelledEvent
-	| JobHeartbeatEvent;
+	| JobHeartbeatEvent
+	| JobAgentEvent;
 
 export type ContentType = "template" | "image" | "video";
 

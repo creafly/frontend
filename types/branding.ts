@@ -20,6 +20,7 @@ export interface BrandLogo {
 	order: number;
 	createdAt: string;
 	updatedAt: string;
+	deletedAt?: string;
 }
 
 export interface BrandColor {
@@ -30,6 +31,7 @@ export interface BrandColor {
 	order: number;
 	createdAt: string;
 	updatedAt: string;
+	deletedAt?: string;
 }
 
 export interface BrandFont {
@@ -41,6 +43,7 @@ export interface BrandFont {
 	order: number;
 	createdAt: string;
 	updatedAt: string;
+	deletedAt?: string;
 }
 
 export interface BrandSpacing {
@@ -51,6 +54,7 @@ export interface BrandSpacing {
 	order: number;
 	createdAt: string;
 	updatedAt: string;
+	deletedAt?: string;
 }
 
 export interface BrandRadius {
@@ -61,6 +65,7 @@ export interface BrandRadius {
 	order: number;
 	createdAt: string;
 	updatedAt: string;
+	deletedAt?: string;
 }
 
 export type DocumentType = "brand_guide" | "style_guide" | "tone_of_voice" | "presentation" | "other";
@@ -76,6 +81,7 @@ export interface BrandDocument {
 	order: number;
 	createdAt: string;
 	updatedAt: string;
+	deletedAt?: string;
 }
 
 export interface CreateBrandLogoRequest {
@@ -219,6 +225,10 @@ export interface BatchUpdateDocumentRequest {
 }
 
 export interface BatchDeleteRequest {
+	ids: string[];
+}
+
+export interface BatchRestoreRequest {
 	ids: string[];
 }
 

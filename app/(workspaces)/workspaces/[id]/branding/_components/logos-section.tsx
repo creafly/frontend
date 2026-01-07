@@ -12,6 +12,7 @@ import {
 	IconSquareCheck,
 	IconX,
 	IconDatabase,
+	IconRefresh,
 } from "@tabler/icons-react";
 
 import { useTranslations } from "@/providers/i18n-provider";
@@ -21,10 +22,14 @@ import {
 	useUpdateLogo,
 	useDeleteLogo,
 	useDeleteLogosBatch,
+	useRestoreLogo,
+	useRestoreLogosBatch,
 } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
 	Dialog,
 	DialogContent,
@@ -83,6 +88,7 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 	const [isSelectionMode, setIsSelectionMode] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
+	const [showDeleted, setShowDeleted] = useState(false);
 
 	const [name, setName] = useState("");
 	const [type, setType] = useState<LogoType>("primary");
@@ -93,6 +99,7 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 	const { data: logosData, isLoading } = useLogos(tenantId, {
 		limit: ITEMS_PER_PAGE,
 		offset: (currentPage - 1) * ITEMS_PER_PAGE,
+		includeDeleted: showDeleted,
 	});
 
 	const logos = logosData?.logos || [];
@@ -103,6 +110,8 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 	const updateLogo = useUpdateLogo();
 	const deleteLogo = useDeleteLogo();
 	const deleteLogosBatch = useDeleteLogosBatch();
+	const restoreLogo = useRestoreLogo();
+	const restoreLogosBatch = useRestoreLogosBatch();
 
 	const resetForm = () => {
 		setName("");
@@ -213,6 +222,28 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 		}
 	};
 
+	const handleRestore = async (logoId: string) => {
+		try {
+			await restoreLogo.mutateAsync({ tenantId, logoId });
+			toast.success(t.branding.logoRestored);
+		} catch {
+			toast.error(t.branding.logoRestoreFailed);
+		}
+	};
+
+	const handleBatchRestore = async () => {
+		try {
+			await restoreLogosBatch.mutateAsync({
+				tenantId,
+				request: { ids: Array.from(selectedIds) },
+			});
+			toast.success(t.branding.batchRestoreSuccess.replace("{count}", String(selectedIds.size)));
+			exitSelectionMode();
+		} catch {
+			toast.error(t.branding.batchRestoreFailed);
+		}
+	};
+
 	const getLogoTypeLabel = (logoType: LogoType): string => {
 		return t.branding.logoTypes?.[logoType] || logoType;
 	};
@@ -234,7 +265,17 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 					<TypographyH3 size="xs">{t.branding.logos}</TypographyH3>
 					<TypographyMuted>{t.branding.logosDescription}</TypographyMuted>
 				</div>
-				<div className="flex flex-wrap gap-2">
+				<div className="flex flex-wrap items-center gap-2">
+					<div className="flex items-center gap-2 mr-2">
+						<Switch
+							id="show-deleted-logos"
+							checked={showDeleted}
+							onCheckedChange={setShowDeleted}
+						/>
+						<Label htmlFor="show-deleted-logos" className="text-sm cursor-pointer">
+							{t.common.showDeleted}
+						</Label>
+					</div>
 					{isSelectionMode ? (
 						<>
 							<Button
@@ -254,6 +295,21 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 									</>
 								)}
 							</Button>
+							{showDeleted && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleBatchRestore}
+									disabled={selectedIds.size === 0 || restoreLogosBatch.isPending}
+								>
+									{restoreLogosBatch.isPending ? (
+										<Icon icon={IconLoader2} size="sm" className="mr-2 animate-spin" />
+									) : (
+										<Icon icon={IconRefresh} size="sm" className="mr-2" />
+									)}
+									{t.branding.restoreSelected} ({selectedIds.size})
+								</Button>
+							)}
 							<Button
 								variant="destructive"
 								size="sm"
@@ -306,65 +362,91 @@ export function LogosSection({ tenantId }: LogosSectionProps) {
 			) : (
 				<>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-						{sortedLogos.map((logo) => (
-							<div
-								key={logo.id}
-								className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
-									isSelectionMode && selectedIds.has(logo.id) ? "ring-2 ring-primary" : ""
-								}`}
-								onClick={isSelectionMode ? () => toggleSelection(logo.id) : undefined}
-							>
-								{isSelectionMode && (
-									<div className="flex justify-end mb-2">
-										<Checkbox
-											checked={selectedIds.has(logo.id)}
-											onCheckedChange={() => toggleSelection(logo.id)}
-										/>
-									</div>
-								)}
-								<div className="w-full h-24 rounded-md mb-3 border bg-muted/30 flex items-center justify-center overflow-hidden">
-									{logo.fileUrl ? (
-										<img
-											src={logo.fileUrl}
-											alt={logo.name}
-											className="max-w-full max-h-full object-contain"
-										/>
-									) : (
-										<Icon icon={IconPhoto} size="xl" className="text-muted-foreground" />
-									)}
-								</div>
-								<div className="flex items-center justify-between">
-									<div className="min-w-0 flex-1">
-										<TypographyP className="font-medium text-sm truncate mt-0">
-											{logo.name}
-										</TypographyP>
-										<TypographyMuted className="text-xs">
-											{getLogoTypeLabel(logo.type)}
-										</TypographyMuted>
-									</div>
-									{!isSelectionMode && (
-										<div className="flex gap-1 ml-2">
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8"
-												onClick={() => openEditDialog(logo)}
-											>
-												<Icon icon={IconEdit} size="sm" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8 text-destructive hover:text-destructive"
-												onClick={() => setDeleteLogoId(logo.id)}
-											>
-												<Icon icon={IconTrash} size="sm" />
-											</Button>
+						{sortedLogos.map((logo) => {
+							const isDeleted = !!logo.deletedAt;
+							return (
+								<div
+									key={logo.id}
+									className={`p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors ${
+										isSelectionMode && selectedIds.has(logo.id) ? "ring-2 ring-primary" : ""
+									} ${isDeleted ? "opacity-60" : ""}`}
+									onClick={isSelectionMode ? () => toggleSelection(logo.id) : undefined}
+								>
+									{isSelectionMode && (
+										<div className="flex justify-end mb-2">
+											<Checkbox
+												checked={selectedIds.has(logo.id)}
+												onCheckedChange={() => toggleSelection(logo.id)}
+											/>
 										</div>
 									)}
+									<div className={`w-full h-24 rounded-md mb-3 border bg-muted/30 flex items-center justify-center overflow-hidden ${isDeleted ? "grayscale" : ""}`}>
+										{logo.fileUrl ? (
+											<img
+												src={logo.fileUrl}
+												alt={logo.name}
+												className="max-w-full max-h-full object-contain"
+											/>
+										) : (
+											<Icon icon={IconPhoto} size="xl" className="text-muted-foreground" />
+										)}
+									</div>
+									<div className="flex items-center justify-between">
+										<div className="min-w-0 flex-1">
+											<TypographyP className={`font-medium text-sm truncate mt-0 ${isDeleted ? "line-through" : ""}`}>
+												{logo.name}
+											</TypographyP>
+											<TypographyMuted className="text-xs">
+												{getLogoTypeLabel(logo.type)}
+											</TypographyMuted>
+											{isDeleted && (
+												<TypographyMuted className="text-xs text-destructive">
+													{t.common.deleted}
+												</TypographyMuted>
+											)}
+										</div>
+										{!isSelectionMode && (
+											<div className="flex gap-1 ml-2">
+												{isDeleted ? (
+													<Button
+														variant="ghost"
+														size="icon"
+														className="h-8 w-8"
+														onClick={() => handleRestore(logo.id)}
+														disabled={restoreLogo.isPending}
+													>
+														{restoreLogo.isPending ? (
+															<Icon icon={IconLoader2} size="sm" className="animate-spin" />
+														) : (
+															<Icon icon={IconRefresh} size="sm" />
+														)}
+													</Button>
+												) : (
+													<>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8"
+															onClick={() => openEditDialog(logo)}
+														>
+															<Icon icon={IconEdit} size="sm" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8 text-destructive hover:text-destructive"
+															onClick={() => setDeleteLogoId(logo.id)}
+														>
+															<Icon icon={IconTrash} size="sm" />
+														</Button>
+													</>
+												)}
+											</div>
+										)}
+									</div>
 								</div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 					<CardPagination
 						currentPage={currentPage}

@@ -51,6 +51,7 @@ import { TypographyH1, TypographyP, TypographyMuted, Icon } from "@/components/t
 import { BlurFade } from "@/components/ui/blur-fade";
 import { ConversationList } from "@/components/chat/conversation-list";
 import { UserMessage } from "@/components/chat/user-message";
+import { AgentSteps, type AgentStep } from "@/components/chat/agent-steps";
 
 interface Message {
 	id: string;
@@ -90,6 +91,7 @@ export default function ChatPage() {
 	const [input, setInput] = useState("");
 	const [contentType, setContentType] = useState<ContentType>("template");
 	const [currentTemplate, setCurrentTemplate] = useState<CurrentTemplate | null>(null);
+	const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const pendingConversationIdRef = useRef<string | null>(null);
 
@@ -108,6 +110,7 @@ export default function ChatPage() {
 
 	const handleJobComplete = useCallback(
 		async (result: GenerationResult, html: string | null, tokenUsage: JobTokenUsage | null) => {
+			setAgentSteps([]);
 			const conversationId = pendingConversationIdRef.current;
 			const currentTenantId = tenantId;
 
@@ -250,6 +253,7 @@ export default function ChatPage() {
 
 	const handleJobError = useCallback(
 		async (error: string, errorCode: string | null) => {
+			setAgentSteps([]);
 			const conversationId = pendingConversationIdRef.current;
 			const currentTenantId = tenantId;
 
@@ -293,6 +297,53 @@ export default function ChatPage() {
 	const generationJob = useGenerationJob({
 		onComplete: handleJobComplete,
 		onError: handleJobError,
+		onAgentEvent: (event) => {
+			const message = event.message ?? "";
+			if (event.type === "tool_start" && event.toolName && message) {
+				const toolName = event.toolName;
+				setAgentSteps((prev) => [
+					...prev.map((s) =>
+						s.status === "in_progress" ? { ...s, status: "completed" as const } : s
+					),
+					{
+						id: `${toolName}-${Date.now()}`,
+						message,
+						status: "in_progress" as const,
+					},
+				]);
+			} else if (event.type === "tool_end" && event.toolName) {
+				const toolName = event.toolName;
+				setAgentSteps((prev) =>
+					prev.map((s) =>
+						s.status === "in_progress" && s.id.startsWith(toolName)
+							? { ...s, status: "completed" as const }
+							: s
+					)
+				);
+			} else if (event.type === "thinking" && message) {
+				setAgentSteps((prev) => [
+					...prev.map((s) =>
+						s.status === "in_progress" ? { ...s, status: "completed" as const } : s
+					),
+					{
+						id: `thinking-${Date.now()}`,
+						message,
+						status: "in_progress" as const,
+					},
+				]);
+			} else if (event.type === "processing_attachments" && message) {
+				setAgentSteps((prev) => [
+					...prev.map((s) =>
+						s.status === "in_progress" ? { ...s, status: "completed" as const } : s
+					),
+					{
+						id: `attachments-${Date.now()}`,
+						message,
+						status: "in_progress" as const,
+					},
+				]);
+			}
+		},
 	});
 
 	const { data: activeJobs } = useActiveJobs(tenantId, {
@@ -947,21 +998,27 @@ const handleSaveTemplate = async (message: Message) => {
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
-								className="flex justify-start items-center gap-2"
+								className="flex justify-start"
 							>
-								<motion.span
-									className="text-base font-medium text-muted-foreground"
-									animate={{
-										opacity: [0.4, 1, 0.4],
-									}}
-									transition={{
-										duration: 1.5,
-										repeat: Infinity,
-										ease: "easeInOut",
-									}}
-								>
-									{generationJob.progressMessage || t.chat.generating}
-								</motion.span>
+								<div className="space-y-2">
+									{agentSteps.length > 0 ? (
+										<AgentSteps steps={agentSteps} />
+									) : (
+										<motion.span
+											className="text-sm font-medium text-muted-foreground"
+											animate={{
+												opacity: [0.4, 1, 0.4],
+											}}
+											transition={{
+												duration: 1.5,
+												repeat: Infinity,
+												ease: "easeInOut",
+											}}
+										>
+											{generationJob.progressMessage || t.chat.generating}
+										</motion.span>
+									)}
+								</div>
 							</motion.div>
 						)}
 					</div>

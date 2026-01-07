@@ -31,6 +31,9 @@ export interface Translations {
 		filters: string;
 		selectAll: string;
 		deselectAll: string;
+		showDeleted: string;
+		deleted: string;
+		restore: string;
 	};
 	nav: {
 		chat: string;
@@ -1213,6 +1216,21 @@ export interface Translations {
 		batchDeleteConfirm: string;
 		deleteSelected: string;
 		selectItems: string;
+		restoreSelected: string;
+		batchRestoreSuccess: string;
+		batchRestoreFailed: string;
+		colorRestored: string;
+		colorRestoreFailed: string;
+		fontRestored: string;
+		fontRestoreFailed: string;
+		spacingRestored: string;
+		spacingRestoreFailed: string;
+		radiusRestored: string;
+		radiusRestoreFailed: string;
+		logoRestored: string;
+		logoRestoreFailed: string;
+		documentRestored: string;
+		documentRestoreFailed: string;
 	};
 	support: {
 		reportIssue: string;
@@ -1392,6 +1410,9 @@ export const en: Translations = {
 		filters: "Filters",
 		selectAll: "Select all",
 		deselectAll: "Deselect all",
+		showDeleted: "Show deleted",
+		deleted: "Deleted",
+		restore: "Restore",
 	},
 	nav: {
 		chat: "Chat",
@@ -2621,6 +2642,21 @@ export const en: Translations = {
 		batchDeleteConfirm: "Are you sure you want to delete {count} selected items?",
 		deleteSelected: "Delete Selected",
 		selectItems: "Select items to delete",
+		restoreSelected: "Restore Selected",
+		batchRestoreSuccess: "{count} items restored successfully",
+		batchRestoreFailed: "Failed to restore items",
+		colorRestored: "Color restored",
+		colorRestoreFailed: "Failed to restore color",
+		fontRestored: "Font restored",
+		fontRestoreFailed: "Failed to restore font",
+		spacingRestored: "Spacing restored",
+		spacingRestoreFailed: "Failed to restore spacing",
+		radiusRestored: "Radius restored",
+		radiusRestoreFailed: "Failed to restore radius",
+		logoRestored: "Logo restored",
+		logoRestoreFailed: "Failed to restore logo",
+		documentRestored: "Document restored",
+		documentRestoreFailed: "Failed to restore document",
 	},
 	support: {
 		reportIssue: "Report Issue",

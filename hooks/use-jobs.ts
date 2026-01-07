@@ -16,10 +16,17 @@ import type {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+export interface AgentEvent {
+	type: string;
+	toolName: string | null;
+	message: string | null;
+}
+
 export interface UseGenerationJobOptions {
 	onStart?: (jobId: string) => void;
 	onProgress?: (progress: number, message: string | null) => void;
 	onChunk?: (chunk: string, position: number) => void;
+	onAgentEvent?: (event: AgentEvent) => void;
 	onComplete?: (
 		result: GenerationResult,
 		html: string | null,
@@ -52,6 +59,7 @@ export function useGenerationJob(options: UseGenerationJobOptions = {}): UseGene
 		onStart,
 		onProgress,
 		onChunk,
+		onAgentEvent,
 		onComplete,
 		onError,
 		onCancelled,
@@ -170,6 +178,14 @@ export function useGenerationJob(options: UseGenerationJobOptions = {}): UseGene
 							setStatus(data.status);
 							setProgress(data.progress);
 							break;
+
+						case "job:agent_event":
+							onAgentEvent?.({
+								type: data.eventType,
+								toolName: data.toolName,
+								message: data.message,
+							});
+							break;
 					}
 				} catch (e) {
 					console.error("Failed to parse SSE event:", e);
@@ -183,6 +199,7 @@ export function useGenerationJob(options: UseGenerationJobOptions = {}): UseGene
 			eventSource.addEventListener("job:failed", handleEvent);
 			eventSource.addEventListener("job:cancelled", handleEvent);
 			eventSource.addEventListener("job:heartbeat", handleEvent);
+			eventSource.addEventListener("job:agent_event", handleEvent);
 
 			eventSource.onmessage = handleEvent;
 
