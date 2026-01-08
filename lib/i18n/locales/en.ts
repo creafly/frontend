@@ -46,6 +46,8 @@ export interface Translations {
 		workspace: string;
 		navigation: string;
 		support: string;
+		secrets: string;
+		mcp: string;
 	};
 	chat: {
 		title: string;
@@ -1375,6 +1377,168 @@ export interface Translations {
 			agent: string;
 		};
 	};
+	secrets: {
+		title: string;
+		subtitle: string;
+		createSecret: string;
+		editSecret: string;
+		deleteSecret: string;
+		deleteSecretConfirm: string;
+		secretName: string;
+		secretNamePlaceholder: string;
+		secretValue: string;
+		secretValuePlaceholder: string;
+		secretDescription: string;
+		secretDescriptionPlaceholder: string;
+		secretCreated: string;
+		secretUpdated: string;
+		secretDeleted: string;
+		secretCreateFailed: string;
+		secretUpdateFailed: string;
+		secretDeleteFailed: string;
+		noSecrets: string;
+		noSecretsDescription: string;
+		showValue: string;
+		hideValue: string;
+		copyValue: string;
+		valueCopied: string;
+		masked: string;
+		searchPlaceholder: string;
+		tooltips: {
+			name: string;
+			value: string;
+			description: string;
+		};
+	};
+	mcp: {
+		title: string;
+		subtitle: string;
+		tabs: {
+			documentation: string;
+			servers: string;
+			instances: string;
+		};
+		documentation: {
+			title: string;
+			whatIsMcp: string;
+			whatIsMcpDescription: string;
+			howItWorks: string;
+			howItWorksDescription: string;
+			gettingStarted: string;
+			gettingStartedSteps: {
+				step1: string;
+				step2: string;
+				step3: string;
+				step4: string;
+			};
+			connecting: string;
+			connectingDescription: string;
+			useCases: string;
+			useCasesItems: {
+				automation: string;
+				integration: string;
+				development: string;
+			};
+		};
+		servers: {
+			title: string;
+			noServers: string;
+			noServersDescription: string;
+			requiredSecrets: string;
+			optionalEnvVars: string;
+			maxTtl: string;
+			protocol: string;
+			launchServer: string;
+			resourceLimits: string;
+			memory: string;
+			cpu: string;
+			searchPlaceholder: string;
+		};
+		instances: {
+			title: string;
+			noInstances: string;
+			noInstancesDescription: string;
+			createInstance: string;
+			stopInstance: string;
+			extendInstance: string;
+			viewLogs: string;
+			viewDetails: string;
+			connectionUrl: string;
+			copyUrl: string;
+			urlCopied: string;
+			ttl: string;
+			expiresAt: string;
+			startedAt: string;
+			stoppedAt: string;
+			errorMessage: string;
+			showStopped: string;
+			status: {
+				pending: string;
+				starting: string;
+				running: string;
+				stopping: string;
+				stopped: string;
+				failed: string;
+			};
+			columns: {
+				server: string;
+				status: string;
+				connectionUrl: string;
+				expiresAt: string;
+				actions: string;
+			};
+		};
+		createDialog: {
+			title: string;
+			description: string;
+			selectServer: string;
+			selectServerPlaceholder: string;
+			mapSecrets: string;
+			mapSecretsDescription: string;
+			secretMapping: string;
+			selectSecret: string;
+			noSecretsAvailable: string;
+			configureEnvVars: string;
+			configureEnvVarsDescription: string;
+			setTtl: string;
+			ttlHours: string;
+			ttlDescription: string;
+			maxTtlNote: string;
+			creating: string;
+			created: string;
+			createFailed: string;
+		};
+		stopDialog: {
+			title: string;
+			description: string;
+			stopping: string;
+			stopped: string;
+			stopFailed: string;
+		};
+		extendDialog: {
+			title: string;
+			description: string;
+			additionalHours: string;
+			newExpiresAt: string;
+			extending: string;
+			extended: string;
+			extendFailed: string;
+		};
+		logs: {
+			title: string;
+			noLogs: string;
+			refreshLogs: string;
+			autoRefresh: string;
+			downloadLogs: string;
+		};
+		limits: {
+			mcpDisabled: string;
+			maxConcurrent: string;
+			maxTtl: string;
+			allowedServers: string;
+			upgradeRequired: string;
+		};
+	};
 }
 
 export const en: Translations = {
@@ -1425,6 +1589,8 @@ export const en: Translations = {
 		workspace: "Workspace",
 		navigation: "Navigation",
 		support: "Support",
+		secrets: "Secrets",
+		mcp: "MCP Servers",
 	},
 	chat: {
 		title: "Chat",
@@ -2800,6 +2966,168 @@ export const en: Translations = {
 			branding: "Branding",
 			support: "Support",
 			agent: "AI Agent",
+		},
+	},
+	secrets: {
+		title: "Secrets",
+		subtitle: "Manage your workspace secrets and API keys",
+		createSecret: "Create Secret",
+		editSecret: "Edit Secret",
+		deleteSecret: "Delete Secret",
+		deleteSecretConfirm: "Are you sure you want to delete this secret? This action cannot be undone.",
+		secretName: "Name",
+		secretNamePlaceholder: "API_KEY",
+		secretValue: "Value",
+		secretValuePlaceholder: "Enter secret value",
+		secretDescription: "Description",
+		secretDescriptionPlaceholder: "Describe what this secret is used for",
+		secretCreated: "Secret created successfully",
+		secretUpdated: "Secret updated successfully",
+		secretDeleted: "Secret deleted successfully",
+		secretCreateFailed: "Failed to create secret",
+		secretUpdateFailed: "Failed to update secret",
+		secretDeleteFailed: "Failed to delete secret",
+		noSecrets: "No secrets yet",
+		noSecretsDescription: "Create your first secret to store sensitive information securely",
+		showValue: "Show value",
+		hideValue: "Hide value",
+		copyValue: "Copy value",
+		valueCopied: "Secret value copied to clipboard",
+		masked: "••••••••",
+		searchPlaceholder: "Search secrets...",
+		tooltips: {
+			name: "A unique identifier for this secret (e.g., API_KEY, DATABASE_URL)",
+			value: "The secret value that will be stored securely in Vault",
+			description: "Optional description to help identify the purpose of this secret",
+		},
+	},
+	mcp: {
+		title: "MCP Servers",
+		subtitle: "Launch and manage Model Context Protocol servers for AI integrations",
+		tabs: {
+			documentation: "Documentation",
+			servers: "Available Servers",
+			instances: "Active Instances",
+		},
+		documentation: {
+			title: "Getting Started with MCP",
+			whatIsMcp: "What is MCP?",
+			whatIsMcpDescription: "Model Context Protocol (MCP) is an open standard that enables AI assistants to securely connect to external tools and data sources. MCP servers provide additional capabilities to AI models, allowing them to interact with APIs, databases, and other services.",
+			howItWorks: "How it works",
+			howItWorksDescription: "Each MCP server runs in an isolated container with its own connection URL. You can launch servers on-demand, configure them with your secrets, and connect them to compatible AI tools like Claude, Cursor, or other MCP clients.",
+			gettingStarted: "Getting Started",
+			gettingStartedSteps: {
+				step1: "Create secrets for the required API keys and credentials",
+				step2: "Select an MCP server and map your secrets to it",
+				step3: "Launch the server and copy the connection URL",
+				step4: "Add the connection URL to your MCP client configuration",
+			},
+			connecting: "Connecting to MCP Servers",
+			connectingDescription: "Once your server is running, use the connection URL with your MCP client. The URL uses Server-Sent Events (SSE) or WebSocket protocol depending on the server type.",
+			useCases: "Use Cases",
+			useCasesItems: {
+				automation: "Automate workflows by connecting AI to external APIs",
+				integration: "Integrate AI with messaging platforms like Telegram or Slack",
+				development: "Enhance development workflows with AI-powered tools",
+			},
+		},
+		servers: {
+			title: "Available Servers",
+			noServers: "No servers available",
+			noServersDescription: "No MCP servers are currently configured. Contact your administrator to add servers.",
+			requiredSecrets: "Required Secrets",
+			optionalEnvVars: "Optional Settings",
+			maxTtl: "Max TTL",
+			protocol: "Protocol",
+			launchServer: "Launch Server",
+			resourceLimits: "Resource Limits",
+			memory: "Memory",
+			cpu: "CPU",
+			searchPlaceholder: "Search servers...",
+		},
+		instances: {
+			title: "Active Instances",
+			noInstances: "No active instances",
+			noInstancesDescription: "Launch an MCP server from the Available Servers tab to get started.",
+			createInstance: "Create Instance",
+			stopInstance: "Stop Instance",
+			extendInstance: "Extend TTL",
+			viewLogs: "View Logs",
+			viewDetails: "View Details",
+			connectionUrl: "Connection URL",
+			copyUrl: "Copy URL",
+			urlCopied: "Connection URL copied to clipboard",
+			ttl: "TTL",
+			expiresAt: "Expires At",
+			startedAt: "Started At",
+			stoppedAt: "Stopped At",
+			errorMessage: "Error",
+			showStopped: "Show stopped",
+			status: {
+				pending: "Pending",
+				starting: "Starting",
+				running: "Running",
+				stopping: "Stopping",
+				stopped: "Stopped",
+				failed: "Failed",
+			},
+			columns: {
+				server: "Server",
+				status: "Status",
+				connectionUrl: "Connection URL",
+				expiresAt: "Expires At",
+				actions: "Actions",
+			},
+		},
+		createDialog: {
+			title: "Launch MCP Server",
+			description: "Configure and launch a new MCP server instance",
+			selectServer: "Select Server",
+			selectServerPlaceholder: "Choose a server to launch",
+			mapSecrets: "Map Secrets",
+			mapSecretsDescription: "Map your workspace secrets to the required environment variables",
+			secretMapping: "Secret Mapping",
+			selectSecret: "Select a secret",
+			noSecretsAvailable: "No matching secrets found. Create secrets first.",
+			configureEnvVars: "Optional Settings",
+			configureEnvVarsDescription: "Configure optional environment variables",
+			setTtl: "Set TTL",
+			ttlHours: "hours",
+			ttlDescription: "How long the server should run before automatically stopping",
+			maxTtlNote: "Maximum TTL for this server: {hours} hours",
+			creating: "Launching server...",
+			created: "Server launched successfully",
+			createFailed: "Failed to launch server",
+		},
+		stopDialog: {
+			title: "Stop Instance",
+			description: "Are you sure you want to stop this MCP server instance? This action cannot be undone.",
+			stopping: "Stopping...",
+			stopped: "Instance stopped successfully",
+			stopFailed: "Failed to stop instance",
+		},
+		extendDialog: {
+			title: "Extend TTL",
+			description: "Extend the running time of this MCP server instance",
+			additionalHours: "Additional Hours",
+			newExpiresAt: "New Expiration",
+			extending: "Extending...",
+			extended: "TTL extended successfully",
+			extendFailed: "Failed to extend TTL",
+		},
+		logs: {
+			title: "Instance Logs",
+			noLogs: "No logs available",
+			refreshLogs: "Refresh Logs",
+			autoRefresh: "Auto-refresh",
+			downloadLogs: "Download Logs",
+		},
+		limits: {
+			mcpDisabled: "MCP servers are not available on your current plan",
+			maxConcurrent: "Maximum concurrent servers: {count}",
+			maxTtl: "Maximum TTL: {hours} hours",
+			allowedServers: "Allowed servers: {servers}",
+			upgradeRequired: "Upgrade your plan to access MCP servers",
 		},
 	},
 };

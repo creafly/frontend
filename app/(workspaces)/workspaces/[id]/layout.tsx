@@ -32,6 +32,8 @@ import {
 	IconPalette,
 	IconCloud,
 	IconHeadset,
+	IconKey,
+	IconServer,
 } from "@tabler/icons-react";
 import { Icon } from "@/components/typography";
 import {
@@ -138,6 +140,16 @@ export default function WorkspaceDashboardLayout({ children }: { children: React
 			title: t.nav.storage,
 			href: `${basePath}/storage`,
 			icon: IconCloud,
+		},
+		{
+			title: t.nav.secrets,
+			href: `${basePath}/secrets`,
+			icon: IconKey,
+		},
+		{
+			title: t.nav.mcp,
+			href: `${basePath}/mcp`,
+			icon: IconServer,
 		},
 		{
 			title: t.nav.support,

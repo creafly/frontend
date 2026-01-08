@@ -585,7 +585,9 @@ export interface ClaimsListResponse {
 
 export type RoleClaimsResponse = Claim[];
 
-export type UserRolesResponse = Role[];
+export interface UserRolesResponse {
+	roles: Role[];
+}
 
 export type UserClaimsResponse = Claim[];
 
@@ -790,3 +792,4 @@ export interface MessageSingleResponse {
 }
 
 export * from "./jobs";
+export * from "./secrets";

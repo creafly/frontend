@@ -284,7 +284,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 
 	useEffect(() => {
 		if (memberRolesData && selectedMember) {
-			setSelectedRoleIds(new Set(memberRolesData.map((r) => r.id)));
+			setSelectedRoleIds(new Set(memberRolesData.roles.map((r) => r.id)));
 		}
 	}, [memberRolesData, selectedMember]);
 
@@ -462,7 +462,7 @@ export default function WorkspaceSettingsPage({ params }: { params: Promise<{ id
 		setIsSaving(true);
 
 		try {
-			const currentIds = new Set(memberRolesData?.map((r) => r.id) || []);
+			const currentIds = new Set(memberRolesData?.roles?.map((r) => r.id) || []);
 			const toAssign = Array.from(selectedRoleIds).filter((id) => !currentIds.has(id));
 			const toRemove = Array.from(currentIds).filter((id) => !selectedRoleIds.has(id));
 
