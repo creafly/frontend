@@ -13,7 +13,7 @@ env:
 jobs:
   test:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
 
     steps:
       - name: Checkout code
@@ -42,7 +42,7 @@ jobs:
 
   build:
     name: Build & Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
@@ -137,7 +137,7 @@ jobs:
 
   deploy:
     name: Deploy to Production
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, small]
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     
