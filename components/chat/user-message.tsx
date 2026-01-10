@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/providers/i18n-provider";
 import { Icon } from "@/components/typography";
-import { IconFile, IconPhoto } from "@tabler/icons-react";
+import { IconFile } from "@tabler/icons-react";
 import type { Attachment } from "@/types";
 
 interface UserMessageProps {

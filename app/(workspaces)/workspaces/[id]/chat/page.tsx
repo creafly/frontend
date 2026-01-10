@@ -469,7 +469,7 @@ const handleSaveTemplate = async (message: Message) => {
 		}
 	};
 
-	const handleSaveMediaToStorage = async (
+	const handleSaveMediaToStorage = useCallback(async (
 		mediaUrl: string,
 		prompt: string,
 		mediaType: "image" | "video"
@@ -489,7 +489,7 @@ const handleSaveTemplate = async (message: Message) => {
 			.replace(/[^a-zA-Z0-9\s-]/g, "")
 			.replace(/\s+/g, "-")
 			.toLowerCase();
-		const timestamp = Date.now();
+		const timestamp = new Date().getTime();
 		const extension = mediaType === "image" ? "png" : "mp4";
 		const fileName = `${sanitizedPrompt || mediaType}-${timestamp}.${extension}`;
 
@@ -504,7 +504,7 @@ const handleSaveTemplate = async (message: Message) => {
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : t.storage.saveToStorageFailed);
 		}
-	};
+	}, [tenantId, t.storage.saveToStorageFailed, t.storage.savedToStorage, uploadFromUrl]);
 
 	const handleChatInputSubmit = async (
 		inputText: string,

@@ -57,14 +57,12 @@ export function FileUploadMockup({ isActive }: FileUploadMockupProps) {
 	const [uploadProgress, setUploadProgress] = useState(0);
 	const [completedFiles, setCompletedFiles] = useState<number[]>([]);
 	const [breadcrumb, setBreadcrumb] = useState<BreadcrumbItem[]>([]);
-	const [showUploadArea, setShowUploadArea] = useState(false);
 
 	const resetDemo = useCallback(() => {
 		setPhase("idle");
 		setUploadProgress(0);
 		setCompletedFiles([]);
 		setBreadcrumb([]);
-		setShowUploadArea(false);
 	}, []);
 
 	useEffect(() => {
@@ -92,7 +90,6 @@ export function FileUploadMockup({ isActive }: FileUploadMockupProps) {
 		}, 1200);
 
 		const timer3 = setTimeout(() => {
-			setShowUploadArea(true);
 			setPhase("hovering");
 		}, 1800);
 

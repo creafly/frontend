@@ -233,6 +233,7 @@ export function useGenerationJob(options: UseGenerationJobOptions = {}): UseGene
 			onComplete,
 			onError,
 			onCancelled,
+			onAgentEvent,
 		]
 	);
 

@@ -104,7 +104,7 @@ export function ChatDemoMockup({
 	aiSummary = DEFAULT_AI_SUMMARY,
 	emailSubject = DEFAULT_EMAIL_SUBJECT,
 	emailHtml = DEFAULT_EMAIL_HTML,
-	generatingText = "Generating response...",
+	generatingText: _generatingText = "Generating response...",
 	inputPlaceholder = "Describe the email you want to create...",
 	saveButtonText = "Save & Edit",
 	emptyStateTitle = "What can I help you with?",
@@ -167,7 +167,9 @@ export function ChatDemoMockup({
 	useEffect(() => {
 		if (phase !== "generating") return;
 
-		setAgentSteps([{ ...AGENT_STEPS[0], status: "in_progress" }]);
+		const initTimer = setTimeout(() => {
+			setAgentSteps([{ ...AGENT_STEPS[0], status: "in_progress" }]);
+		}, 0);
 
 		const stepIntervals: NodeJS.Timeout[] = [];
 
@@ -194,6 +196,7 @@ export function ChatDemoMockup({
 		}, AGENT_STEPS.length * 600);
 
 		return () => {
+			clearTimeout(initTimer);
 			stepIntervals.forEach(clearTimeout);
 			clearTimeout(completeTimer);
 		};

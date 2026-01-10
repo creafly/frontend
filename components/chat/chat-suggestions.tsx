@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon, TypographyMuted } from "@/components/typography";
+import { Icon } from "@/components/typography";
 import { IconMail, IconLock, IconNews, IconShoppingCart, IconPhoto, IconVideo, IconSparkles, IconPalette, IconMovie, IconBrandInstagram } from "@tabler/icons-react";
 import { useTranslations } from "@/providers/i18n-provider";
 import type { ContentType } from "@/types";

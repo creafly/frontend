@@ -33,7 +33,6 @@ import {
 	IconLayoutSidebarRight,
 	IconSparkles,
 	IconMenu2,
-	IconX,
 } from "@tabler/icons-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";

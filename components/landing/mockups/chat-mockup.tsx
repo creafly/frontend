@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
 	IconSend,
@@ -71,8 +71,6 @@ export function ChatMockup({ isActive }: ChatMockupProps) {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [displayedResponse, setDisplayedResponse] = useState("");
 	const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
-	const [currentStepIndex, setCurrentStepIndex] = useState(0);
-	const chatContainerRef = useRef<HTMLDivElement>(null);
 
 	const resetDemo = useCallback(() => {
 		setPhase("idle");
@@ -80,7 +78,6 @@ export function ChatMockup({ isActive }: ChatMockupProps) {
 		setMessages([]);
 		setDisplayedResponse("");
 		setAgentSteps([]);
-		setCurrentStepIndex(0);
 	}, []);
 
 	useEffect(() => {
@@ -125,8 +122,9 @@ export function ChatMockup({ isActive }: ChatMockupProps) {
 	useEffect(() => {
 		if (phase !== "generating") return;
 
-		setAgentSteps([{ ...AGENT_STEPS[0], status: "in_progress" }]);
-		setCurrentStepIndex(0);
+		const initTimer = setTimeout(() => {
+			setAgentSteps([{ ...AGENT_STEPS[0], status: "in_progress" }]);
+		}, 0);
 
 		const stepIntervals: NodeJS.Timeout[] = [];
 
@@ -140,7 +138,6 @@ export function ChatMockup({ isActive }: ChatMockupProps) {
 					);
 					return [...updated, { ...step, status: "in_progress" as const }];
 				});
-				setCurrentStepIndex(index);
 			}, index * 700);
 
 			stepIntervals.push(timeout);
@@ -154,6 +151,7 @@ export function ChatMockup({ isActive }: ChatMockupProps) {
 		}, AGENT_STEPS.length * 700);
 
 		return () => {
+			clearTimeout(initTimer);
 			stepIntervals.forEach(clearTimeout);
 			clearTimeout(completeTimer);
 		};
@@ -187,11 +185,16 @@ export function ChatMockup({ isActive }: ChatMockupProps) {
 	useEffect(() => {
 		if (phase !== "showing-email") return;
 
-		setMessages((prev) =>
-			prev.map((m) => (m.id === "2" ? { ...m, isEmail: true } : m))
-		);
-		const timer = setTimeout(() => setPhase("complete"), 3000);
-		return () => clearTimeout(timer);
+		const timer = setTimeout(() => {
+			setMessages((prev) =>
+				prev.map((m) => (m.id === "2" ? { ...m, isEmail: true } : m))
+			);
+		}, 0);
+		const phaseTimer = setTimeout(() => setPhase("complete"), 3000);
+		return () => {
+			clearTimeout(timer);
+			clearTimeout(phaseTimer);
+		};
 	}, [phase]);
 
 	useEffect(() => {
