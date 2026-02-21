@@ -409,6 +409,8 @@ export interface Translations {
 			resendFailed: string;
 			useAnotherAccount: string;
 		};
+		suspiciousActivityWarning: string;
+		suspiciousActivityBlocked: string;
 	};
 	landing: {
 		badge: string;
@@ -1957,6 +1959,8 @@ export const en: Translations = {
 			resendFailed: "Failed to resend verification code. Please try again.",
 			useAnotherAccount: "Use a different account",
 		},
+		suspiciousActivityWarning: "We detected unusual activity on your account. Please verify your identity with two-factor authentication.",
+		suspiciousActivityBlocked: "Access blocked due to suspicious activity. Please contact support if you believe this is an error.",
 	},
 	landing: {
 		badge: "AI-Powered Email Templates",

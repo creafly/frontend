@@ -476,6 +476,8 @@ export interface AuthResponse {
 	totpRequired?: boolean;
 	tempToken?: string;
 	error?: string;
+	anomalyDetected?: boolean;
+	message?: string;
 }
 
 export interface LoginVerifyTOTPRequest {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { IconShieldCheck } from "@tabler/icons-react";
+import { IconShieldCheck, IconAlertTriangle } from "@tabler/icons-react";
 import { Icon, TypographyH1 } from "@/components/typography";
 import { useAuth } from "@/providers/auth-provider";
 import { useTranslations } from "@/providers/i18n-provider";
@@ -23,6 +23,7 @@ import {
 	FieldLabelWithTooltip,
 } from "@/components/ui/field";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type LoginFormFields = "email" | "password" | "code";
 
@@ -41,6 +42,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 	const [showTOTP, setShowTOTP] = useState(false);
 	const [tempToken, setTempToken] = useState("");
 	const [totpCode, setTotpCode] = useState("");
+	const [anomalyDetected, setAnomalyDetected] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -59,6 +61,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 			if (result.totpRequired && result.tempToken) {
 				setTempToken(result.tempToken);
 				setShowTOTP(true);
+				setAnomalyDetected(result.anomalyDetected || false);
 				setIsLoading(false);
 				return;
 			}
@@ -101,6 +104,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 		setShowTOTP(false);
 		setTempToken("");
 		setTotpCode("");
+		setAnomalyDetected(false);
 		clearAllErrors();
 	};
 
@@ -116,6 +120,13 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 							<TypographyH1 size="xs">{t.auth.twoFactorAuth}</TypographyH1>
 							<FieldDescription>{t.auth.enterTotpCode}</FieldDescription>
 						</div>
+
+						{anomalyDetected && (
+							<Alert variant="warning">
+								<IconAlertTriangle className="size-4" />
+								<AlertDescription>{t.auth.suspiciousActivityWarning}</AlertDescription>
+							</Alert>
+						)}
 
 						<Field data-invalid={!!fieldErrors.code} className="flex flex-col items-center">
 							<InputOTP

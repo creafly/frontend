@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { WorkspacesLayoutWrapper } from "@/components/workspaces/workspaces-layout-wrapper";
+// import { WorkspacesLayoutWrapper } from "@/components/workspaces/workspaces-layout-wrapper";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
 	title: {
@@ -12,6 +13,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function WorkspacesLayout({ children }: { children: React.ReactNode }) {
-	return <WorkspacesLayoutWrapper>{children}</WorkspacesLayoutWrapper>;
+export default function WorkspacesLayout() {
+// { children }: { children: React.ReactNode }
+	return redirect("/");
+	// return <WorkspacesLayoutWrapper>{children}</WorkspacesLayoutWrapper>;
 }

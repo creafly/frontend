@@ -123,19 +123,32 @@ export async function fetchWithRetry<T>(url: string, options?: FetchOptions): Pr
 					continue;
 				}
 
-				if (data.code === "USER_BLOCKED" && data.isBlocked) {
-					if (typeof window !== "undefined") {
-						window.dispatchEvent(
-							new CustomEvent("api-error", {
-								detail: {
-									code: data.code,
-									isBlocked: data.isBlocked,
-									blockReason: data.blockReason,
-								},
-							})
-						);
-					}
+			if (data.code === "USER_BLOCKED" && data.isBlocked) {
+				if (typeof window !== "undefined") {
+					window.dispatchEvent(
+						new CustomEvent("api-error", {
+							detail: {
+								code: data.code,
+								isBlocked: data.isBlocked,
+								blockReason: data.blockReason,
+							},
+						})
+					);
 				}
+			}
+
+			if (data.code === "ANOMALY_DETECTED") {
+				if (typeof window !== "undefined") {
+					window.dispatchEvent(
+						new CustomEvent("api-error", {
+							detail: {
+								code: data.code,
+								message: data.error || data.message,
+							},
+						})
+					);
+				}
+			}
 
 				throw new ApiError(response.status, data.error, data.code, data);
 			}

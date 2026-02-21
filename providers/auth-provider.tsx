@@ -26,6 +26,8 @@ interface LoginResult {
 	success: boolean;
 	totpRequired?: boolean;
 	tempToken?: string;
+	anomalyDetected?: boolean;
+	anomalyMessage?: string;
 }
 
 interface AuthContextValue extends AuthState {
@@ -167,6 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					success: false,
 					totpRequired: true,
 					tempToken: response.tempToken,
+					anomalyDetected: response.anomalyDetected,
+					anomalyMessage: response.message,
 				};
 			}
 

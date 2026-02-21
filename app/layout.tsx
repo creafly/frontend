@@ -8,11 +8,11 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { BlockedUserProvider } from "@/providers/blocked-user-provider";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { TenantPermissionsProvider } from "@/providers/tenant-permissions-provider";
-import { CookieConsentProvider } from "@/providers/cookie-consent-provider";
+// import { CookieConsentProvider } from "@/providers/cookie-consent-provider";
 import { ServerErrorProvider } from "@/providers/server-error-provider";
 import { FeatureFlagsProvider } from "@/providers/feature-flags-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { CookieBanner } from "@/components/cookie-banner";
+// import { CookieBanner } from "@/components/cookie-banner";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -120,13 +120,13 @@ export default function RootLayout({
 									<TenantPermissionsProvider>
 										<I18nProvider>
 											<BlockedUserProvider>
-												<CookieConsentProvider>
-													<ServerErrorProvider>
-														{children}
-														<CookieBanner />
-														<Toaster />
-													</ServerErrorProvider>
-												</CookieConsentProvider>
+												{/* <CookieConsentProvider> */}
+												<ServerErrorProvider>
+													{children}
+													{/* <CookieBanner /> */}
+													<Toaster />
+												</ServerErrorProvider>
+												{/* </CookieConsentProvider> */}
 											</BlockedUserProvider>
 										</I18nProvider>
 									</TenantPermissionsProvider>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-// import { AuthLayoutWrapper } from "@/components/auth/auth-layout-wrapper";
 
 export const metadata: Metadata = {
 	robots: {
@@ -9,8 +8,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function AuthLayout() {
+export default function VerifyEmailLayout() {
 	// { children }: { children: React.ReactNode }
 	return redirect("/");
-	// return <AuthLayoutWrapper>{children}</AuthLayoutWrapper>;
+	// return {children};
 }

@@ -220,9 +220,17 @@ export default function StatusPage() {
 								<CardContent className="py-6 text-center">
 									<Icon icon={IconAlertTriangleFilled} size="2xl" className="text-warning mx-auto mb-4" />
 									<TypographyMuted>{error}</TypographyMuted>
-									<Button variant="outline" className="mt-4" onClick={() => fetchStatus(true)}>
-										{t.support.tryAgain}
-									</Button>
+								<Button
+									variant="outline"
+									className="mt-4"
+									onClick={() => fetchStatus(true)}
+									disabled={isRefreshing}
+								>
+									{isRefreshing ? (
+										<Icon icon={IconRefresh} className="mr-2 animate-spin" />
+									) : null}
+									{t.support.tryAgain}
+								</Button>
 								</CardContent>
 							</Card>
 						) : systemStatus ? (

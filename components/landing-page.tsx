@@ -6,7 +6,7 @@ import {
 	LandingHero,
 	LandingFeatures,
 	LandingHowItWorks,
-	LandingTestimonials,
+	// LandingTestimonials,
 	LandingCTA,
 	LandingFooter,
 } from "@/components/landing";
@@ -21,7 +21,7 @@ export function LandingPage() {
 			<LandingHero />
 			<LandingFeatures />
 			<LandingHowItWorks />
-			<LandingTestimonials />
+			{/* <LandingTestimonials /> */}
 			<LandingCTA />
 			<LandingFooter />
 		</div>

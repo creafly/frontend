@@ -20,24 +20,24 @@ export function LandingFooter() {
 	const t = useTranslations();
 
 	const footerSections: FooterSection[] = [
-		{
-			title: t.landing.footerProduct,
-			links: [
-				{ label: t.landing.getStarted, href: "/register" },
-				{ label: t.landing.signIn, href: "/login" },
-			],
-		},
-		{
-			title: t.landing.footerResources,
-			links: [{ label: t.landing.footerStatus, href: "/status" }],
-		},
-		{
-			title: t.landing.footerLegal,
-			links: [
-				{ label: t.auth.termsLink, href: "/terms" },
-				{ label: t.auth.privacyLink, href: "/privacy" },
-			],
-		},
+		// {
+		// 	title: t.landing.footerProduct,
+		// 	links: [
+		// 		{ label: t.landing.getStarted, href: "/register" },
+		// 		{ label: t.landing.signIn, href: "/login" },
+		// 	],
+		// },
+		// {
+		// 	title: t.landing.footerResources,
+		// 	links: [{ label: t.landing.footerStatus, href: "/status" }],
+		// },
+		// {
+		// 	title: t.landing.footerLegal,
+		// 	links: [
+		// 		{ label: t.auth.termsLink, href: "/terms" },
+		// 		{ label: t.auth.privacyLink, href: "/privacy" },
+		// 	],
+		// },
 	];
 
 	return (
@@ -45,10 +45,7 @@ export function LandingFooter() {
 			<Container className="py-0">
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 					<div className="flex flex-col gap-3">
-						<Link
-							href="/"
-							className="flex items-center gap-2 transition-opacity hover:opacity-70"
-						>
+						<Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-70">
 							<Image src="/logo.svg" alt="Creafly" width={24} height={24} />
 							<span className="font-semibold">{t.landing.footer}</span>
 						</Link>

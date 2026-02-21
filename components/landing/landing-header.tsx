@@ -20,7 +20,7 @@ export function LandingHeader() {
 	const navItems: NavItem[] = [
 		{ label: t.landing.navFeatures, href: "#features" },
 		{ label: t.landing.navHowItWorks, href: "#how-it-works" },
-		{ label: t.landing.testimonials, href: "#testimonials" },
+		// { label: t.landing.testimonials, href: "#testimonials" },
 	];
 
 	const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -45,10 +45,7 @@ export function LandingHeader() {
 			<Container className="py-0">
 				<div className="flex h-14 items-center justify-between">
 					<div className="flex items-center gap-8">
-						<Link
-							href="/"
-							className="flex items-center gap-2 transition-opacity hover:opacity-70"
-						>
+						<Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-70">
 							<Image src="/logo.svg" alt="Creafly" width={28} height={28} />
 							<TypographyH4 size="sm" className="font-semibold">
 								{t.landing.footer}
